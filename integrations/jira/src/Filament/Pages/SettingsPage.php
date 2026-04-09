@@ -2,9 +2,11 @@
 
 namespace Timatic\Jira\Filament\Pages;
 
+use App\Filament\Actions\GenerateShareLinkAction;
 use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Models\Integration;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Navigation\NavigationItem;
@@ -123,15 +125,19 @@ class SettingsPage extends Page
         $isPending = $this->isPendingSiteSelection($config);
 
         return [
-            Action::make('disconnect')
-                ->label(__('jira::jira.common.action_disconnect'))
-                ->color('danger')
-                ->requiresConfirmation()
-                ->action(function (): void {
-                    app(OAuthService::class)->disconnect($this->getIntegration());
-                    $this->redirect(static::getUrl(['record' => $this->getRecord()]));
-                })
-                ->visible($this->isConnected($config) || $isPending),
+            ActionGroup::make([
+                GenerateShareLinkAction::make('jira::jira', 'jira.delegate.show'),
+
+                Action::make('disconnect')
+                    ->label(__('jira::jira.common.action_disconnect'))
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->action(function (): void {
+                        app(OAuthService::class)->disconnect($this->getIntegration());
+                        $this->redirect(static::getUrl(['record' => $this->getRecord()]));
+                    })
+                    ->visible($this->isConnected($config) || $isPending),
+            ]),
 
             Action::make('connect')
                 ->label(__('jira::jira.settings.action_connect'))

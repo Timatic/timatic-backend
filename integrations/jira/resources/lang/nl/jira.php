@@ -35,6 +35,8 @@ return [
         'field_select_site' => 'Jira omgeving',
         'notification_connected' => 'Verbonden met Jira.',
         'notification_select_site_required' => 'Selecteer een Jira omgeving.',
+        'action_share_link' => 'Deel koppellink',
+        'share_link_field_label' => 'Koppellink (1 week geldig)',
     ],
 
     'project_mapping' => [

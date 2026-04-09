@@ -13,25 +13,16 @@ class GetWorkspacesRequest extends Request
 
     public function resolveEndpoint(): string
     {
-        return '/workspaces';
-    }
-
-    protected function defaultQuery(): array
-    {
-        return [
-            'pagelen' => 100,
-            'fields' => 'values.slug,values.name',
-            'sort' => 'name',
-        ];
+        return '/user/workspaces';
     }
 
     /** @return array<int, BitbucketWorkspace> */
     public function createDtoFromResponse(Response $response): array
     {
         return array_map(
-            fn (array $workspace) => new BitbucketWorkspace(
-                slug: $workspace['slug'] ?? '',
-                name: $workspace['name'] ?? '',
+            fn (array $permission) => new BitbucketWorkspace(
+                slug: $permission['workspace']['slug'] ?? '',
+                isAdministrator: $permission['administrator'] ?? false,
             ),
             $response->json('values') ?? [],
         );

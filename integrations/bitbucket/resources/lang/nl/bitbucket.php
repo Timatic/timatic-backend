@@ -36,6 +36,8 @@ return [
         'action_install_webhook' => 'Webhook installeren',
         'action_choose_workspace' => 'Workspace kiezen',
         'action_connect' => 'Verbinden met Bitbucket',
+        'action_share_link' => 'Deel koppellink',
+        'share_link_field_label' => 'Koppellink (1 week geldig)',
         'workspace_select_label' => 'Workspace',
         'notification_webhook_deleted' => 'Webhook verwijderd.',
         'notification_webhook_installed' => 'Webhook geïnstalleerd.',

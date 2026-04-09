@@ -6,6 +6,6 @@ readonly class BitbucketWorkspace
 {
     public function __construct(
         public string $slug,
-        public string $name,
+        public bool $isAdministrator,
     ) {}
 }

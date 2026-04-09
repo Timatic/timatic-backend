@@ -2,9 +2,11 @@
 
 namespace Timatic\Bitbucket\Filament\Pages;
 
+use App\Filament\Actions\GenerateShareLinkAction;
 use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Models\Integration;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Navigation\NavigationItem;
@@ -126,45 +128,49 @@ class SettingsPage extends Page
         $config = $this->getRecord()->config ?? [];
 
         return [
-            Action::make('disconnect')
-                ->label(__('bitbucket::bitbucket.common.action_disconnect'))
-                ->color('danger')
-                ->requiresConfirmation()
-                ->action(fn () => app(OAuthService::class)->disconnect($this->getIntegration()))
-                ->visible($this->hasWorkspace($config)),
+            ActionGroup::make([
+                GenerateShareLinkAction::make('bitbucket::bitbucket', 'bitbucket.delegate.show'),
 
-            Action::make('delete_webhook')
-                ->label(__('bitbucket::bitbucket.settings.action_delete_webhook'))
-                ->color('danger')
-                ->requiresConfirmation()
-                ->action(function (): void {
-                    $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
-                    $config = $integration->config ?? [];
+                Action::make('disconnect')
+                    ->label(__('bitbucket::bitbucket.common.action_disconnect'))
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->action(fn () => app(OAuthService::class)->disconnect($this->getIntegration()))
+                    ->visible($this->hasWorkspace($config)),
 
-                    $response = (new Connector($config))
-                        ->send(new DeleteWorkspaceWebhookRequest(
-                            $config['workspace'],
-                            $config['webhook_uuid'],
-                        ));
+                Action::make('delete_webhook')
+                    ->label(__('bitbucket::bitbucket.settings.action_delete_webhook'))
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->action(function (): void {
+                        $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
+                        $config = $integration->config ?? [];
 
-                    if ($response->successful()) {
-                        $integration->update([
-                            'config' => array_diff_key($config, array_flip(['webhook_uuid', 'webhook_secret'])),
-                        ]);
+                        $response = new Connector($config)
+                            ->send(new DeleteWorkspaceWebhookRequest(
+                                $config['workspace'],
+                                $config['webhook_uuid'],
+                            ));
 
-                        session()->flash('bitbucket_success', __('bitbucket::bitbucket.settings.notification_webhook_deleted'));
-                        $this->redirect(static::getUrl(['record' => $this->getRecord()]));
-                    } else {
-                        $error = $response->json('error.message') ?? $response->json('error') ?? $response->body();
-                        Notification::make()
-                            ->title(__('bitbucket::bitbucket.settings.notification_delete_webhook_failed', ['status' => $response->status()]))
-                            ->body(is_string($error) ? mb_substr($error, 0, 300) : null)
-                            ->danger()
-                            ->persistent()
-                            ->send();
-                    }
-                })
-                ->visible($this->hasWebhook($config)),
+                        if ($response->successful()) {
+                            $integration->update([
+                                'config' => array_diff_key($config, array_flip(['webhook_uuid', 'webhook_secret'])),
+                            ]);
+
+                            session()->flash('bitbucket_success', __('bitbucket::bitbucket.settings.notification_webhook_deleted'));
+                            $this->redirect(static::getUrl(['record' => $this->getRecord()]));
+                        } else {
+                            $error = $response->json('error.message') ?? $response->json('error') ?? $response->body();
+                            Notification::make()
+                                ->title(__('bitbucket::bitbucket.settings.notification_delete_webhook_failed', ['status' => $response->status()]))
+                                ->body(is_string($error) ? mb_substr($error, 0, 300) : null)
+                                ->danger()
+                                ->persistent()
+                                ->send();
+                        }
+                    })
+                    ->visible($this->hasWebhook($config)),
+            ]),
 
             Action::make('install_webhook')
                 ->label(__('bitbucket::bitbucket.settings.action_install_webhook'))
@@ -173,18 +179,17 @@ class SettingsPage extends Page
                     $config = $integration->config ?? [];
                     $webhookUrl = rtrim(config('app.admin_url'), '/').'/integrations/bitbucket/webhook/'.$integration->id;
 
-                    $webhookSecret = $config['webhook_secret'] ?? Str::random(32);
+                    $config['webhook_secret'] ??= Str::random(32);
 
-                    if (! isset($config['webhook_secret'])) {
-                        $config['webhook_secret'] = $webhookSecret;
+                    if ($config !== ($integration->config ?? [])) {
                         $integration->update(['config' => $config]);
                     }
 
-                    $response = (new Connector($config))
+                    $response = new Connector($config)
                         ->send(new RegisterWorkspaceWebhookRequest(
                             $config['workspace'],
                             $webhookUrl,
-                            $webhookSecret,
+                            $config['webhook_secret'],
                         ));
 
                     if ($response->successful()) {
@@ -216,14 +221,14 @@ class SettingsPage extends Page
                         ->label(__('bitbucket::bitbucket.settings.workspace_select_label'))
                         ->options(function () {
                             $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
-                            $response = (new Connector($integration->config ?? []))
+                            $response = new Connector($integration->config ?? [])
                                 ->send(new GetWorkspacesRequest);
 
                             /** @var array<int, BitbucketWorkspace> $workspaces */
                             $workspaces = $response->dto() ?? [];
 
                             return collect($workspaces)
-                                ->mapWithKeys(fn (BitbucketWorkspace $w) => [$w->slug => $w->name]);
+                                ->mapWithKeys(fn (BitbucketWorkspace $w) => [$w->slug => $w->slug]);
                         })
                         ->searchable()
                         ->required(),
