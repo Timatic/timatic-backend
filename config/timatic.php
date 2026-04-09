@@ -3,7 +3,6 @@
 return [
     'tenant_slug' => env('TENANT_SLUG'),
     'tenant_name' => env('TENANT_NAME'),
-    'tenant_external_customer_id' => env('TENANT_EXTERNAL_CUSTOMER_ID'),
     'working_hours' => [
         'start' => '08:00',
         'end' => '18:00',

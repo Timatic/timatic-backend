@@ -5,6 +5,8 @@ namespace Timatic\Bitbucket\Http\Controllers;
 use App\Filament\Resources\Integrations\IntegrationResource;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Throwable;
 use Timatic\Bitbucket\Filament\Pages\SettingsPage;
 use Timatic\Bitbucket\OAuthService;
 
@@ -25,9 +27,19 @@ class CallbackController
                 $request->string('state'),
             );
 
+            $delegateToken = $integration->config['delegate_return_token'] ?? null;
+
+            if ($delegateToken !== null) {
+                $integration->update([
+                    'config' => Arr::except($integration->config ?? [], ['delegate_return_token']),
+                ]);
+
+                return redirect(route('bitbucket.delegate.show', $delegateToken).'?connected=1');
+            }
+
             return redirect(SettingsPage::getUrl(['record' => $integration->getKey()]))
                 ->with('bitbucket_success', 'Bitbucket verbinding succesvol.');
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return $this->redirectToSettings($integrationId)
                 ->with('bitbucket_error', 'Verbinding mislukt: '.$e->getMessage());
         }
