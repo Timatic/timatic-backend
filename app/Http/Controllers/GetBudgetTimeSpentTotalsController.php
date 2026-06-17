@@ -7,7 +7,7 @@ use App\Http\Resources\BudgetTimeSpentTotals as BudgetTimeSpentTotalsResource;
 use App\Services\TimeSpentTotalsService;
 use Dedoc\Scramble\Attributes\ExcludeRouteFromDocs;
 use Illuminate\Contracts\Config\Repository;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class GetBudgetTimeSpentTotalsController extends Controller
 {
@@ -16,7 +16,7 @@ class GetBudgetTimeSpentTotalsController extends Controller
         BudgetTimeSpentTotalsCollectionRequest $request,
         TimeSpentTotalsService $totalsService,
         Repository $config
-    ): JsonApiResourceCollection {
+    ): AnonymousResourceCollection {
         $unit = $request->input('periodUnit');
         $budgetId = $request->input('filter.budgetId');
 

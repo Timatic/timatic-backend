@@ -8,7 +8,7 @@ use App\Services\TimeSpentTotalsService;
 use Carbon\CarbonImmutable;
 use Dedoc\Scramble\Attributes\ExcludeRouteFromDocs;
 use Illuminate\Contracts\Config\Repository;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class GetTimeSpentTotalsController extends Controller
 {
@@ -17,7 +17,7 @@ class GetTimeSpentTotalsController extends Controller
         TimeSpentTotalsCollectionRequest $request,
         TimeSpentTotalsService $totalsService,
         Repository $config,
-    ): JsonApiResourceCollection {
+    ): AnonymousResourceCollection {
         $unit = $request->input('periodUnit');
         $startedAtStart = CarbonImmutable::parse($request->input('filter.startedAt.gte'))
             ->setTimezone($config->get('timatic.preferred_timezone'))

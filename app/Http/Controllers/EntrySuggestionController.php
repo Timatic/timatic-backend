@@ -9,12 +9,12 @@ use App\Models\User;
 use App\QueryFilters\DateFilterCallback;
 use Exception;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
 
 class EntrySuggestionController extends Controller implements HasMiddleware
 {
@@ -29,7 +29,7 @@ class EntrySuggestionController extends Controller implements HasMiddleware
         ];
     }
 
-    public function index(EntrySuggestionCollectionRequest $request): JsonApiResourceCollection
+    public function index(EntrySuggestionCollectionRequest $request): AnonymousResourceCollection
     {
         $query = EntrySuggestion::query();
 

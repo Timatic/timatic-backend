@@ -11,9 +11,9 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 use Illuminate\Support\Facades\Event;
 use Tests\Concerns\LoginUser;
-use TiMacDonald\JsonApi\JsonApiResource;
 
 uses(LoginUser::class);
 

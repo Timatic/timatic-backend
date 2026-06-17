@@ -14,6 +14,7 @@ use Exception;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -22,7 +23,6 @@ use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\AllowedInclude;
 use Spatie\QueryBuilder\QueryBuilder;
 use Throwable;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
 
 class BudgetController extends Controller implements HasMiddleware
 {
@@ -37,7 +37,7 @@ class BudgetController extends Controller implements HasMiddleware
         ];
     }
 
-    public function index(Request $request): JsonApiResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
         $budgets = QueryBuilder::for(Budget::class)
             ->allowedFilters([
