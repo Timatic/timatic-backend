@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
-use TiMacDonald\JsonApi\JsonApiResource;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /**
  * @mixin \App\DataTransferObjects\GitRepositoryMapping

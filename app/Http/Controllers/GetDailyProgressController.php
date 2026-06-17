@@ -10,15 +10,15 @@ use Dedoc\Scramble\Attributes\ExcludeRouteFromDocs;
 use Exception;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
 
 class GetDailyProgressController extends Controller
 {
     /**
-     * @return JsonApiResourceCollection
+     * @return AnonymousResourceCollection
      *
      * @throws Exception
      */

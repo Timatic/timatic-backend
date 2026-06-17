@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DataTransferObjects;
 
+use App\Http\Resources\Permission;
 use Exception;
 
 class DerivedPermission
@@ -22,5 +23,10 @@ class DerivedPermission
     public function getAttribute(string $name): string
     {
         return $this->$name ?? throw new Exception('Attribute does not exist');
+    }
+
+    public function toResource(?string $resourceClass = null): Permission
+    {
+        return new Permission($this);
     }
 }

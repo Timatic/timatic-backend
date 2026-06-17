@@ -4,13 +4,16 @@ namespace App\Http\Resources;
 
 use App\DataTransferObjects\BudgetTimeSpentTotal;
 use Illuminate\Http\Request;
-use TiMacDonald\JsonApi\JsonApiResource;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /**
  * @mixin BudgetTimeSpentTotal
  */
 class BudgetTimeSpentTotals extends JsonApiResource
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function toAttributes(Request $request): array
     {
         return [

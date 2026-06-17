@@ -3,13 +3,21 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
-use TiMacDonald\JsonApi\JsonApiResource;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /**
  * @mixin \App\Models\EntrySuggestion
  */
 class EntrySuggestion extends JsonApiResource
 {
+    public function toType(Request $request): string
+    {
+        return 'entrySuggestions';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function toAttributes(Request $request): array
     {
         return [

@@ -9,9 +9,9 @@ use App\QueryFilters\DateFilterCallback;
 use App\Services\UserCustomerHoursAggregateService;
 use Dedoc\Scramble\Attributes\ExcludeRouteFromDocs;
 use Illuminate\Database\DatabaseManager;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
 
 class GetUserCustomerHoursAggregatesController extends Controller
 {
@@ -20,7 +20,7 @@ class GetUserCustomerHoursAggregatesController extends Controller
         DatabaseManager $db,
         UserCustomerHoursAggregatesCollectionRequest $request,
         UserCustomerHoursAggregateService $aggregateService,
-    ): JsonApiResourceCollection {
+    ): AnonymousResourceCollection {
         $query = QueryBuilder::for(UserCustomerHoursRecord::class)
             ->allowedFilters([
                 AllowedFilter::callback('startedAt', DateFilterCallback::make('started_at')),

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Timatic\Jira\Http\Resources;
 
 use Illuminate\Http\Request;
-use TiMacDonald\JsonApi\JsonApiResource;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /**
  * @mixin \Timatic\Jira\Models\ProjectMapping

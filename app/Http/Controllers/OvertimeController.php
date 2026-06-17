@@ -13,12 +13,12 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Gate;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
 
 class OvertimeController extends Controller implements HasMiddleware
 {
@@ -29,7 +29,7 @@ class OvertimeController extends Controller implements HasMiddleware
         ];
     }
 
-    public function index(OvertimeCollectionRequest $request): JsonApiResourceCollection
+    public function index(OvertimeCollectionRequest $request): AnonymousResourceCollection
     {
         $query = Overtime::query()
             ->has('entry')

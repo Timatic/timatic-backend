@@ -16,7 +16,7 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class TrackedDomainController extends Controller implements HasMiddleware
 {
@@ -32,7 +32,7 @@ class TrackedDomainController extends Controller implements HasMiddleware
     /**
      * @param  User|ApiToken  $user
      */
-    public function index(#[CurrentUser] $user): JsonApiResourceCollection
+    public function index(#[CurrentUser] $user): AnonymousResourceCollection
     {
         $trackedDomains = QueryBuilder::for(TrackedDomain::query()->visibleTo($this->userId($user)))
             ->allowedFilters([

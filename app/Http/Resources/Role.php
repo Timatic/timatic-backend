@@ -3,7 +3,7 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
-use TiMacDonald\JsonApi\JsonApiResource;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /**
  * @mixin \Spatie\Permission\Models\Role

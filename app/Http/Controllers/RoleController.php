@@ -10,7 +10,7 @@ use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Arr;
 use Spatie\Permission\Models\Role;
 use Spatie\QueryBuilder\QueryBuilder;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class RoleController extends Controller implements HasMiddleware
 {
@@ -23,7 +23,7 @@ class RoleController extends Controller implements HasMiddleware
         ];
     }
 
-    public function index(): JsonApiResourceCollection
+    public function index(): AnonymousResourceCollection
     {
         $roles = QueryBuilder::for(Role::class)
             ->allowedIncludes(['permissions'])

@@ -8,7 +8,7 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Spatie\Permission\Models\Permission;
 use Spatie\QueryBuilder\QueryBuilder;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class PermissionController extends Controller implements HasMiddleware
 {
@@ -20,7 +20,7 @@ class PermissionController extends Controller implements HasMiddleware
         ];
     }
 
-    public function index(): JsonApiResourceCollection
+    public function index(): AnonymousResourceCollection
     {
         $permissions = QueryBuilder::for(Permission::class)
             ->where('guard_name', 'web')

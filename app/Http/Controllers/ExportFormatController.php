@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\ExportFormat as ExportFormatResource;
 use App\Integrations\Exports\ExportService;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ExportFormatController extends Controller
 {
-    public function __invoke(ExportService $exportService): JsonApiResourceCollection
+    public function __invoke(ExportService $exportService): AnonymousResourceCollection
     {
         return ExportFormatResource::collection($exportService->formats());
     }
