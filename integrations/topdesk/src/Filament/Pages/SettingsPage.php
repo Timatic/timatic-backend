@@ -72,21 +72,24 @@ class SettingsPage extends Page
                 ->label('Integration name')
                 ->required(),
 
-            TextInput::make('base_url')
-                ->label('TOPdesk URL')
-                ->placeholder('https://company.topdesk.net')
-                ->url()
-                ->required(),
+            Section::make('Connection details')
+                ->schema([
+                    TextInput::make('base_url')
+                        ->label('TOPdesk URL')
+                        ->placeholder('https://company.topdesk.net')
+                        ->url()
+                        ->required(),
 
-            TextInput::make('username')
-                ->label('Username')
-                ->required(),
+                    TextInput::make('username')
+                        ->label('Username')
+                        ->required(),
 
-            TextInput::make('api_token')
-                ->label('Application password')
-                ->password()
-                ->revealable()
-                ->required(),
+                    TextInput::make('api_token')
+                        ->label('Application password')
+                        ->password()
+                        ->revealable()
+                        ->required(),
+                ]),
 
             Section::make('Advanced')
                 ->schema([
@@ -108,6 +111,15 @@ class SettingsPage extends Page
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('delete')
+                ->label('Delete')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->action(function (): void {
+                    $this->getIntegration()->delete();
+                    $this->redirect(IntegrationResource::getUrl('index'));
+                }),
+
             Action::make('save')
                 ->label('Save')
                 ->action(function (): void {
