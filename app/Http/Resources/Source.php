@@ -3,13 +3,16 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
-use TiMacDonald\JsonApi\JsonApiResource;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /**
  * @mixin \App\Models\Source
  */
 class Source extends JsonApiResource
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function toAttributes(Request $request): array
     {
         return [

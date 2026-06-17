@@ -6,10 +6,10 @@ use App\Http\Requests\TeamRequest;
 use App\Http\Resources\Team as TeamResource;
 use App\Models\Team;
 use Illuminate\Contracts\Routing\ResponseFactory;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
 
 class TeamController extends Controller implements HasMiddleware
 {
@@ -24,7 +24,7 @@ class TeamController extends Controller implements HasMiddleware
         ];
     }
 
-    public function index(): JsonApiResourceCollection
+    public function index(): AnonymousResourceCollection
     {
         return TeamResource::collection(Team::all());
     }

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "19a18161bd058e101a1580d531af32c2",
+    "content-hash": "600f336342007d39471a98a9e334b06b",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -3061,16 +3061,16 @@
         },
         {
             "name": "laravel/framework",
-            "version": "v12.60.1",
+            "version": "v12.62.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/framework.git",
-                "reference": "7ca345438e0a191a8382771bd97ebaab2052b807"
+                "reference": "f7e61eb1e0e06a38996802b769bce9127aec227c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/framework/zipball/7ca345438e0a191a8382771bd97ebaab2052b807",
-                "reference": "7ca345438e0a191a8382771bd97ebaab2052b807",
+                "url": "https://api.github.com/repos/laravel/framework/zipball/f7e61eb1e0e06a38996802b769bce9127aec227c",
+                "reference": "f7e61eb1e0e06a38996802b769bce9127aec227c",
                 "shasum": ""
             },
             "require": {
@@ -3279,7 +3279,7 @@
                 "issues": "https://github.com/laravel/framework/issues",
                 "source": "https://github.com/laravel/framework"
             },
-            "time": "2026-05-19T20:43:52+00:00"
+            "time": "2026-06-09T13:50:13+00:00"
         },
         {
             "name": "laravel/prompts",
@@ -10666,71 +10666,6 @@
             "time": "2025-12-02T11:56:42+00:00"
         },
         {
-            "name": "timacdonald/json-api",
-            "version": "dev-main",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/Timatic/json-api.git",
-                "reference": "7d7b345ffecf262f402b30a755ae8f9f4bff449b"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/Timatic/json-api/zipball/7d7b345ffecf262f402b30a755ae8f9f4bff449b",
-                "reference": "7d7b345ffecf262f402b30a755ae8f9f4bff449b",
-                "shasum": ""
-            },
-            "require": {
-                "illuminate/collections": "^11.0 || ^12.0",
-                "illuminate/database": "^11.0 || ^12.0",
-                "illuminate/http": "^11.0 || ^12.0",
-                "illuminate/support": "^11.0 || ^12.0",
-                "php": "^8.2",
-                "symfony/http-kernel": "^7.0"
-            },
-            "require-dev": {
-                "laravel/framework": "^11.0 || ^12.0",
-                "opis/json-schema": "^2.3",
-                "orchestra/testbench": "^9.0 || ^10.0",
-                "phpunit/phpunit": "^9.0 || ^10.5 || ^11.5"
-            },
-            "default-branch": true,
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "TiMacDonald\\JsonApi\\": "src"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "Tests\\": "tests/"
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Tim MacDonald",
-                    "email": "hello@timacdonald.me",
-                    "homepage": "https://timacdonald.me"
-                }
-            ],
-            "description": "A Lightweight JSON:API Resource for Laravel",
-            "keywords": [
-                "JSON-API",
-                "api",
-                "json",
-                "laravel",
-                "resource"
-            ],
-            "support": {
-                "issues": "https://github.com/timacdonald/json-api/issues",
-                "source": "https://github.com/timacdonald/json-api/releases/latest",
-                "docs": "https://github.com/timacdonald/json-api/blob/master/readme.md"
-            },
-            "time": "2026-03-16T07:25:32+00:00"
-        },
-        {
             "name": "timatic/bitbucket-integration",
             "version": "1.0.0",
             "dist": {
@@ -14749,18 +14684,9 @@
             "time": "2025-11-17T20:03:58+00:00"
         }
     ],
-    "aliases": [
-        {
-            "package": "timacdonald/json-api",
-            "version": "dev-main",
-            "alias": "1.0.0-beta.99",
-            "alias_normalized": "1.0.0.0-beta99"
-        }
-    ],
+    "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "timacdonald/json-api": 20
-    },
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

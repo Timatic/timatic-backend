@@ -26,7 +26,6 @@ use SocialiteProviders\Azure\Provider as AzureProvider;
 use SocialiteProviders\Google\Provider as GoogleProvider;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 use Spatie\Permission\Models\Permission;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -62,8 +61,6 @@ class AppServiceProvider extends ServiceProvider
 
             return Str::plural(Str::kebab($subject)).'.'.$action;
         });
-
-        JsonApiResourceCollection::camelCasePaginationMeta();
 
         Relation::enforceMorphMap([
             'user' => User::class,

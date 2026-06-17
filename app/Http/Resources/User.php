@@ -4,13 +4,18 @@ namespace App\Http\Resources;
 
 use App\DataTransferObjects\DerivedPermission;
 use Illuminate\Http\Request;
-use TiMacDonald\JsonApi\JsonApiResource;
+use Illuminate\Http\Resources\JsonApi\JsonApiRequest;
+use Illuminate\Http\Resources\JsonApi\JsonApiResource;
+use Illuminate\Support\Collection;
 
 /**
  * @mixin \App\Models\User
  */
 class User extends JsonApiResource
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function toAttributes(Request $request): array
     {
         return [
@@ -33,28 +38,57 @@ class User extends JsonApiResource
     ];
 
     /**
-     * @return array<string, callable>
+     * @return array<string, mixed>
      */
-    public function toRelationships(Request $request): array
+    protected function resolveResourceObject(JsonApiRequest $request): array
     {
-        $relationships = [];
+        $object = parent::resolveResourceObject($request);
 
-        // Add permissions relationship with derived permissions
-        if ($this->resource && $this->relationLoaded('permissions')) {
-            $relationships['permissions'] = function () {
-                // Get all permissions (real + derived) as Permission resources
-                $allPermissions = $this->getAllPermissions()->map(fn ($permission) => new DerivedPermission(
-                    $permission->name,
-                ));
-
-                // Merge with derived permissions
-                $combinedPermissions = $allPermissions->merge($this->derivedPermissions);
-
-                // Convert to Permission resources
-                return Permission::collection($combinedPermissions);
-            };
+        if ($this->resource && $this->relationLoaded('permissions') && in_array('permissions', $request->sparseIncluded() ?? [])) {
+            $object['relationships']['permissions'] = [
+                'data' => $this->buildCombinedPermissions()->map(fn ($p) => [
+                    'id' => $p->name,
+                    'type' => 'permissions',
+                ])->values()->all(),
+            ];
         }
 
-        return $relationships;
+        return $object;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function with($request): array
+    {
+        $with = parent::with($request);
+
+        if (! ($request instanceof JsonApiRequest)) {
+            return $with;
+        }
+
+        if (! $this->resource || ! $this->relationLoaded('permissions') || ! in_array('permissions', $request->sparseIncluded() ?? [])) {
+            return $with;
+        }
+
+        $permIncluded = $this->buildCombinedPermissions()->map(fn ($p) => [
+            'id' => $p->name,
+            'type' => 'permissions',
+            'attributes' => ['values' => $p->values],
+        ])->values()->all();
+
+        $with['included'] = array_merge($with['included'] ?? [], $permIncluded);
+
+        return $with;
+    }
+
+    /**
+     * @return Collection<int, DerivedPermission>
+     */
+    private function buildCombinedPermissions(): Collection
+    {
+        $allPermissions = $this->getAllPermissions()->map(fn ($permission) => new DerivedPermission($permission->name));
+
+        return $allPermissions->merge($this->derivedPermissions);
     }
 }

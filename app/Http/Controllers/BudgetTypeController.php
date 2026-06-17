@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\BudgetType as BudgetTypeResource;
 use App\Models\BudgetType;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
 
 class BudgetTypeController extends Controller implements HasMiddleware
 {
@@ -21,7 +21,7 @@ class BudgetTypeController extends Controller implements HasMiddleware
         ];
     }
 
-    public function index(): JsonApiResourceCollection
+    public function index(): AnonymousResourceCollection
     {
         return BudgetTypeResource::collection(BudgetType::all());
     }

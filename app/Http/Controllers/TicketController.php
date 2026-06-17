@@ -7,11 +7,11 @@ use App\Http\Resources\Ticket as TicketResource;
 use App\Integrations\TicketService;
 use App\Models\Customer;
 use App\Models\User;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class TicketController extends Controller
 {
-    public function index(TicketCollectionRequest $request, TicketService $ticketService): JsonApiResourceCollection
+    public function index(TicketCollectionRequest $request, TicketService $ticketService): AnonymousResourceCollection
     {
         $customerId = $request->input('filter.customerId');
         /** @var Customer|null $customer */
