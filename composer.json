@@ -38,6 +38,7 @@
         "timatic/jira-integration": "1.0.0",
         "timatic/nmbrs-integration": "*",
         "timatic/rework-integration": "^1.0",
+        "timatic/topdesk-integration": "1.0.0",
         "webmozart/assert": "^2.1",
         "wikimedia/composer-merge-plugin": "^2.1"
     },
@@ -73,6 +74,10 @@
         {
             "type": "path",
             "url": "integrations/rework"
+        },
+        {
+            "type": "path",
+            "url": "integrations/topdesk"
         },
         {
             "type": "vcs",
