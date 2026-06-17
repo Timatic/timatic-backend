@@ -1,0 +1,24 @@
+{
+    "name": "timatic/nmbrs-integration",
+    "description": "NMBRS integration for Timatic",
+    "type": "library",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.4",
+        "saloonphp/saloon": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Timatic\\Nmbrs\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Timatic\\Nmbrs\\ServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

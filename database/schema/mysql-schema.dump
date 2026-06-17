@@ -1,0 +1,408 @@
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+DROP TABLE IF EXISTS `activities`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `activities` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `source_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `budget_id` bigint unsigned DEFAULT NULL,
+  `ticket_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ticket_number` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ticket_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `customer_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `started_at` timestamp NULL DEFAULT NULL,
+  `ended_at` timestamp NULL DEFAULT NULL,
+  `is_internal` tinyint(1) DEFAULT NULL,
+  `event_type_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `entry_suggestion_id` bigint unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `activities_budget_id_foreign` (`budget_id`),
+  KEY `activities_event_type_id_foreign` (`event_type_id`),
+  KEY `activities_entry_suggestion_id_foreign` (`entry_suggestion_id`),
+  KEY `activities_source_id_foreign` (`source_id`),
+  KEY `activities_started_at_index` (`started_at`),
+  KEY `activities_ended_at_index` (`ended_at`),
+  KEY `activities_user_id_index` (`user_id`),
+  CONSTRAINT `activities_budget_id_foreign` FOREIGN KEY (`budget_id`) REFERENCES `budgets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `activities_entry_suggestion_id_foreign` FOREIGN KEY (`entry_suggestion_id`) REFERENCES `entry_suggestions` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `activities_event_type_id_foreign` FOREIGN KEY (`event_type_id`) REFERENCES `event_types` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `activities_source_id_foreign` FOREIGN KEY (`source_id`) REFERENCES `sources` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `budget_types`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `budget_types` (
+  `id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `is_archived` tinyint(1) NOT NULL DEFAULT '0',
+  `has_change_ticket` tinyint(1) NOT NULL,
+  `has_start_and_end_date` tinyint(1) NOT NULL,
+  `has_renewal_frequency` tinyint(1) NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `budget_versions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `budget_versions` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `budget_id` bigint unsigned NOT NULL,
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `change_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `contract_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `effective_from` datetime NOT NULL,
+  `effective_to` datetime DEFAULT NULL,
+  `total_price` decimal(10,2) NOT NULL,
+  `initial_minutes` int NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `budget_versions_budget_id_foreign` (`budget_id`),
+  CONSTRAINT `budget_versions_budget_id_foreign` FOREIGN KEY (`budget_id`) REFERENCES `budgets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `budgets`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `budgets` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `budget_type_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `customer_id` int unsigned NOT NULL,
+  `started_at` datetime DEFAULT NULL,
+  `ended_at` datetime DEFAULT NULL,
+  `renewal_frequency` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `service_manager_user_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `supervisor_user_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `archived_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `budgets_budget_type_id_foreign` (`budget_type_id`),
+  CONSTRAINT `budgets_budget_type_id_foreign` FOREIGN KEY (`budget_type_id`) REFERENCES `budget_types` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `corrections`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `corrections` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `corrected_entry_id` bigint unsigned NOT NULL,
+  `correction_entry_id` bigint unsigned NOT NULL,
+  `new_entry_id` bigint unsigned DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `corrections_corrected_entry_id_foreign` (`corrected_entry_id`),
+  KEY `corrections_correction_entry_id_foreign` (`correction_entry_id`),
+  KEY `corrections_new_entry_id_foreign` (`new_entry_id`),
+  CONSTRAINT `corrections_corrected_entry_id_foreign` FOREIGN KEY (`corrected_entry_id`) REFERENCES `entries` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `corrections_correction_entry_id_foreign` FOREIGN KEY (`correction_entry_id`) REFERENCES `entries` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `corrections_new_entry_id_foreign` FOREIGN KEY (`new_entry_id`) REFERENCES `entries` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `customers`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `customers` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `external_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `entries`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `entries` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `entry_suggestion_id` bigint unsigned DEFAULT NULL,
+  `ticket_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ticket_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ticket_title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ticket_number` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `customer_id` bigint unsigned DEFAULT NULL,
+  `customer_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `hourly_rate` decimal(8,2) DEFAULT NULL,
+  `had_emergency_shift` tinyint(1) DEFAULT NULL,
+  `budget_id` bigint unsigned DEFAULT NULL,
+  `minutes_spent` int DEFAULT NULL,
+  `user_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `user_email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `user_full_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `is_locked` tinyint(1) NOT NULL DEFAULT '0',
+  `is_internal` tinyint(1) NOT NULL DEFAULT '0',
+  `entry_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `started_at` timestamp NULL DEFAULT NULL,
+  `ended_at` timestamp NULL DEFAULT NULL,
+  `invoiced_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `entries_budget_id_foreign` (`budget_id`),
+  KEY `entries_entry_suggestion_id_foreign` (`entry_suggestion_id`),
+  KEY `user_id` (`user_id`),
+  KEY `created_at` (`created_at`),
+  KEY `ticket_id` (`ticket_id`),
+  KEY `entries_customer_id_foreign` (`customer_id`),
+  CONSTRAINT `entries_budget_id_foreign` FOREIGN KEY (`budget_id`) REFERENCES `budgets` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `entries_customer_id_foreign` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `entries_entry_suggestion_id_foreign` FOREIGN KEY (`entry_suggestion_id`) REFERENCES `entry_suggestions` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `entry_suggestions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `entry_suggestions` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `ticket_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ticket_number` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `customer_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `user_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `date` date NOT NULL,
+  `ticket_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `budget_id` bigint unsigned DEFAULT NULL,
+  `is_internal` tinyint(1) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `ticket_id` (`ticket_id`),
+  KEY `user_id` (`user_id`),
+  KEY `deleted_at` (`deleted_at`),
+  KEY `entry_suggestions_budget_id_foreign` (`budget_id`),
+  KEY `entry_suggestions_customer_id_index` (`customer_id`),
+  KEY `entry_suggestions_date_index` (`date`),
+  KEY `entry_suggestions_ticket_number_index` (`ticket_number`),
+  CONSTRAINT `entry_suggestions_budget_id_foreign` FOREIGN KEY (`budget_id`) REFERENCES `budgets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `event_types`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `event_types` (
+  `id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `weight` int NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `events`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `events` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `source_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `budget_id` bigint unsigned DEFAULT NULL,
+  `ticket_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ticket_number` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ticket_type` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `customer_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `started_at` timestamp NULL DEFAULT NULL,
+  `ended_at` timestamp NULL DEFAULT NULL,
+  `is_internal` tinyint(1) DEFAULT NULL,
+  `event_type_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `activity_id` bigint unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `events_budget_id_foreign` (`budget_id`),
+  KEY `events_event_type_id_foreign` (`event_type_id`),
+  KEY `events_activity_id_foreign` (`activity_id`),
+  KEY `events_source_id_foreign` (`source_id`),
+  CONSTRAINT `events_activity_id_foreign` FOREIGN KEY (`activity_id`) REFERENCES `activities` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `events_budget_id_foreign` FOREIGN KEY (`budget_id`) REFERENCES `budgets` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `events_event_type_id_foreign` FOREIGN KEY (`event_type_id`) REFERENCES `event_types` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `events_source_id_foreign` FOREIGN KEY (`source_id`) REFERENCES `sources` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `failed_jobs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `failed_jobs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `uuid` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `connection` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `queue` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `payload` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `exception` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `failed_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `failed_jobs_uuid_unique` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `jobs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `jobs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `queue` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `payload` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `attempts` tinyint unsigned NOT NULL,
+  `reserved_at` int unsigned DEFAULT NULL,
+  `available_at` int unsigned NOT NULL,
+  `created_at` int unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `jobs_queue_index` (`queue`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `migrations`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `migrations` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `migration` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `batch` int NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `overtime_types`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `overtime_types` (
+  `id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `overtimes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `overtimes` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `entry_id` bigint unsigned NOT NULL,
+  `overtime_type_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `started_at` timestamp NULL DEFAULT NULL,
+  `ended_at` timestamp NULL DEFAULT NULL,
+  `percentages` json DEFAULT NULL,
+  `approved_by_user_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `approved_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `overtimes_entry_id_foreign` (`entry_id`),
+  KEY `overtimes_overtime_type_id_foreign` (`overtime_type_id`),
+  CONSTRAINT `overtimes_entry_id_foreign` FOREIGN KEY (`entry_id`) REFERENCES `entries` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `overtimes_overtime_type_id_foreign` FOREIGN KEY (`overtime_type_id`) REFERENCES `overtime_types` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `sources`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `sources` (
+  `id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+INSERT INTO `migrations` VALUES (1,'2020_06_29_192409_create_events_table',1);
+INSERT INTO `migrations` VALUES (2,'2020_06_29_192410_create_budgets_table',1);
+INSERT INTO `migrations` VALUES (3,'2020_06_29_192411_create_entry_suggestions_table',1);
+INSERT INTO `migrations` VALUES (4,'2020_06_29_192412_create_entries_table',1);
+INSERT INTO `migrations` VALUES (5,'2020_07_08_122108_create_overtimes_table',1);
+INSERT INTO `migrations` VALUES (6,'2020_08_11_195151_remove_overtime_fields_from_entries_table',1);
+INSERT INTO `migrations` VALUES (7,'2020_09_15_051608_create_budget_types_table',1);
+INSERT INTO `migrations` VALUES (8,'2020_09_15_105026_add_budget_type_id_foreign',1);
+INSERT INTO `migrations` VALUES (9,'2020_09_16_204727_add_budget_types_fields',1);
+INSERT INTO `migrations` VALUES (10,'2020_09_19_224632_rename_company_to_customer',1);
+INSERT INTO `migrations` VALUES (11,'2020_09_21_124841_add_budget_columns',1);
+INSERT INTO `migrations` VALUES (12,'2020_09_21_142909_add_is_internal_to_entries_table',1);
+INSERT INTO `migrations` VALUES (13,'2020_09_21_184623_add_entry_type_column_to_entries',1);
+INSERT INTO `migrations` VALUES (14,'2020_09_22_081818_change_fields_in_budgets_table',1);
+INSERT INTO `migrations` VALUES (15,'2020_09_22_101031_make_budget_id_nullable_on_entries_table',1);
+INSERT INTO `migrations` VALUES (16,'2020_09_26_000705_create_sources_table',1);
+INSERT INTO `migrations` VALUES (17,'2020_09_26_014617_create_raw_events_table',1);
+INSERT INTO `migrations` VALUES (18,'2020_10_09_003002_add_name_column_to_raw_events_table',1);
+INSERT INTO `migrations` VALUES (19,'2020_10_19_195416_make_ticket_id_nullable_on_entries_table',2);
+INSERT INTO `migrations` VALUES (20,'2020_10_20_194813_cherwell_id_for_entries_and_budgets',2);
+INSERT INTO `migrations` VALUES (21,'2020_10_20_060253_add_user_data_to_entries_table',3);
+INSERT INTO `migrations` VALUES (22,'2020_10_20_074351_add_ticket_columns_to_entries_table',3);
+INSERT INTO `migrations` VALUES (23,'2020_10_20_204137_add_customer_name_to_entries_table',3);
+INSERT INTO `migrations` VALUES (24,'2020_10_21_103858_add_had_emergency_shift_column_to_entries_table',3);
+INSERT INTO `migrations` VALUES (25,'2020_10_21_123300_entries_fields',3);
+INSERT INTO `migrations` VALUES (26,'2020_10_21_123706_remove_date_column_from_entries_table',3);
+INSERT INTO `migrations` VALUES (27,'2020_10_27_075308_flush_cherwell_entries',4);
+INSERT INTO `migrations` VALUES (28,'2020_10_28_084527_nullable_cherwell_id',5);
+INSERT INTO `migrations` VALUES (29,'2020_10_14_081952_recreate_events_table',6);
+INSERT INTO `migrations` VALUES (30,'2020_10_28_133310_add_percentage_modifiers_to_overtimes_table',6);
+INSERT INTO `migrations` VALUES (31,'2020_11_04_125523_create_suggestions_from_raw_events',6);
+INSERT INTO `migrations` VALUES (32,'2020_11_05_145636_add_approved_columns_to_overtimes',7);
+INSERT INTO `migrations` VALUES (33,'2020_11_05_200000_fill_new_personal_overtime_percentages',7);
+INSERT INTO `migrations` VALUES (34,'2020_11_05_201650_fill_old_personal_overtime_percentages',7);
+INSERT INTO `migrations` VALUES (35,'2020_11_06_161705_create_raw_events_for_missing_secondline_events',7);
+INSERT INTO `migrations` VALUES (36,'2020_11_09_142820_add_ticket_number_to_entry_suggestions_table',8);
+INSERT INTO `migrations` VALUES (37,'2020_11_11_132412_add_hourly_rate_to_entries_table',8);
+INSERT INTO `migrations` VALUES (38,'2020_11_11_220339_add_minutes_spent_to_entries_table',8);
+INSERT INTO `migrations` VALUES (39,'2020_11_17_133121_fix_new_personal_overtime_percentages',8);
+INSERT INTO `migrations` VALUES (40,'2020_11_17_133140_fix_old_personal_overtime_percentages',8);
+INSERT INTO `migrations` VALUES (41,'2020_11_17_133208_fill_customer_overtime_percentages',8);
+INSERT INTO `migrations` VALUES (42,'2020_11_18_140352_add_entry_suggestion_id_to_events_table',9);
+INSERT INTO `migrations` VALUES (43,'2020_11_18_141052_fill_entry_suggestion_id_on_events_table',9);
+INSERT INTO `migrations` VALUES (44,'2020_11_20_050152_remove_event_id_from_entry_suggestions_table',9);
+INSERT INTO `migrations` VALUES (45,'2020_12_02_135737_fill_hourly_rates_on_entries',9);
+INSERT INTO `migrations` VALUES (46,'2020_12_07_133336_create_missing_entry_suggestions',10);
+INSERT INTO `migrations` VALUES (47,'2020_12_07_150631_create_jobs_table',11);
+INSERT INTO `migrations` VALUES (48,'2020_12_07_151928_create_failed_jobs_table',11);
+INSERT INTO `migrations` VALUES (54,'2020_12_09_163350_fill_emergency_shifts',12);
+INSERT INTO `migrations` VALUES (55,'2020_12_21_084521_add_invoiced_at_to_entries',13);
+INSERT INTO `migrations` VALUES (56,'2020_12_24_090913_create_budget_versions_table',14);
+INSERT INTO `migrations` VALUES (57,'2020_12_28_084532_fill_budget_versions_table',14);
+INSERT INTO `migrations` VALUES (58,'2020_12_28_084609_remove_version_columns_from_budgets_table',14);
+INSERT INTO `migrations` VALUES (59,'2021_02_01_150719_set_hourly_rate_to_null_for_entries_with_budget',15);
+INSERT INTO `migrations` VALUES (60,'2021_02_01_201454_add_suggestion_id_to_entries',15);
+INSERT INTO `migrations` VALUES (61,'2021_02_01_201610_add_soft_deletes_to_entry_suggestions',15);
+INSERT INTO `migrations` VALUES (62,'2021_03_08_142443_remove_cherwell_columns',16);
+INSERT INTO `migrations` VALUES (63,'2021_05_18_082656_add_columns_to_events_table',17);
+INSERT INTO `migrations` VALUES (64,'2021_06_16_130733_add_is_internal_to_events_table',18);
+INSERT INTO `migrations` VALUES (65,'2021_06_15_131850_remove_raw_events',19);
+INSERT INTO `migrations` VALUES (66,'2021_06_23_133647_create_event_types_table',19);
+INSERT INTO `migrations` VALUES (67,'2021_07_08_120547_add_title_to_events_table',20);
+INSERT INTO `migrations` VALUES (68,'2021_07_09_163604_create_activities_table',21);
+INSERT INTO `migrations` VALUES (69,'2021_07_09_163605_create_activities',21);
+INSERT INTO `migrations` VALUES (70,'2021_07_09_163606_events_remove_suggestion_reference',21);
+INSERT INTO `migrations` VALUES (71,'2021_07_27_143551_update_entry_suggestion_table',21);
+INSERT INTO `migrations` VALUES (72,'2021_08_10_084611_replace_id_with_key_field_as_primary',21);
+INSERT INTO `migrations` VALUES (73,'2021_10_01_205746_create_indexes_on_activities_and_suggestions',21);
+INSERT INTO `migrations` VALUES (77,'2021_12_01_162148_add_manager_and_responsible_fields',22);
+INSERT INTO `migrations` VALUES (78,'2021_12_09_152016_add_archived_at_and_migrate_is_archived',22);
+INSERT INTO `migrations` VALUES (79,'2021_12_28_143507_create_customers_table',22);
+INSERT INTO `migrations` VALUES (80,'2021_12_29_145122_turn_customer_id_on_budgets_into_integer',23);
+INSERT INTO `migrations` VALUES (88,'2021_12_29_145720_make_customer_fields_nullable_on_entries',24);
+INSERT INTO `migrations` VALUES (89,'2021_12_30_085206_turn_customer_id_on_entries_into_integer',24);
+INSERT INTO `migrations` VALUES (90,'2021_12_30_085528_sync_customers_in_migration',24);
+INSERT INTO `migrations` VALUES (91,'2021_12_30_092019_set_foreign_key_on_customer_id_in_customers',25);
+INSERT INTO `migrations` VALUES (96,'2022_01_12_143412_implement_soft_deletes_for_entries',26);
+INSERT INTO `migrations` VALUES (97,'2022_01_13_140021_create_corrections_table',27);
+INSERT INTO `migrations` VALUES (98,'2022_01_26_092524_delete_billing_option_from_budgets',28);

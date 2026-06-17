@@ -1,0 +1,92 @@
+name: Export API Documentation
+
+on:
+  push:
+    branches:
+      - main
+      - migrate-to-scramble
+    paths:
+      - 'app/**'
+      - 'routes/**'
+      - 'config/scramble.php'
+
+permissions:
+  contents: write
+
+jobs:
+  export-docs:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+      redis:
+        image: redis:7.0
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: testing
+      DB_USERNAME: root
+      DB_PASSWORD: password
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Configure Composer authentication
+        run: composer config -g http-basic.satis.dedoc.co "${{ secrets.SCRAMBLE_USERNAME }}" "${{ secrets.SCRAMBLE_PASSWORD }}"
+
+      - name: Install Dependencies
+        run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
+      - name: Copy .env
+        run: cp .env.example .env
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Run migrations
+        run: php artisan migrate --force
+
+      - name: Export API documentation
+        run: php artisan scramble:export --path=public/api.json
+
+      - name: Extract commit message
+        run: echo "COMMIT_MESSAGE=$(git log -1 --pretty=%s)" >> $GITHUB_ENV
+
+      - name: Commit API documentation
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "${{ env.COMMIT_MESSAGE }} [skip ci]"
+          commit_options: '--amend --no-edit'
+          push_options: '--force'
+          skip_fetch: true
+          file_pattern: 'public/api.json'

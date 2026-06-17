@@ -1,0 +1,29 @@
+# Laravel
+/.phpunit.cache
+/node_modules
+/public/hot
+/public/storage
+/public/*/filament
+/public/*/filament-socialite/
+/vendor
+.env
+.env.backup
+npm-debug.log
+.DS_Store
+.php-cs-fixer.cache
+auth.json
+composer.local.json
+TODO.md
+
+# IDE
+.idea
+.vscode
+
+# K8s
+secret.yml
+.env.testing
+/storage/pail
+/.nova
+/.claude/settings.local.json
+dump.rdb
+public/build

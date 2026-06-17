@@ -1,0 +1,24 @@
+{
+    "name": "timatic/bitbucket-integration",
+    "description": "Bitbucket repository integration for Timatic",
+    "type": "library",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.4",
+        "saloonphp/saloon": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Timatic\\Bitbucket\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Timatic\\Bitbucket\\ServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

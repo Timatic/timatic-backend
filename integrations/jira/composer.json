@@ -1,0 +1,24 @@
+{
+    "name": "timatic/jira-integration",
+    "description": "Jira ticket provider integration for Timatic",
+    "type": "library",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.4",
+        "saloonphp/saloon": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Timatic\\Jira\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Timatic\\Jira\\ServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

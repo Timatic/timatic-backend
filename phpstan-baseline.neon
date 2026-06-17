@@ -1,0 +1,146 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Method App\\\\Console\\\\Commands\\\\SendBudgetBalanceOverview\\:\\:getBudgetsGroupedByAccountManager\\(\\) return type with generic class Illuminate\\\\Support\\\\Collection does not specify its types\\: TKey, TValue$#"
+			count: 1
+			path: app/Console/Commands/SendBudgetBalanceOverview.php
+
+		-
+			message: "#^Method App\\\\Console\\\\Commands\\\\SendBudgetBalanceOverview\\:\\:sendMails\\(\\) has parameter \\$groupedBudgets with generic class Illuminate\\\\Support\\\\Collection but does not specify its types\\: TKey, TValue$#"
+			count: 1
+			path: app/Console/Commands/SendBudgetBalanceOverview.php
+
+		-
+			message: "#^Method App\\\\Exports\\\\BudgetsExport\\:\\:collection\\(\\) return type with generic class Illuminate\\\\Database\\\\Eloquent\\\\Collection does not specify its types\\: TKey, TModel$#"
+			count: 1
+			path: app/Exports/BudgetsExport.php
+
+		-
+			message: "#^Method App\\\\Exports\\\\EntriesExport\\:\\:collection\\(\\) return type with generic class Illuminate\\\\Support\\\\Collection does not specify its types\\: TKey, TValue$#"
+			count: 1
+			path: app/Exports/EntriesExport.php
+
+		-
+			message: "#^Method App\\\\Exports\\\\UsersMonthlySummaryExport\\:\\:collection\\(\\) return type with generic class Illuminate\\\\Support\\\\Collection does not specify its types\\: TKey, TValue$#"
+			count: 1
+			path: app/Exports/UsersMonthlySummaryExport.php
+
+		-
+			message: "#^Method App\\\\Jobs\\\\RemindUsersOfUnusedSuggestions\\:\\:getContentOfReminderWithTicketNumbers\\(\\) has parameter \\$suggestions with generic class Illuminate\\\\Support\\\\Collection but does not specify its types\\: TKey, TValue$#"
+			count: 1
+			path: app/Jobs/RemindUsersOfUnusedSuggestions.php
+
+		-
+			message: "#^Method App\\\\Jobs\\\\RemindUsersOfUnusedSuggestions\\:\\:getContentOfReminderWithoutTickets\\(\\) has parameter \\$suggestions with generic class Illuminate\\\\Support\\\\Collection but does not specify its types\\: TKey, TValue$#"
+			count: 1
+			path: app/Jobs/RemindUsersOfUnusedSuggestions.php
+
+		-
+			message: "#^PHPDoc tag @var for variable \\$overlappingActivities contains generic class Illuminate\\\\Support\\\\Collection but does not specify its types\\: TKey, TValue$#"
+			count: 1
+			path: app/Listeners/CreateActivity.php
+
+		-
+			message: "#^Method App\\\\Mail\\\\BudgetMonthlyBalance\\:\\:__construct\\(\\) has parameter \\$budgets with generic class Illuminate\\\\Support\\\\Collection but does not specify its types\\: TKey, TValue$#"
+			count: 1
+			path: app/Mail/BudgetMonthlyBalance.php
+
+		-
+			message: "#^Method App\\\\Models\\\\Budget\\:\\:createPeriodsForOneTimeBudget\\(\\) return type with generic class Illuminate\\\\Support\\\\Collection does not specify its types\\: TKey, TValue$#"
+			count: 1
+			path: app/Models/Budget.php
+
+		-
+			message: "#^Method App\\\\Models\\\\Budget\\:\\:createPeriodsForRenewingBudget\\(\\) return type with generic class Illuminate\\\\Support\\\\Collection does not specify its types\\: TKey, TValue$#"
+			count: 1
+			path: app/Models/Budget.php
+
+		-
+			message: "#^Method App\\\\Models\\\\Budget\\:\\:periods\\(\\) return type with generic class Illuminate\\\\Support\\\\Collection does not specify its types\\: TKey, TValue$#"
+			count: 1
+			path: app/Models/Budget.php
+
+		-
+			message: "#^Type App\\\\DataTransferObjects\\\\BudgetMutation in generic type Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\DataTransferObjects\\\\BudgetMutation\\> in PHPDoc tag @return is not subtype of template type TModel of Illuminate\\\\Database\\\\Eloquent\\\\Model of class Illuminate\\\\Database\\\\Eloquent\\\\Collection\\.$#"
+			count: 1
+			path: app/Services/BudgetUsageService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\TimeSpentTotalsService\\:\\:getTimeSpentTotalsPerPeriod\\(\\) return type with generic class Illuminate\\\\Support\\\\Collection does not specify its types\\: TKey, TValue$#"
+			count: 1
+			path: app/Services/TimeSpentTotalsService.php
+
+		-
+			message: "#^Class Database\\\\Factories\\\\ActivityFactory extends generic class Illuminate\\\\Database\\\\Eloquent\\\\Factories\\\\Factory but does not specify its types\\: TModel$#"
+			count: 1
+			path: database/factories/ActivityFactory.php
+
+		-
+			message: "#^Class Database\\\\Factories\\\\ApiTokenFactory extends generic class Illuminate\\\\Database\\\\Eloquent\\\\Factories\\\\Factory but does not specify its types\\: TModel$#"
+			count: 1
+			path: database/factories/ApiTokenFactory.php
+
+		-
+			message: "#^Class Database\\\\Factories\\\\BudgetFactory extends generic class Illuminate\\\\Database\\\\Eloquent\\\\Factories\\\\Factory but does not specify its types\\: TModel$#"
+			count: 1
+			path: database/factories/BudgetFactory.php
+
+		-
+			message: "#^Class Database\\\\Factories\\\\BudgetTypeFactory extends generic class Illuminate\\\\Database\\\\Eloquent\\\\Factories\\\\Factory but does not specify its types\\: TModel$#"
+			count: 1
+			path: database/factories/BudgetTypeFactory.php
+
+		-
+			message: "#^Class Database\\\\Factories\\\\BudgetVersionFactory extends generic class Illuminate\\\\Database\\\\Eloquent\\\\Factories\\\\Factory but does not specify its types\\: TModel$#"
+			count: 1
+			path: database/factories/BudgetVersionFactory.php
+
+		-
+			message: "#^Class Database\\\\Factories\\\\CustomerFactory extends generic class Illuminate\\\\Database\\\\Eloquent\\\\Factories\\\\Factory but does not specify its types\\: TModel$#"
+			count: 1
+			path: database/factories/CustomerFactory.php
+
+		-
+			message: "#^Class Database\\\\Factories\\\\EntryFactory extends generic class Illuminate\\\\Database\\\\Eloquent\\\\Factories\\\\Factory but does not specify its types\\: TModel$#"
+			count: 1
+			path: database/factories/EntryFactory.php
+
+		-
+			message: "#^Method Database\\\\Factories\\\\EntryFactory\\:\\:correction\\(\\) return type with generic class Illuminate\\\\Database\\\\Eloquent\\\\Factories\\\\Factory does not specify its types\\: TModel$#"
+			count: 1
+			path: database/factories/EntryFactory.php
+
+		-
+			message: "#^Class Database\\\\Factories\\\\EntrySuggestionFactory extends generic class Illuminate\\\\Database\\\\Eloquent\\\\Factories\\\\Factory but does not specify its types\\: TModel$#"
+			count: 1
+			path: database/factories/EntrySuggestionFactory.php
+
+		-
+			message: "#^Class Database\\\\Factories\\\\EventFactory extends generic class Illuminate\\\\Database\\\\Eloquent\\\\Factories\\\\Factory but does not specify its types\\: TModel$#"
+			count: 1
+			path: database/factories/EventFactory.php
+
+		-
+			message: "#^Class Database\\\\Factories\\\\EventTypeFactory extends generic class Illuminate\\\\Database\\\\Eloquent\\\\Factories\\\\Factory but does not specify its types\\: TModel$#"
+			count: 1
+			path: database/factories/EventTypeFactory.php
+
+		-
+			message: "#^Class Database\\\\Factories\\\\OvertimeFactory extends generic class Illuminate\\\\Database\\\\Eloquent\\\\Factories\\\\Factory but does not specify its types\\: TModel$#"
+			count: 1
+			path: database/factories/OvertimeFactory.php
+
+		-
+			message: "#^Class Database\\\\Factories\\\\SourceFactory extends generic class Illuminate\\\\Database\\\\Eloquent\\\\Factories\\\\Factory but does not specify its types\\: TModel$#"
+			count: 1
+			path: database/factories/SourceFactory.php
+
+		-
+			message: "#^Class Database\\\\Factories\\\\TeamFactory extends generic class Illuminate\\\\Database\\\\Eloquent\\\\Factories\\\\Factory but does not specify its types\\: TModel$#"
+			count: 1
+			path: database/factories/TeamFactory.php
+
+		-
+			message: "#^Class Database\\\\Factories\\\\UserFactory extends generic class Illuminate\\\\Database\\\\Eloquent\\\\Factories\\\\Factory but does not specify its types\\: TModel$#"
+			count: 1
+			path: database/factories/UserFactory.php
