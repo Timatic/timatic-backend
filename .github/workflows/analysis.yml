@@ -8,7 +8,7 @@ jobs:
 
     env:
       DB_CONNECTION: sqlite
-      DB_DATABASE: /home/runner/work/intermax-time-api/intermax-time-api/database/database.sqlite
+      DB_DATABASE: ${{ github.workspace }}/database/database.sqlite
 
     steps:
       - name: Setup PHP
