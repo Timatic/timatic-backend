@@ -6,6 +6,7 @@ use App\DataTransferObjects\Ticket;
 use App\DataTransferObjects\TicketAction;
 use App\Integrations\Contracts\TicketProviderInterface;
 use App\Models\Customer;
+use App\Models\Integration;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Timatic\Topdesk\DataTransferObjects\TopdeskAction;
@@ -36,7 +37,9 @@ final class ChangeTicketProvider implements TicketProviderInterface
 
     public static function ticketKeyPattern(): string
     {
-        return FiqlBuilder::ticketKeyPattern();
+        $integration = Integration::where('type', 'topdesk')->first();
+
+        return $integration?->config['change_key_pattern'] ?? '[A-Z]+\s?\d+';
     }
 
     /** @return Collection<int, Ticket> */

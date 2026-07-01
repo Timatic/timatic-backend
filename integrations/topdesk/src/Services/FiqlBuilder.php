@@ -3,24 +3,17 @@
 namespace Timatic\Topdesk\Services;
 
 use App\Models\Customer;
-use App\Models\Integration;
 
 final class FiqlBuilder
 {
     private const RECENT_WEEKS = 3;
-
-    public static function ticketKeyPattern(): string
-    {
-        $pattern = Integration::where('type', 'topdesk')->value('config->ticket_key_pattern');
-
-        return $pattern ?? '[A-Z]+\s?\d+';
-    }
 
     public static function build(
         TopdeskBranchResolver $branchResolver,
         ?Customer $customer,
         ?string $search,
         string $branchField,
+        string $keyPattern,
     ): ?string {
         $parts = [];
 
@@ -37,7 +30,7 @@ final class FiqlBuilder
         }
 
         if ($search !== null && $search !== '') {
-            $parts[] = preg_match('/^'.self::ticketKeyPattern().'$/i', $search)
+            $parts[] = preg_match('/^'.$keyPattern.'$/i', $search)
                 ? 'number=='.$search
                 : 'briefDescription=contains='.$search;
         } else {
