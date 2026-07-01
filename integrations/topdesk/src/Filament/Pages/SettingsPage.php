@@ -61,7 +61,8 @@ class SettingsPage extends Page
             'username' => $config['username'] ?? null,
             'api_token' => $config['api_token'] ?? null,
             'branch_match_field' => $config['branch_match_field'] ?? 'clientReferenceNumber',
-            'ticket_key_pattern' => $config['ticket_key_pattern'] ?? '[A-Z]+\s?\d+',
+            'incident_key_pattern' => $config['incident_key_pattern'] ?? '[A-Z]+\s?\d+',
+            'change_key_pattern' => $config['change_key_pattern'] ?? '[A-Z]+\s?\d+',
         ]);
     }
 
@@ -99,10 +100,16 @@ class SettingsPage extends Page
                         ->helperText('TOPdesk branch field compared against the Timatic customer external ID.')
                         ->required(),
 
-                    TextInput::make('ticket_key_pattern')
-                        ->label('Ticket key pattern')
+                    TextInput::make('incident_key_pattern')
+                        ->label('Incident key pattern')
                         ->default('[A-Z]+\s?\d+')
                         ->helperText('Regex pattern used to detect incident numbers in text (e.g. IMX\d+ or I\s\d+).')
+                        ->required(),
+
+                    TextInput::make('change_key_pattern')
+                        ->label('Change key pattern')
+                        ->default('[A-Z]+\s?\d+')
+                        ->helperText('Regex pattern used to detect change numbers in text (e.g. C\s\d+).')
                         ->required(),
                 ]),
         ])->statePath('data');
@@ -130,7 +137,8 @@ class SettingsPage extends Page
                         'username' => $data['username'],
                         'api_token' => $data['api_token'],
                         'branch_match_field' => $data['branch_match_field'],
-                        'ticket_key_pattern' => $data['ticket_key_pattern'],
+                        'incident_key_pattern' => $data['incident_key_pattern'],
+                        'change_key_pattern' => $data['change_key_pattern'],
                     ]);
 
                     $this->getIntegration()->update([
