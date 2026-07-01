@@ -1,15 +1,16 @@
 # Timatic Integration Blueprint
 
-Use this skill when the user wants to add a new third-party integration to the Timatic project. Integrations follow the Jira OAuth package pattern: a path-based composer package under `/integrations/{name}/` with OAuth 2.0, Filament pages, Saloon HTTP connector, and a mapping table that links the external resource (project, repository, board, etc.) to Timatic customers and/or budgets.
+Use skill when user want add new third-party integration to Timatic. Integrations follow Jira OAuth package pattern: path-based composer package under `/integrations/{name}/` with OAuth 2.0, Filament pages, Saloon HTTP connector, and mapping table linking external resource (project, repository, board, etc.) to Timatic customers and/or budgets.
 
 ## What to ask before starting
 
-Ask the user:
+Ask user:
 1. **Integration name** — e.g. `bitbucket`, `github`, `gitlab`
-2. **OAuth provider endpoints** — authorization URL, token URL, required scopes
-3. **Primary resource to map** — e.g. repositories, boards, projects (what Timatic customers/budgets will be linked to)
-4. **Map to budgets?** — Jira only maps to customers; some integrations also need budget mapping
-5. **Ticket provider?** — Does this integration also supply tickets/issues to the time-entry form? If yes, implement `TicketProviderInterface`
+2. **Auth method** — OAuth 2.0 (redirect flow) or simple API auth (basic auth / static API token)?
+3. **OAuth provider endpoints** — authorization URL, token URL, required scopes *(OAuth only)*
+4. **Primary resource to map** — e.g. repositories, boards, projects (what customers/budgets link to)
+5. **Map to budgets?** — Jira maps only to customers; some integrations also need budget mapping
+6. **Ticket provider?** — Integration also supply tickets/issues to time-entry form? If yes, implement `TicketProviderInterface`
 
 ---
 
@@ -66,7 +67,7 @@ return [
     'redirect'      => env('{NAME}_REDIRECT_URI'),
 ];
 ```
-Add the three env vars to `.env.example`.
+Add three env vars to `.env.example`.
 
 ### 4. Migration — mapping table
 ```php
@@ -82,82 +83,45 @@ Schema::create('{name}_{resource}_mappings', function (Blueprint $table) {
 });
 ```
 
-### 5. OAuthService — follow JiraOAuthService exactly
-Key methods:
-- `buildAuthorizationUrl(Integration $integration): string` — stores `oauth_state` in `integration.config`
-- `handleCallback(string $code, string $state): Integration` — validates state, exchanges code, fetches workspace/account info, stores in `integration.config`
-- `refreshIfExpired(Integration $integration): Integration` — uses cache lock to prevent concurrent refresh
-- `disconnect(Integration $integration): void` — nulls out config
+### 5. Auth strategy
 
-**State parameter format:** `{integration_id}|{Str::random(32)}`
+**OAuth 2.0** — follow steps 5a below (Jira/Bitbucket pattern).
 
-**Config keys stored (encrypted:array):**
-```php
-[
-    'access_token'  => '...',
-    'refresh_token' => '...',
-    'expires_at'    => now()->addSeconds($ttl - 60)->timestamp,
-    'oauth_state'   => '...',   // temporary, cleared after callback
-    // provider-specific: workspace, cloud_id, cloud_url, etc.
-]
-```
+**Simple API auth (basic auth / static token)** — skip steps 5a, 6, 7. Instead:
+- Create typed `ApiCredentials` readonly class with required fields (e.g. `baseUrl`, `username`, `apiToken`).
+- Bind in `ServiceProvider::register()` reading from `Integration::where('type', '{name}')->first()?->config[...] ?? ''`.
+- Connector constructor accepts `ApiCredentials`, sets `Authorization` in `defaultHeaders()`.
+- SettingsPage stores credentials in `Integration.config` (encrypted). No redirect/callback flow.
+- See TOPdesk integration (`integrations/topdesk/`) as reference implementation.
 
-**Token endpoint auth note:**
-- Atlassian/Jira: JSON body with `client_id` + `client_secret`
-- Bitbucket: HTTP Basic auth (`client_id:client_secret`)
-- GitHub/GitLab: varies — check provider docs
+For OAuth 2.0 implementation details (OAuthService pattern, controllers, routes), see `.claude/docs/integration-oauth.md`.
 
-### 6. Controllers
+### 6. Saloon Connector
+- Extend `Saloon\Http\Connector`
+- **OAuth 2.0**: add `Saloon\Traits\OAuth2\AuthorizationCodeGrant` trait + implement `defaultOauthConfig()`; auth applied via `$connector->authenticate($authenticator)` before sending requests
+- **Simple auth**: implement `defaultAuth()` returning the appropriate Saloon authenticator (`TokenAuthenticator` for Bearer, `HeaderAuthenticator` for custom schemes like `Token`, `BasicAuthenticator` for basic auth)
+- Base URL: provider API root (use provider-specific identifier, e.g. `cloud_id`, from `integration.config`)
 
-**RedirectController** — `auth` middleware:
-```php
-return redirect($oauthService->buildAuthorizationUrl($integration));
-```
-
-**CallbackController** — `web` middleware only (no auth — user may not be logged in yet):
-```php
-// 1. validate state
-// 2. exchange code for tokens
-// 3. fetch provider account/workspace info
-// 4. save to integration.config
-// 5. redirect to {Name}SettingsPage with success notification
-```
-
-### 7. Routes (web.php)
-```php
-Route::middleware(['web', 'auth'])->group(function () {
-    Route::get('integrations/{integration}/{name}/redirect', {Name}RedirectController::class)
-        ->name('{name}.oauth.redirect');
-});
-
-Route::middleware('web')->group(function () {
-    Route::get('integrations/{name}/callback', {Name}CallbackController::class)
-        ->name('{name}.oauth.callback');
-});
-```
-
-### 8. Saloon Connector
-- Extend `Connector`
-- Base URL: provider API root
-- `defaultHeaders()`: `Authorization: Bearer {access_token}` (call `refreshIfExpired` first)
-
-### 9. Filament pages
+### 7. Filament pages
 
 **SettingsPage:**
 - Sub-navigation: Settings | {Resource} Mapping
+- `name` field — rename integration.
 - Connected callout (workspace/account info)
 - Not-connected callout
 - "Connect" action → OAuth redirect route
 - "Disconnect" action → calls `oauthService->disconnect()`
+- "Delete" action —> deletes Integration record
+-- For actions, use `$this->redirect(request()->url());` in callback to refresh page.
 
 **MappingPage:**
 - `mount()`: sync resources from provider API if connected
 - Table columns: identifier, name, customer.name, (budget.title if applicable)
 - Bulk action "Assign customer" — always
-- Bulk action "Assign budget" — only if budget mapping is enabled (budget select should filter by selected customer via reactive)
+- Bulk action "Assign budget" — only if budget mapping enabled (budget select filter by selected customer via reactive)
 - Header action "Refresh"
 
-### 10. ServiceProvider
+### 8. ServiceProvider
 ```php
 // register()
 $types->register('{name}', [
@@ -176,7 +140,7 @@ $this->mergeConfigFrom(__DIR__.'/../config/{name}.php', '{name}');
 
 ## Optional: TicketProvider
 
-If the integration should supply tickets to the time-entry form, implement `TicketProviderInterface`:
+Integration should supply tickets to time-entry form? Implement `TicketProviderInterface`:
 ```php
 public function fetchTickets(?Customer $customer, ?string $search, ?User $user): Collection;
 public static function fromConfig(array $config): static;
@@ -189,9 +153,9 @@ Register in ServiceProvider boot: `$ticketProviders->register('{name}', {Name}Ti
 
 1. `composer update` — package installs without errors
 2. `php artisan migrate` — mapping table created
-3. Create an Integration with `type = {name}` in Filament
+3. Create Integration with `type = {name}` in Filament
 4. Click Connect → OAuth consent screen opens
 5. After authorization → redirect back, status shows Connected
 6. Navigate to mapping page → resources load from API
-7. Assign customer (+ budget if applicable) to a resource
+7. Assign customer (+ budget if applicable) to resource
 8. Verify `{name}_{resource}_mappings` table has correct values

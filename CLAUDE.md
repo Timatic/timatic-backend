@@ -58,32 +58,17 @@ All third-party integrations (Jira, Bitbucket, …) are path-based Composer pack
 3. Has a mapping model (e.g. `JiraProjectMapping`) linking provider resources to Timatic customers/budgets
 4. Uses Saloon for API requests
 
-To add a new integration, use the `/timatic-integration` skill.
+**Working in `/integrations/` or building a new integration → MUST activate `/timatic-integration` skill before writing any code.**
 
-#### OAuth callback proxy
+#### Integration rules (always enforced)
 
-Third-party OAuth providers require a single, pre-registered redirect URI. Because each
-tenant runs on its own subdomain (`app.{tenant}.timatic.app`), a central proxy handles
-all callbacks and forwards them to the correct tenant.
+These apply when reading or writing any code in `/integrations/`:
 
-**Proxy:** `auth.timatic.app/integrations/{provider}/callback`  
-**Registered redirect URI** (at the OAuth provider): `https://auth.timatic.app/integrations/{provider}/callback`
+- **All HTTP calls via Saloon `Request` classes** — no Guzzle, no `Http` facade
+- **Every Saloon request implements `createDtoFromResponse()`** returning typed DTOs, never raw arrays
+- **Connector credentials bound in `ServiceProvider::register()`** via a typed credentials class — `app(Connector::class)` must resolve without manual credential passing
 
-##### Flow
-
-1. The integration initiates the OAuth flow and encodes the tenant slug in the `state` parameter as a signed JWT claim: `{ "tenant": "slug", ... }`
-2. After authorization, the provider redirects to the proxy with `?code=...&state=...`
-3. The proxy base64-decodes the JWT payload (without verification) to read the `tenant` claim
-4. The proxy issues a `302` redirect to `https://admin.{tenant}.timatic.app/integrations/{provider}/callback` — all original query parameters (`code`, `state`, etc.) are forwarded unchanged
-5. The tenant app verifies the `state` JWT and completes the token exchange
-
-##### Implementing a callback route in an integration
-
-Each integration is responsible for:
-
-- Generating a signed `state` JWT containing at minimum `{ "tenant": "{tenant-slug}" }` before redirecting to the provider
-- Registering `https://auth.timatic.app/callback/{provider}` as the redirect URI at the provider
-- Handling `GET /integrations/{provider}/callback` in its Filament or API layer to verify `state` and exchange `code` for tokens
+OAuth proxy flow and callback implementation details: see `.claude/docs/integration-oauth.md`.
 
 ### JSON:API
 
