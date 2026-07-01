@@ -15,6 +15,21 @@ Third-party OAuth providers require single pre-registered redirect URI. Each ten
 4. Proxy issues `302` to `https://admin.{tenant}.timatic.app/integrations/{provider}/callback` — all query params forwarded unchanged
 5. Tenant app verifies `state` JWT and completes token exchange
 
+## Config file
+
+OAuth integrations require a config file for client credentials (these must come from env vars, not `Integration.config`).
+
+```php
+// config/{name}.php
+return [
+    'client_id'     => env('{NAME}_CLIENT_ID'),
+    'client_secret' => env('{NAME}_CLIENT_SECRET'),
+    'redirect'      => env('{NAME}_REDIRECT_URI'),
+];
+```
+
+Add three env vars to `.env.example`. Call `$this->mergeConfigFrom(__DIR__.'/../config/{name}.php', '{name}')` in `ServiceProvider::boot()`.
+
 ## OAuth implementation pattern
 
 ### Connector
