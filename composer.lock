@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "19a18161bd058e101a1580d531af32c2",
+    "content-hash": "309582962bc2b14facef8bc073f514bb",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -10876,6 +10876,36 @@
                 }
             },
             "description": "Rework integration for Timatic",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "timatic/topdesk-integration",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "integrations/topdesk",
+                "reference": "e5302cb27a6bd905c699105cd2cce980f1e2a66b"
+            },
+            "require": {
+                "php": "^8.4",
+                "saloonphp/saloon": "^4.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Timatic\\Topdesk\\ServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Timatic\\Topdesk\\": "src/"
+                }
+            },
+            "description": "TOPdesk ticket provider integration for Timatic",
             "transport-options": {
                 "relative": true
             }

@@ -1,0 +1,34 @@
+<?php
+
+namespace Timatic\Topdesk\Services;
+
+final class FiqlBuilder
+{
+    private const RECENT_WEEKS = 3;
+
+    public static function build(
+        ?string $branchId,
+        ?string $search,
+        string $branchField,
+        string $keyPattern,
+    ): ?string {
+        $parts = [];
+
+        if ($branchId !== null) {
+            $parts[] = $branchField.'=='.$branchId;
+        } elseif ($search === null || $search === '') {
+            return null;
+        }
+
+        if ($search !== null && $search !== '') {
+            $parts[] = preg_match('/^'.$keyPattern.'$/i', $search)
+                ? 'number=='.$search
+                : 'briefDescription=contains='.$search;
+        } else {
+            $since = now()->subWeeks(self::RECENT_WEEKS)->toIso8601String();
+            $parts[] = "modificationDate=gt='{$since}'";
+        }
+
+        return implode(';', $parts);
+    }
+}

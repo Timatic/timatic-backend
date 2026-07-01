@@ -46,17 +46,19 @@ class TicketService
         return null;
     }
 
-    /** @return array<string, string> */
+    /** @return list<string> */
     public function ticketKeyPatterns(): array
     {
-        return array_map(fn ($class) => $class::ticketKeyPattern(), $this->registry->all());
+        return array_values(array_unique(
+            array_map(fn ($class) => $class::ticketKeyPattern(), $this->registry->providerClasses())
+        ));
     }
 
     /** @return Collection<int, TicketProviderInterface> */
     private function resolveProviders(): Collection
     {
-        return collect(Integration::whereIn('type', array_keys($this->registry->all()))->get())
-            ->map(fn (Integration $integration) => $this->registry->makeProvider(
+        return collect(Integration::whereIn('type', $this->registry->registeredTypes())->get())
+            ->flatMap(fn (Integration $integration) => $this->registry->makeProviders(
                 $integration->type,
                 [...($integration->config ?? []), 'integration_id' => $integration->id],
             ));
