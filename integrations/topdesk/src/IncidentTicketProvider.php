@@ -7,6 +7,7 @@ use App\DataTransferObjects\TicketAction;
 use App\DataTransferObjects\TicketMapping;
 use App\Integrations\Contracts\TicketProviderInterface;
 use App\Models\Customer;
+use App\Models\Integration;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Timatic\Topdesk\DataTransferObjects\TopdeskAction;
@@ -37,7 +38,9 @@ final class IncidentTicketProvider implements TicketProviderInterface
 
     public static function ticketKeyPattern(): string
     {
-        return FiqlBuilder::ticketKeyPattern();
+        $integration = Integration::where('type', 'topdesk')->first();
+
+        return $integration?->config['incident_key_pattern'] ?? '[A-Z]+\s?\d+';
     }
 
     /** @return Collection<int, Ticket> */
