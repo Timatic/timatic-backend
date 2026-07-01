@@ -3,6 +3,7 @@
 namespace Timatic\Rework;
 
 use Illuminate\Support\Collection;
+use Saloon\Http\Auth\HeaderAuthenticator;
 use Saloon\Http\Connector as SaloonConnector;
 use Saloon\Http\Request;
 use Saloon\Http\Response;
@@ -21,10 +22,14 @@ class Connector extends SaloonConnector implements HasPagination
         return 'https://api.rework.nl/v2/'.$this->companyId;
     }
 
+    protected function defaultAuth(): HeaderAuthenticator
+    {
+        return new HeaderAuthenticator((string) $this->apiKey, 'Authorization', 'Token ');
+    }
+
     protected function defaultHeaders(): array
     {
         return [
-            'Authorization' => 'Token '.$this->apiKey,
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
         ];
