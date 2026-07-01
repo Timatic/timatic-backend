@@ -11,7 +11,7 @@ final class TopdeskBranchResolver
 {
     public function __construct(
         private readonly Connector $connector,
-        private readonly string $baseUrl,
+        private readonly int|string $integrationId,
         private readonly string $branchMatchField,
     ) {}
 
@@ -21,14 +21,18 @@ final class TopdeskBranchResolver
             return null;
         }
 
-        $cacheKey = 'topdesk.branch_id.'.md5($this->baseUrl.$customer->external_id.$this->branchMatchField);
-
-        return Cache::remember($cacheKey, now()->addHour(), function () use ($customer): ?string {
+        return Cache::remember($this->branchIdKey($customer->external_id), now()->endOfDay(), function () use ($customer): ?string {
             $branch = $this->connector->send(
-                new GetBranchesRequest("archived==false;{$this->branchMatchField}=={$customer->external_id}")
+                new GetBranchesRequest("archived==false;{$this->branchMatchField}=={$customer->external_id}", $this->branchMatchField)
             )->dto();
 
-            return $branch?->id;
+            if ($branch === null) {
+                return null;
+            }
+
+            Cache::put($this->externalIdKey($branch->id), $customer->external_id, now()->endOfDay());
+
+            return $branch->id;
         });
     }
 
@@ -38,12 +42,32 @@ final class TopdeskBranchResolver
             return null;
         }
 
-        $branch = $this->connector->send(new GetBranchesRequest("id=={$branchId}"))->dto();
+        $externalId = Cache::remember($this->externalIdKey($branchId), now()->endOfDay(), function () use ($branchId): ?string {
+            $branch = $this->connector->send(new GetBranchesRequest("id=={$branchId}", $this->branchMatchField))->dto();
 
-        if (! $branch) {
+            if ($branch?->matchValue === null) {
+                return null;
+            }
+
+            Cache::put($this->branchIdKey($branch->matchValue), $branchId, now()->endOfDay());
+
+            return $branch->matchValue;
+        });
+
+        if ($externalId === null) {
             return null;
         }
 
-        return Customer::where('external_id', $branch->clientReferenceNumber)->first();
+        return Customer::where('external_id', $externalId)->first();
+    }
+
+    private function branchIdKey(string $externalId): string
+    {
+        return 'topdesk.branch_id.'.md5($this->integrationId.$externalId);
+    }
+
+    private function externalIdKey(string $branchId): string
+    {
+        return 'topdesk.external_id.'.md5($this->integrationId.$branchId);
     }
 }
