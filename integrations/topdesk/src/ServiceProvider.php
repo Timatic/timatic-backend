@@ -33,7 +33,7 @@ class ServiceProvider extends BaseServiceProvider
 
             return new TopdeskBranchResolver(
                 connector: $app->make(Connector::class),
-                baseUrl: $integration?->config['base_url'] ?? '',
+                integrationId: $integration !== null ? $integration->id : '',
                 branchMatchField: $integration?->config['branch_match_field'] ?? 'clientReferenceNumber',
             );
         });

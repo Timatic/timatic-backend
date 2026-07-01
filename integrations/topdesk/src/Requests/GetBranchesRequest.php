@@ -11,7 +11,10 @@ class GetBranchesRequest extends Request
 {
     protected Method $method = Method::GET;
 
-    public function __construct(private readonly string $fiql) {}
+    public function __construct(
+        private readonly string $fiql,
+        private readonly string $matchField,
+    ) {}
 
     public function resolveEndpoint(): string
     {
@@ -22,7 +25,7 @@ class GetBranchesRequest extends Request
     {
         return [
             'query' => $this->fiql,
-            '$fields' => 'id,name,clientReferenceNumber',
+            '$fields' => "id,{$this->matchField}",
             'page_size' => 1,
             'start' => 0,
         ];
@@ -38,8 +41,7 @@ class GetBranchesRequest extends Request
 
         return new TopdeskBranch(
             id: $items[0]['id'],
-            name: $items[0]['name'] ?? '',
-            clientReferenceNumber: $items[0]['clientReferenceNumber'] ?? null,
+            matchValue: $items[0][$this->matchField] ?? null,
         );
     }
 }

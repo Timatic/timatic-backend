@@ -45,7 +45,17 @@ final class IncidentTicketProvider implements TicketProviderInterface
     /** @return Collection<int, Ticket> */
     public function searchTickets(?Customer $customer, ?string $search = null, ?User $user = null): Collection
     {
-        $fiql = FiqlBuilder::build($this->branchResolver, $customer, $search, 'callerBranch.id');
+        $branchId = null;
+
+        if ($customer !== null) {
+            $branchId = $this->branchResolver->resolveBranchId($customer);
+
+            if (! $branchId) {
+                return collect();
+            }
+        }
+
+        $fiql = FiqlBuilder::build($branchId, $search, 'callerBranch.id', self::ticketKeyPattern());
 
         if ($fiql === null) {
             return collect();

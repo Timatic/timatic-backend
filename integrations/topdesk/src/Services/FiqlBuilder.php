@@ -2,28 +2,19 @@
 
 namespace Timatic\Topdesk\Services;
 
-use App\Models\Customer;
-
 final class FiqlBuilder
 {
     private const RECENT_WEEKS = 3;
 
     public static function build(
-        TopdeskBranchResolver $branchResolver,
-        ?Customer $customer,
+        ?string $branchId,
         ?string $search,
         string $branchField,
         string $keyPattern,
     ): ?string {
         $parts = [];
 
-        if ($customer !== null) {
-            $branchId = $branchResolver->resolveBranchId($customer);
-
-            if ($branchId === null) {
-                return null;
-            }
-
+        if ($branchId !== null) {
             $parts[] = $branchField.'=='.$branchId;
         } elseif ($search === null || $search === '') {
             return null;
