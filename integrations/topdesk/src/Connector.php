@@ -2,6 +2,8 @@
 
 namespace Timatic\Topdesk;
 
+use Saloon\Contracts\Authenticator;
+use Saloon\Http\Auth\BasicAuthenticator;
 use Saloon\Http\Connector as SaloonConnector;
 
 class Connector extends SaloonConnector
@@ -13,11 +15,13 @@ class Connector extends SaloonConnector
         return rtrim($this->credentials->baseUrl, '/').'/tas/api';
     }
 
+    protected function defaultAuth(): Authenticator
+    {
+        return new BasicAuthenticator($this->credentials->username, $this->credentials->apiToken);
+    }
+
     protected function defaultHeaders(): array
     {
-        return [
-            'Authorization' => 'Basic '.base64_encode($this->credentials->username.':'.$this->credentials->apiToken),
-            'Accept' => 'application/json',
-        ];
+        return ['Accept' => 'application/json'];
     }
 }
