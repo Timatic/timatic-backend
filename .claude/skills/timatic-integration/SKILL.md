@@ -58,16 +58,11 @@ Ask user:
 }
 ```
 
-### 3. Config file
-```php
-// config/{name}.php
-return [
-    'client_id'     => env('{NAME}_CLIENT_ID'),
-    'client_secret' => env('{NAME}_CLIENT_SECRET'),
-    'redirect'      => env('{NAME}_REDIRECT_URI'),
-];
-```
-Add three env vars to `.env.example`.
+### 3. Config file *(OAuth only)*
+
+Only needed for OAuth integrations. See `.claude/docs/integration-oauth.md` for config file setup and `mergeConfigFrom` instructions.
+
+**Simple API auth** — no config file needed. All user-supplied values (base URL, credentials, etc.) are stored in `Integration.config` and read in `ServiceProvider::register()` when binding `ApiCredentials`.
 
 ### 4. Migration — mapping table
 ```php
@@ -90,7 +85,7 @@ Schema::create('{name}_{resource}_mappings', function (Blueprint $table) {
 **Simple API auth (basic auth / static token)** — skip steps 5a, 6, 7. Instead:
 - Create typed `ApiCredentials` readonly class with required fields (e.g. `baseUrl`, `username`, `apiToken`).
 - Bind in `ServiceProvider::register()` reading from `Integration::where('type', '{name}')->first()?->config[...] ?? ''`.
-- Connector constructor accepts `ApiCredentials`, sets `Authorization` in `defaultHeaders()`.
+- Connector constructor accepts `ApiCredentials`, implements `defaultAuth()` returning appropriate Saloon authenticator (`BasicAuthenticator`, `TokenAuthenticator`, etc.). Keep `defaultHeaders()` for non-auth headers only.
 - SettingsPage stores credentials in `Integration.config` (encrypted). No redirect/callback flow.
 - See TOPdesk integration (`integrations/topdesk/`) as reference implementation.
 
