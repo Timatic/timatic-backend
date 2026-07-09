@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\DataTransferObjects\EntryExportRow;
+use App\Integrations\Contracts\ExportInterface;
 use App\Models\Entry;
 use App\Models\User;
 use Brick\Math\BigDecimal;
@@ -12,7 +13,7 @@ use Illuminate\Support\Collection;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
 
-class EntriesExport
+class EntriesExport implements ExportInterface
 {
     private CarbonInterface $start;
 
