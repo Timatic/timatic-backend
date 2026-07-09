@@ -21,6 +21,7 @@ use App\Http\Controllers\EntryController;
 use App\Http\Controllers\EntrySuggestionController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\ExportEmailController;
+use App\Http\Controllers\ExportFormatController;
 use App\Http\Controllers\Exports\GetBudgetEntriesExportController;
 use App\Http\Controllers\GetBudgetPeriodsController;
 use App\Http\Controllers\GetBudgetTimeSpentTotalsController;
@@ -63,6 +64,8 @@ Route::middleware([
     Route::get('me', ShowCurrentUserController::class)->name('me');
 
     Route::get('daily-progress', GetDailyProgressController::class)->name('daily-progress');
+
+    Route::get('export-formats', ExportFormatController::class)->name('export-formats.index');
 
     Route::get('budgets/export-mail', ExportEmailController::class)->name('budgets.export-mail');
 
