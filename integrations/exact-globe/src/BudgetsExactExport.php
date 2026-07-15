@@ -15,6 +15,10 @@ use Timatic\ExactGlobe\DataTransferObjects\MutationRow;
 
 class BudgetsExactExport implements ExportInterface
 {
+    private const USAGE_DESCRIPTION = 'Verbruik';
+
+    private const RELEASE_DESCRIPTION = 'Vrijval';
+
     private Carbon $month;
 
     /**
@@ -159,11 +163,11 @@ class BudgetsExactExport implements ExportInterface
             ->filter(fn (BudgetMutation $usage) => $this->ledgerMappings->has($usage->budget->budget_type_id));
 
         foreach ($budgetUsage as $budgetMutation) {
-            $this->addRowPairToCollection('Verbruik', $budgetMutation->usedCredit, $budgetMutation, $rows);
+            $this->addRowPairToCollection(self::USAGE_DESCRIPTION, $budgetMutation->usedCredit, $budgetMutation, $rows);
         }
 
         foreach ($budgetUsage as $budgetMutation) {
-            $this->addRowPairToCollection('Vrijval', $budgetMutation->expiredCredit, $budgetMutation, $rows);
+            $this->addRowPairToCollection(self::RELEASE_DESCRIPTION, $budgetMutation->expiredCredit, $budgetMutation, $rows);
         }
 
         return $rows;
@@ -175,8 +179,8 @@ class BudgetsExactExport implements ExportInterface
         $mapping = $this->ledgerMappings->get($row->budgetTypeId);
 
         return match ($row->description) {
-            'Verbruik' => $row->credit ? $mapping->verbruikCreditLedgerId : $mapping->verbruikDebitLedgerId,
-            default => $row->credit ? $mapping->vrijvalCreditLedgerId : $mapping->vrijvalDebitLedgerId,
+            self::USAGE_DESCRIPTION => $row->credit ? $mapping->usageCreditLedgerId : $mapping->usageDebitLedgerId,
+            default => $row->credit ? $mapping->releaseCreditLedgerId : $mapping->releaseDebitLedgerId,
         };
     }
 

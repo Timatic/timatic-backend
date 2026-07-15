@@ -6,10 +6,10 @@ readonly class LedgerMapping
 {
     public function __construct(
         public string $budgetTypeId,
-        public string $verbruikCreditLedgerId,
-        public string $verbruikDebitLedgerId,
-        public string $vrijvalCreditLedgerId,
-        public string $vrijvalDebitLedgerId,
+        public string $usageCreditLedgerId,
+        public string $usageDebitLedgerId,
+        public string $releaseCreditLedgerId,
+        public string $releaseDebitLedgerId,
     ) {}
 
     /** @param array<string, mixed> $row */
@@ -17,10 +17,10 @@ readonly class LedgerMapping
     {
         return new self(
             budgetTypeId: $budgetTypeId,
-            verbruikCreditLedgerId: (string) ($row['verbruik_credit'] ?? ''),
-            verbruikDebitLedgerId: (string) ($row['verbruik_debit'] ?? ''),
-            vrijvalCreditLedgerId: (string) ($row['vrijval_credit'] ?? ''),
-            vrijvalDebitLedgerId: (string) ($row['vrijval_debit'] ?? ''),
+            usageCreditLedgerId: (string) ($row['usage_credit'] ?? ''),
+            usageDebitLedgerId: (string) ($row['usage_debit'] ?? ''),
+            releaseCreditLedgerId: (string) ($row['release_credit'] ?? ''),
+            releaseDebitLedgerId: (string) ($row['release_debit'] ?? ''),
         );
     }
 }

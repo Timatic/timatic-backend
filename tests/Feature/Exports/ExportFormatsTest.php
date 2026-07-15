@@ -36,10 +36,10 @@ it('lists the exact globe export when the integration is configured', function (
         'config' => [
             'ledger_mapping' => [
                 'project' => [
-                    'verbruik_credit' => '28075',
-                    'verbruik_debit' => '81135',
-                    'vrijval_credit' => '28075',
-                    'vrijval_debit' => '81131',
+                    'usage_credit' => '28075',
+                    'usage_debit' => '81135',
+                    'release_credit' => '28075',
+                    'release_debit' => '81131',
                 ],
             ],
         ],

@@ -16,7 +16,7 @@ use function Pest\Laravel\mock;
 
 uses(RefreshDatabase::class);
 
-it('writes a credit and debit row per verbruik and vrijval mutation with the mapped ledger ids', function () {
+it('writes a credit and debit row per usage and release mutation with the mapped ledger ids', function () {
     $budget = Budget::factory()
         ->for(Customer::factory()->state(['external_id' => 'CUST-42']))
         ->create(['budget_type_id' => 'project']);
@@ -38,16 +38,16 @@ it('writes a credit and debit row per verbruik and vrijval mutation with the map
     $rows = array_map('str_getcsv', file($filePath));
 
     expect($rows)->toHaveCount(5);
-    [$verbruikCredit, $verbruikDebit, $vrijvalCredit, $vrijvalDebit] = array_slice($rows, 1);
-    expect($verbruikCredit[8])->toBe('1001')
-        ->and($verbruikCredit[12])->toBe('+10,5')
-        ->and($verbruikCredit[9])->toBe('CUST-42')
-        ->and($verbruikDebit[8])->toBe('1002')
-        ->and($verbruikDebit[12])->toBe('-10,5')
-        ->and($vrijvalCredit[8])->toBe('2001')
-        ->and($vrijvalCredit[12])->toBe('+2')
-        ->and($vrijvalDebit[8])->toBe('2002')
-        ->and($vrijvalDebit[12])->toBe('-2');
+    [$usageCredit, $usageDebit, $releaseCredit, $releaseDebit] = array_slice($rows, 1);
+    expect($usageCredit[8])->toBe('1001')
+        ->and($usageCredit[12])->toBe('+10,5')
+        ->and($usageCredit[9])->toBe('CUST-42')
+        ->and($usageDebit[8])->toBe('1002')
+        ->and($usageDebit[12])->toBe('-10,5')
+        ->and($releaseCredit[8])->toBe('2001')
+        ->and($releaseCredit[12])->toBe('+2')
+        ->and($releaseDebit[8])->toBe('2002')
+        ->and($releaseDebit[12])->toBe('-2');
 });
 
 it('skips budgets whose type has no ledger mapping', function () {
@@ -73,10 +73,10 @@ it('builds ledger mappings from the integration config', function () {
     $provider = ExactGlobeExportProvider::fromConfig([
         'ledger_mapping' => [
             'project' => [
-                'verbruik_credit' => '1001',
-                'verbruik_debit' => '1002',
-                'vrijval_credit' => '2001',
-                'vrijval_debit' => '2002',
+                'usage_credit' => '1001',
+                'usage_debit' => '1002',
+                'release_credit' => '2001',
+                'release_debit' => '2002',
             ],
         ],
     ]);

@@ -117,16 +117,16 @@ class LedgerMappingPage extends Page
                 ->description('Ledger accounts for '.$budgetType->title.' budgets. Leave empty to exclude this budget type from the export.')
                 ->columns(2)
                 ->schema([
-                    TextInput::make("ledger_mapping.{$budgetType->id}.verbruik_credit")
+                    TextInput::make("ledger_mapping.{$budgetType->id}.usage_credit")
                         ->label('Verbruik credit ledger')
                         ->numeric(),
-                    TextInput::make("ledger_mapping.{$budgetType->id}.verbruik_debit")
+                    TextInput::make("ledger_mapping.{$budgetType->id}.usage_debit")
                         ->label('Verbruik debit ledger')
                         ->numeric(),
-                    TextInput::make("ledger_mapping.{$budgetType->id}.vrijval_credit")
+                    TextInput::make("ledger_mapping.{$budgetType->id}.release_credit")
                         ->label('Vrijval credit ledger')
                         ->numeric(),
-                    TextInput::make("ledger_mapping.{$budgetType->id}.vrijval_debit")
+                    TextInput::make("ledger_mapping.{$budgetType->id}.release_debit")
                         ->label('Vrijval debit ledger')
                         ->numeric(),
                 ]))
@@ -141,10 +141,10 @@ class LedgerMappingPage extends Page
     {
         return array_filter(
             $rows,
-            fn (array $row): bool => filled($row['verbruik_credit'] ?? null)
-                && filled($row['verbruik_debit'] ?? null)
-                && filled($row['vrijval_credit'] ?? null)
-                && filled($row['vrijval_debit'] ?? null),
+            fn (array $row): bool => filled($row['usage_credit'] ?? null)
+                && filled($row['usage_debit'] ?? null)
+                && filled($row['release_credit'] ?? null)
+                && filled($row['release_debit'] ?? null),
         );
     }
 
