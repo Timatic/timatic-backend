@@ -9,19 +9,10 @@ class ExportProviderRegistry
     /** @var array<string, list<class-string<ExportProviderInterface>>> */
     private array $classes = [];
 
-    /** @var list<class-string<ExportProviderInterface>> */
-    private array $globalClasses = [];
-
     /** @param class-string<ExportProviderInterface> $providerClass */
     public function register(string $type, string $providerClass): void
     {
         $this->classes[$type][] = $providerClass;
-    }
-
-    /** @param class-string<ExportProviderInterface> $providerClass */
-    public function registerGlobal(string $providerClass): void
-    {
-        $this->globalClasses[] = $providerClass;
     }
 
     /**
@@ -33,15 +24,6 @@ class ExportProviderRegistry
         return array_map(
             fn (string $class): ExportProviderInterface => $class::fromConfig($config),
             $this->classes[$type] ?? [],
-        );
-    }
-
-    /** @return list<ExportProviderInterface> */
-    public function makeGlobalProviders(): array
-    {
-        return array_map(
-            fn (string $class): ExportProviderInterface => $class::fromConfig([]),
-            $this->globalClasses,
         );
     }
 

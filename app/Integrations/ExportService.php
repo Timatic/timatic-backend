@@ -4,6 +4,7 @@ namespace App\Integrations;
 
 use App\DataTransferObjects\ExportFormat;
 use App\DataTransferObjects\ExportPeriod;
+use App\Exports\CoreExportProvider;
 use App\Integrations\Contracts\ExportInterface;
 use App\Integrations\Contracts\ExportProviderInterface;
 use App\Models\Integration;
@@ -13,7 +14,10 @@ use RuntimeException;
 
 class ExportService
 {
-    public function __construct(private readonly ExportProviderRegistry $registry) {}
+    public function __construct(
+        private readonly ExportProviderRegistry $registry,
+        private readonly CoreExportProvider $coreProvider,
+    ) {}
 
     /** @return Collection<int, ExportFormat> */
     public function formats(): Collection
@@ -60,7 +64,7 @@ class ExportService
     /** @return Collection<int, ExportProviderInterface> */
     private function resolveProviders(): Collection
     {
-        return collect($this->registry->makeGlobalProviders())
+        return collect([$this->coreProvider])
             ->merge(
                 Integration::whereIn('type', $this->registry->registeredTypes())->get()
                     ->flatMap(fn (Integration $integration) => $this->registry->makeProviders(

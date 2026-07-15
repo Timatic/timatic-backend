@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Exports\CoreExportProvider;
 use App\Integrations\ExportProviderRegistry;
 use App\Integrations\ExportService;
 use App\Integrations\IntegrationTypeRegistry;
@@ -44,8 +43,6 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->app->make(ExportProviderRegistry::class)->registerGlobal(CoreExportProvider::class);
-
         $this->app->booted(function () {
             if (! Schema::hasTable('permissions')) {
                 return;
