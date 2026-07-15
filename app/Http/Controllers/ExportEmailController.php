@@ -42,6 +42,5 @@ class ExportEmailController extends Controller
         }
 
         return Storage::download($fileName);
-
     }
 }

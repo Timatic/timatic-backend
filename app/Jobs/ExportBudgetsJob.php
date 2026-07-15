@@ -35,11 +35,11 @@ class ExportBudgetsJob implements ShouldQueue
             ->createExport($this->exportType, new ExportPeriod($this->year, $this->month))
             ->export(Storage::disk('temp')->path($fileName));
 
-        $this->uploadToS3($fileName);
+        $this->storeExport($fileName);
         $this->sendExportEmail($fileName);
     }
 
-    private function uploadToS3(string $fileName): void
+    private function storeExport(string $fileName): void
     {
         $content = Storage::disk('temp')->get($fileName);
 
@@ -47,7 +47,7 @@ class ExportBudgetsJob implements ShouldQueue
             throw new InvalidArgumentException("File {$fileName} does not exist");
         }
 
-        Storage::disk('s3')->put($fileName, $content);
+        Storage::put($fileName, $content);
     }
 
     private function sendExportEmail(string $fileName): void
