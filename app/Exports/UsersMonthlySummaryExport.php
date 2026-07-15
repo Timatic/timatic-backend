@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Integrations\Contracts\ExportInterface;
 use App\Models\Entry;
 use App\Models\User;
 use App\Queries\HoursPerUserPerMonth;
@@ -11,7 +12,7 @@ use Illuminate\Support\Collection;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
 
-class UsersMonthlySummaryExport
+class UsersMonthlySummaryExport implements ExportInterface
 {
     public function __construct(
         private CarbonInterface $start,

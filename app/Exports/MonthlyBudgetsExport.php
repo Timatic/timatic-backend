@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\DataTransferObjects\BudgetMutation;
+use App\Integrations\Contracts\ExportInterface;
 use App\Models\Customer;
 use App\Models\User;
 use App\Services\BudgetUsageService;
@@ -11,7 +12,7 @@ use Illuminate\Support\Collection;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
 
-class MonthlyBudgetsExport
+class MonthlyBudgetsExport implements ExportInterface
 {
     private Carbon $month;
 

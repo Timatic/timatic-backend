@@ -98,7 +98,7 @@ it('does not break if no change id is given', function () {
 it('exports and allows downloading of budget data', function () {
     Mail::fake();
     Event::fake();
-    Storage::fake('local');
+    Storage::fake();
 
     $this->loginUser(permissions: ['user']);
 
@@ -130,7 +130,7 @@ it('exports and allows downloading of budget data', function () {
     expect($rowCount)->toEqual(2);
 
     $fileName = 'export_budgets-excel_2023_7.xlsx';
-    Storage::put($fileName, 'Sample export content'); // Optional mock content
+    Storage::assertExists($fileName);
 
     $downloadResponse = $this->get(route('download.export', ['fileName' => $fileName]));
 

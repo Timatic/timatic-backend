@@ -20,7 +20,13 @@ uses(TestCase::class, RefreshDatabase::class)
     ->beforeEach(function () {
         Config::preventStrayRequests();
     })
-    ->in('Feature', 'Integration', 'Unit', '../integrations/nmbrs/tests');
+    ->in(
+        'Feature',
+        'Integration',
+        'Unit',
+        '../integrations/nmbrs/tests',
+        '../integrations/exact-globe/tests'
+    );
 
 /*
 |--------------------------------------------------------------------------

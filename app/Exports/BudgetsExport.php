@@ -3,13 +3,14 @@
 namespace App\Exports;
 
 use App\DataTransferObjects\BudgetExportRow;
+use App\Integrations\Contracts\ExportInterface;
 use App\Models\Budget;
 use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
 
-class BudgetsExport
+class BudgetsExport implements ExportInterface
 {
     /**
      * @throws Exception

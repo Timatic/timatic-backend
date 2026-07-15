@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Integrations\Tables;
 
-use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Integrations\IntegrationTypeRegistry;
 use App\Models\Integration;
 use Filament\Tables\Columns\TextColumn;
@@ -23,7 +22,7 @@ class IntegrationsTable
 
                 return $pageClass
                     ? $pageClass::getUrl(['record' => $record->id])
-                    : IntegrationResource::getUrl('edit', ['record' => $record]);
+                    : null;
             });
     }
 }

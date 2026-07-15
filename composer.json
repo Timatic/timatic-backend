@@ -34,6 +34,7 @@
         "spatie/laravel-query-builder": "^6.3",
         "timacdonald/json-api": "dev-main as 1.0.0-beta.99",
         "timatic/bitbucket-integration": "1.0.0",
+        "timatic/exact-globe-integration": "1.0.0",
         "timatic/google-calendar-integration": "1.0.0",
         "timatic/jira-integration": "1.0.0",
         "timatic/nmbrs-integration": "*",
@@ -57,6 +58,10 @@
         {
             "type": "path",
             "url": "integrations/jira"
+        },
+        {
+            "type": "path",
+            "url": "integrations/exact-globe"
         },
         {
             "type": "path",

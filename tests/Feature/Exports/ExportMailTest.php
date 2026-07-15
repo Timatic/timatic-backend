@@ -14,7 +14,7 @@ it('sends an email with export file', function () {
 
     $user = User::factory()->create();
     $this->actingAs($user);
-    Storage::fake('s3');
+    Storage::fake();
 
     Mail::fake();
 

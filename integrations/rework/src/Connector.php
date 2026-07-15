@@ -24,7 +24,7 @@ class Connector extends SaloonConnector implements HasPagination
 
     protected function defaultAuth(): HeaderAuthenticator
     {
-        return new HeaderAuthenticator((string) $this->apiKey, 'Authorization', 'Token ');
+        return new HeaderAuthenticator((string) $this->apiKey, 'Authorization');
     }
 
     protected function defaultHeaders(): array

@@ -10761,6 +10761,36 @@
             }
         },
         {
+            "name": "timatic/exact-globe-integration",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "integrations/exact-globe",
+                "reference": "d0baa4d6750c782280b73d40ee1b05300a1b4dba"
+            },
+            "require": {
+                "openspout/openspout": "^4.0",
+                "php": "^8.4"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Timatic\\ExactGlobe\\ServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Timatic\\ExactGlobe\\": "src/"
+                }
+            },
+            "description": "Exact Globe export integration for Timatic",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "timatic/google-calendar-integration",
             "version": "1.0.0",
             "dist": {

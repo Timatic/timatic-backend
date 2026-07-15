@@ -1,0 +1,24 @@
+{
+    "name": "timatic/exact-globe-integration",
+    "description": "Exact Globe export integration for Timatic",
+    "type": "library",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.4",
+        "openspout/openspout": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Timatic\\ExactGlobe\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Timatic\\ExactGlobe\\ServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

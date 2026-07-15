@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Integrations\ExportProviderRegistry;
+use App\Integrations\ExportService;
 use App\Integrations\IntegrationTypeRegistry;
 use App\Integrations\TicketProviderRegistry;
 use App\Integrations\TicketService;
@@ -35,6 +37,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(IntegrationTypeRegistry::class);
         $this->app->singleton(TicketProviderRegistry::class);
         $this->app->singleton(TicketService::class);
+        $this->app->singleton(ExportProviderRegistry::class);
+        $this->app->singleton(ExportService::class);
     }
 
     public function boot(): void

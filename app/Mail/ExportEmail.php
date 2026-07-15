@@ -19,13 +19,15 @@ class ExportEmail extends Mailable
 
     public string $formattedDate;
 
-    public function __construct(string $fileName, int $year, ?int $month, string $exportType)
+    public function __construct(string $fileName, ?int $year, ?int $month, string $exportType)
     {
         $this->fileName = $fileName;
         $this->exportType = $exportType;
         $this->downloadUrl = route('download.export', ['fileName' => $this->fileName]);
 
-        if (is_null($month)) {
+        if (is_null($year)) {
+            $this->formattedDate = '';
+        } elseif (is_null($month)) {
             $this->formattedDate = (string) $year;
         } else {
             $this->formattedDate = Carbon::createFromDate($year, $month, 1)
