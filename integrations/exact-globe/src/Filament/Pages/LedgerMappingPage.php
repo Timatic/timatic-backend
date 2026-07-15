@@ -7,12 +7,14 @@ use App\Models\BudgetType;
 use App\Models\Integration;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Navigation\NavigationItem;
 use Filament\Notifications\Notification;
 use Filament\Pages\Enums\SubNavigationPosition;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 /**
@@ -55,10 +57,12 @@ class LedgerMappingPage extends Page
         $this->record = $this->resolveRecord($record);
 
         $config = $this->getIntegration()->config ?? [];
+        $ledgerMapping = $config['ledger_mapping'] ?? [];
 
         $this->form->fill([
             'name' => $this->getIntegration()->name,
-            'ledger_mapping' => $config['ledger_mapping'] ?? [],
+            'ledger_mapping' => $ledgerMapping,
+            'enabled' => array_fill_keys(array_keys($ledgerMapping), true),
         ]);
     }
 
@@ -91,7 +95,10 @@ class LedgerMappingPage extends Page
                     $data = $this->form->getState();
 
                     $config = array_merge($this->getIntegration()->config ?? [], [
-                        'ledger_mapping' => $this->completedMappingRows($data['ledger_mapping'] ?? []),
+                        'ledger_mapping' => $this->completedMappingRows(
+                            $data['ledger_mapping'] ?? [],
+                            $data['enabled'] ?? [],
+                        ),
                     ]);
 
                     $this->getIntegration()->update([
@@ -114,37 +121,49 @@ class LedgerMappingPage extends Page
             ->orderBy('title')
             ->get()
             ->map(fn (BudgetType $budgetType): Section => Section::make($budgetType->title)
-                ->description('Ledger accounts for '.$budgetType->title.' budgets. Leave empty to exclude this budget type from the export.')
+                ->description('Enable to map ledger accounts for '.$budgetType->title.' budgets. Disabled budget types are excluded from the export.')
                 ->columns(2)
                 ->schema([
+                    Toggle::make("enabled.{$budgetType->id}")
+                        ->label('Include in export')
+                        ->live()
+                        ->columnSpanFull(),
+
                     TextInput::make("ledger_mapping.{$budgetType->id}.usage_credit")
                         ->label('Verbruik credit ledger')
-                        ->numeric(),
+                        ->numeric()
+                        ->visible(fn (Get $get): bool => (bool) $get("enabled.{$budgetType->id}")),
                     TextInput::make("ledger_mapping.{$budgetType->id}.usage_debit")
                         ->label('Verbruik debit ledger')
-                        ->numeric(),
+                        ->numeric()
+                        ->visible(fn (Get $get): bool => (bool) $get("enabled.{$budgetType->id}")),
                     TextInput::make("ledger_mapping.{$budgetType->id}.release_credit")
                         ->label('Vrijval credit ledger')
-                        ->numeric(),
+                        ->numeric()
+                        ->visible(fn (Get $get): bool => (bool) $get("enabled.{$budgetType->id}")),
                     TextInput::make("ledger_mapping.{$budgetType->id}.release_debit")
                         ->label('Vrijval debit ledger')
-                        ->numeric(),
+                        ->numeric()
+                        ->visible(fn (Get $get): bool => (bool) $get("enabled.{$budgetType->id}")),
                 ]))
             ->all());
     }
 
     /**
      * @param  array<string, array<string, mixed>>  $rows
+     * @param  array<string, mixed>  $enabled
      * @return array<string, array<string, mixed>>
      */
-    private function completedMappingRows(array $rows): array
+    private function completedMappingRows(array $rows, array $enabled): array
     {
         return array_filter(
             $rows,
-            fn (array $row): bool => filled($row['usage_credit'] ?? null)
+            fn (array $row, string $budgetTypeId): bool => ($enabled[$budgetTypeId] ?? false)
+                && filled($row['usage_credit'] ?? null)
                 && filled($row['usage_debit'] ?? null)
                 && filled($row['release_credit'] ?? null)
                 && filled($row['release_debit'] ?? null),
+            ARRAY_FILTER_USE_BOTH,
         );
     }
 
