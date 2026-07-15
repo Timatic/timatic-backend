@@ -16,7 +16,7 @@ final class CoreExportProvider implements ExportProviderInterface
     public function exportFormats(): Collection
     {
         return collect([
-            new ExportFormat('budgets-monthly-excel', 'Budget mutations - Excel', ExportPeriodOptions::Monthly),
+            new ExportFormat('budgets-monthly-excel', 'Budget mutations', ExportPeriodOptions::Monthly),
             new ExportFormat('budgets-excel', 'Budgets current balance', ExportPeriodOptions::None),
             new ExportFormat('entries-excel', 'Entries dump', ExportPeriodOptions::MonthlyAndYearly),
             new ExportFormat('users-monthly-summary-excel', 'Monthly summary per user', ExportPeriodOptions::Monthly),

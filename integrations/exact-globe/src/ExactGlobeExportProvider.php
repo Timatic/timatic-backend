@@ -28,7 +28,7 @@ final class ExactGlobeExportProvider implements ExportProviderInterface
         }
 
         return new Collection([
-            new ExportFormat(self::EXPORT_KEY, 'Budget mutations - Exact CSV', ExportPeriodOptions::Monthly, 'csv'),
+            new ExportFormat(self::EXPORT_KEY, 'Budget mutations - Exact', ExportPeriodOptions::Monthly, 'csv'),
         ]);
     }
 
