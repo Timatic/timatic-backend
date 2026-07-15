@@ -4,7 +4,7 @@ namespace App\Exports;
 
 use App\DataTransferObjects\ExportFormat;
 use App\DataTransferObjects\ExportPeriod;
-use App\Enums\ExportDateRequirement;
+use App\Enums\ExportPeriodOptions;
 use App\Integrations\Contracts\ExportInterface;
 use App\Integrations\Contracts\ExportProviderInterface;
 use App\Services\BudgetUsageService;
@@ -16,10 +16,10 @@ final class CoreExportProvider implements ExportProviderInterface
     public function exportFormats(): Collection
     {
         return collect([
-            new ExportFormat('budgets-monthly-excel', 'Budget mutations - Excel', ExportDateRequirement::Monthly),
-            new ExportFormat('budgets-excel', 'Budgets current balance', ExportDateRequirement::None),
-            new ExportFormat('entries-excel', 'Entries dump', ExportDateRequirement::MonthlyAndYearly),
-            new ExportFormat('users-monthly-summary-excel', 'Monthly summary per user', ExportDateRequirement::Monthly),
+            new ExportFormat('budgets-monthly-excel', 'Budget mutations - Excel', ExportPeriodOptions::Monthly),
+            new ExportFormat('budgets-excel', 'Budgets current balance', ExportPeriodOptions::None),
+            new ExportFormat('entries-excel', 'Entries dump', ExportPeriodOptions::MonthlyAndYearly),
+            new ExportFormat('users-monthly-summary-excel', 'Monthly summary per user', ExportPeriodOptions::Monthly),
         ]);
     }
 

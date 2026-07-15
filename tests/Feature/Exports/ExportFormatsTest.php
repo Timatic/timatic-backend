@@ -16,7 +16,7 @@ it('lists the built-in export formats', function () {
         'type' => 'exportFormats',
         'attributes' => [
             'label' => 'Budget mutations - Excel',
-            'dateRequirement' => 'monthly',
+            'periodOptions' => 'monthly',
             'extension' => 'xlsx',
         ],
     ]);
@@ -53,7 +53,7 @@ it('lists the exact globe export when the integration is configured', function (
         'type' => 'exportFormats',
         'attributes' => [
             'label' => 'Budget mutations - Exact CSV',
-            'dateRequirement' => 'monthly',
+            'periodOptions' => 'monthly',
             'extension' => 'csv',
         ],
     ]);

@@ -4,7 +4,7 @@ namespace Timatic\ExactGlobe;
 
 use App\DataTransferObjects\ExportFormat;
 use App\DataTransferObjects\ExportPeriod;
-use App\Enums\ExportDateRequirement;
+use App\Enums\ExportPeriodOptions;
 use App\Integrations\Contracts\ExportInterface;
 use App\Integrations\Contracts\ExportProviderInterface;
 use App\Services\BudgetUsageService;
@@ -28,7 +28,7 @@ final class ExactGlobeExportProvider implements ExportProviderInterface
         }
 
         return new Collection([
-            new ExportFormat(self::EXPORT_KEY, 'Budget mutations - Exact CSV', ExportDateRequirement::Monthly, 'csv'),
+            new ExportFormat(self::EXPORT_KEY, 'Budget mutations - Exact CSV', ExportPeriodOptions::Monthly, 'csv'),
         ]);
     }
 

@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-enum ExportDateRequirement: string
+enum ExportPeriodOptions: string
 {
     case None = 'none';
     case Monthly = 'monthly';

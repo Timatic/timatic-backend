@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\ExportDateRequirement;
+use App\Enums\ExportPeriodOptions;
 use App\Integrations\ExportService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -31,7 +31,7 @@ class ExportRequest extends FormRequest
             'exportType' => ['required', 'string', Rule::in($exportService->formatKeys())],
             'year' => ['required', 'integer', 'min:2000', 'max:'.date('Y')],
             'month' => [
-                Rule::requiredIf($format?->dateRequirement === ExportDateRequirement::Monthly),
+                Rule::requiredIf($format?->periodOptions === ExportPeriodOptions::Monthly),
                 'nullable', 'integer', 'min:1', 'max:12',
             ],
         ];

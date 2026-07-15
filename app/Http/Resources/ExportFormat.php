@@ -14,7 +14,7 @@ class ExportFormat extends JsonApiResource
     {
         return [
             'label' => $this->label,
-            'dateRequirement' => $this->dateRequirement->value,
+            'periodOptions' => $this->periodOptions->value,
             'extension' => $this->extension,
         ];
     }
