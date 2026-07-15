@@ -25,6 +25,17 @@ it('rejects a monthly export without a month', function () {
     ]))->assertUnprocessable()->assertJsonValidationErrors('month');
 });
 
+it('accepts an export without period options without a year and month', function () {
+    $this->loginUser();
+    Mail::fake();
+    Storage::fake();
+    Storage::fake('temp');
+
+    $this->getJson(route('budgets.export-mail', [
+        'exportType' => 'budgets-excel',
+    ]))->assertStatus(202);
+});
+
 it('accepts a monthly and yearly export without a month', function () {
     $this->loginUser();
     Mail::fake();

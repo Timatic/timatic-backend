@@ -29,7 +29,10 @@ class ExportRequest extends FormRequest
 
         return [
             'exportType' => ['required', 'string', Rule::in($exportService->formatKeys())],
-            'year' => ['required', 'integer', 'min:2000', 'max:'.date('Y')],
+            'year' => [
+                Rule::requiredIf($format !== null && $format->periodOptions !== ExportPeriodOptions::None),
+                'nullable', 'integer', 'min:2000', 'max:'.date('Y'),
+            ],
             'month' => [
                 Rule::requiredIf($format?->periodOptions === ExportPeriodOptions::Monthly),
                 'nullable', 'integer', 'min:1', 'max:12',

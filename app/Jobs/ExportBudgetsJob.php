@@ -20,7 +20,7 @@ class ExportBudgetsJob implements ShouldQueue
     public function __construct(
         protected User $user,
         protected string $exportType,
-        protected int $year,
+        protected ?int $year,
         protected ?int $month,
     ) {}
 
@@ -29,7 +29,7 @@ class ExportBudgetsJob implements ShouldQueue
         $format = $exportService->findFormat($this->exportType)
             ?? throw new InvalidArgumentException("Invalid export type: {$this->exportType}");
 
-        $fileName = "export_{$this->exportType}_{$this->year}_".($this->month ?? 'all').".{$format->extension}";
+        $fileName = $this->generateFileName($format->extension);
 
         $exportService
             ->createExport($this->exportType, new ExportPeriod($this->year, $this->month))
@@ -37,6 +37,15 @@ class ExportBudgetsJob implements ShouldQueue
 
         $this->storeExport($fileName);
         $this->sendExportEmail($fileName);
+    }
+
+    private function generateFileName(string $extension): string
+    {
+        if ($this->year === null) {
+            return "export_{$this->exportType}.{$extension}";
+        }
+
+        return "export_{$this->exportType}_{$this->year}_".($this->month ?? 'all').".{$extension}";
     }
 
     private function storeExport(string $fileName): void

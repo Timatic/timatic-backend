@@ -39,7 +39,7 @@ final class ExactGlobeExportProvider implements ExportProviderInterface
         }
 
         return new BudgetsExactExport(
-            $period->year,
+            $period->requireYear(),
             $period->requireMonth(),
             app(BudgetUsageService::class),
             $this->ledgerMappings,

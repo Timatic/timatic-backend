@@ -23,7 +23,7 @@ class ExportEmailController extends Controller
         $validated = $request->validated();
 
         $exportType = $validated['exportType'];
-        $year = $validated['year'];
+        $year = $validated['year'] ?? null;
         $month = $validated['month'] ?? null;
 
         ExportBudgetsJob::dispatch($user, $exportType, $year, $month);

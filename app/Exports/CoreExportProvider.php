@@ -26,7 +26,7 @@ final class CoreExportProvider implements ExportProviderInterface
     public function createExport(string $key, ExportPeriod $period): ExportInterface
     {
         return match ($key) {
-            'budgets-monthly-excel' => new MonthlyBudgetsExport($period->year, $period->requireMonth(), app(BudgetUsageService::class)),
+            'budgets-monthly-excel' => new MonthlyBudgetsExport($period->requireYear(), $period->requireMonth(), app(BudgetUsageService::class)),
             'budgets-excel' => new BudgetsExport,
             'entries-excel' => new EntriesExport($period->start(), $period->end()),
             'users-monthly-summary-excel' => new UsersMonthlySummaryExport($period->start(), $period->end()),
