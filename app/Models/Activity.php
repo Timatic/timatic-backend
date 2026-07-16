@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Collection;
 
 /**
@@ -85,10 +84,10 @@ class Activity extends Model
     }
 
     /**
-     * @return HasOne<EventType, $this>
+     * @return BelongsTo<EventType, $this>
      */
-    public function eventType(): HasOne
+    public function eventType(): BelongsTo
     {
-        return $this->hasOne(EventType::class);
+        return $this->belongsTo(EventType::class);
     }
 }

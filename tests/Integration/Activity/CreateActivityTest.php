@@ -270,3 +270,13 @@ test('events without ticket should not be combined', function () {
 
     expect(Activity::query()->count())->toEqual(2);
 });
+
+it('loads the event type of an activity', function () {
+    Illuminate\Support\Facades\Event::fake();
+    $eventType = EventType::firstOrCreate(['id' => 'ticket_saved'], ['weight' => 1]);
+
+    $activity = Activity::factory()->create(['event_type_id' => $eventType->id]);
+
+    expect($activity->eventType)->toBeInstanceOf(EventType::class)
+        ->and($activity->eventType->id)->toBe('ticket_saved');
+});
