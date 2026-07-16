@@ -55,7 +55,7 @@ class SuggestionBundler
         $suggestion->ticket_type = $activity->ticket_type;
         $suggestion->customer_id = $activity->customer_id;
         $suggestion->is_internal = $activity->is_internal;
-        $suggestion->date = $activity->started_at->setTimezone(config('timatic.preferred_timezone'));
+        $suggestion->date = $this->suggestionDateFor($activity);
 
         return $suggestion;
     }
