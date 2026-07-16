@@ -35,6 +35,9 @@ activities chronologically using the current matching rules:
 php artisan timatic:rebundle-suggestions [--user=1] [--from=2026-06-01] [--to=2026-06-30]
 ```
 
+Pause queue workers before running this against live data, so the `CreateSuggestion`
+listener cannot attach new activities while suggestions are being rebundled.
+
 ## License
 
 Copyright (c) 2025 Timatic.

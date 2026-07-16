@@ -19,20 +19,27 @@ class RebundleSuggestionsCommand extends Command
 
     public function handle(SuggestionBundler $bundler): int
     {
-        $suggestionIds = EntrySuggestion::query()
-            ->whereDoesntHave('entry')
-            ->when($this->option('user'), fn ($query, $user) => $query->where('user_id', $user))
-            ->when($this->option('from'), fn ($query, $from) => $query->where('date', '>=', $from))
-            ->when($this->option('to'), fn ($query, $to) => $query->where('date', '<=', $to))
-            ->pluck('id');
+        $suggestionIds = collect();
+        $activityIds = collect();
 
-        $activityIds = Activity::query()
-            ->whereIn('entry_suggestion_id', $suggestionIds)
-            ->pluck('id');
+        DB::transaction(function () use ($bundler, &$suggestionIds, &$activityIds): void {
+            // Lock the targeted suggestions so a concurrently queued CreateSuggestion
+            // listener cannot attach a new activity to one between the snapshot below
+            // and the detach/delete that follows.
+            $suggestionIds = EntrySuggestion::query()
+                ->whereDoesntHave('entry')
+                ->when($this->option('user'), fn ($query, $user) => $query->where('user_id', $user))
+                ->when($this->option('from'), fn ($query, $from) => $query->where('date', '>=', $from))
+                ->when($this->option('to'), fn ($query, $to) => $query->where('date', '<=', $to))
+                ->lockForUpdate()
+                ->pluck('id');
 
-        DB::transaction(function () use ($activityIds, $suggestionIds, $bundler): void {
+            $activityIds = Activity::query()
+                ->whereIn('entry_suggestion_id', $suggestionIds)
+                ->pluck('id');
+
             // detach first: activities.entry_suggestion_id cascades on suggestion delete
-            Activity::query()->whereIn('id', $activityIds)->update(['entry_suggestion_id' => null]);
+            Activity::query()->whereIn('entry_suggestion_id', $suggestionIds)->update(['entry_suggestion_id' => null]);
             EntrySuggestion::query()->whereKey($suggestionIds)->forceDelete();
 
             Activity::query()
