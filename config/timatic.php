@@ -13,8 +13,6 @@ return [
     'month-end_closing_day_of_month' => 6,
     'extended_closing_day_of_month' => 15,
     'feature' => [
-        'build_stacked_suggestions' => env('BUILD_STACKED_SUGGESTIONS', false),
-        'activity_overlap_detection' => env('ACTIVITY_OVERLAP_DETECTION', false),
         'align_periods_to_month_start' => env('ALIGN_PERIODS_TO_MONTH_START', true),
     ],
     'account_management_mail_address' => env('ACCOUNT_MANAGEMENT_MAIL_ADDRESS'),

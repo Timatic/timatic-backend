@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Events\ActivityCreated;
 use App\Events\CreatingActivity;
 use Carbon\Carbon;
 use Database\Factories\ActivityFactory;
@@ -10,7 +9,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Collection;
 
 /**
@@ -54,7 +52,6 @@ class Activity extends Model
      * @var array<string, class-string>
      */
     protected $dispatchesEvents = [
-        'created' => ActivityCreated::class,
         'creating' => CreatingActivity::class,
     ];
 
@@ -85,10 +82,10 @@ class Activity extends Model
     }
 
     /**
-     * @return HasOne<EventType, $this>
+     * @return BelongsTo<EventType, $this>
      */
-    public function eventType(): HasOne
+    public function eventType(): BelongsTo
     {
-        return $this->hasOne(EventType::class);
+        return $this->belongsTo(EventType::class);
     }
 }

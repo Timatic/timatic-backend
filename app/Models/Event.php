@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Events\EventCreated;
+use Carbon\CarbonInterface;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -36,6 +37,8 @@ class Event extends Model
 {
     /** @use HasFactory<EventFactory> */
     use HasFactory;
+
+    private const ESTIMATED_DURATION_MINUTES = 15;
 
     protected $fillable = [
         'user_id',
@@ -101,5 +104,10 @@ class Event extends Model
     public function eventType(): BelongsTo
     {
         return $this->belongsTo(EventType::class);
+    }
+
+    public function effectiveStart(): CarbonInterface
+    {
+        return $this->started_at ?: $this->ended_at->copy()->subMinutes(self::ESTIMATED_DURATION_MINUTES);
     }
 }

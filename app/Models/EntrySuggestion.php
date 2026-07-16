@@ -18,7 +18,7 @@ use Illuminate\Support\Collection;
  * @property ?string $ticket_number
  * @property ?string $customer_id
  * @property ?string $user_id
- * @property ?Carbon $date
+ * @property ?string $date
  * @property ?string $ticket_title
  * @property ?string $ticket_type
  * @property ?string $customer_name
