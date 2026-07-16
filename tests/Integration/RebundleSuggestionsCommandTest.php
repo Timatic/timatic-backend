@@ -119,3 +119,33 @@ it('scopes rebundling with the user option', function () {
     expect(EntrySuggestion::where('user_id', $userA->id)->count())->toBe(1)
         ->and(EntrySuggestion::where('user_id', $userB->id)->count())->toBe(1);
 });
+
+it('rolls back when bundling fails mid-replay', function () {
+    EventFacade::fake();
+    $user = User::factory()->create();
+    $source = Source::factory()->create();
+    $bundler = app(SuggestionBundler::class);
+
+    $activity = Activity::factory()->create([
+        'user_id' => $user->id,
+        'source_id' => $source->id,
+        'customer_id' => '1',
+        'ticket_number' => 'PIO-12',
+        'started_at' => '2026-06-04 09:00:00',
+        'ended_at' => '2026-06-04 10:00:00',
+    ]);
+    $suggestion = $bundler->createNewSuggestionFor($activity);
+
+    $this->mock(SuggestionBundler::class)
+        ->shouldReceive('bundle')
+        ->andThrow(new RuntimeException('bundling failed'));
+
+    try {
+        $this->artisan('timatic:rebundle-suggestions');
+    } catch (RuntimeException) {
+    }
+
+    $activity->refresh();
+    expect(EntrySuggestion::count())->toBe(1)
+        ->and($activity->entry_suggestion_id)->toBe($suggestion->id);
+});
