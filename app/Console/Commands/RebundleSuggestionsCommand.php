@@ -6,6 +6,7 @@ use App\Models\Activity;
 use App\Models\EntrySuggestion;
 use App\Services\SuggestionBundler;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class RebundleSuggestionsCommand extends Command
 {
@@ -29,15 +30,17 @@ class RebundleSuggestionsCommand extends Command
             ->whereIn('entry_suggestion_id', $suggestionIds)
             ->pluck('id');
 
-        // detach first: activities.entry_suggestion_id cascades on suggestion delete
-        Activity::query()->whereIn('id', $activityIds)->update(['entry_suggestion_id' => null]);
-        EntrySuggestion::query()->whereKey($suggestionIds)->forceDelete();
+        DB::transaction(function () use ($activityIds, $suggestionIds, $bundler): void {
+            // detach first: activities.entry_suggestion_id cascades on suggestion delete
+            Activity::query()->whereIn('id', $activityIds)->update(['entry_suggestion_id' => null]);
+            EntrySuggestion::query()->whereKey($suggestionIds)->forceDelete();
 
-        Activity::query()
-            ->whereIn('id', $activityIds)
-            ->orderBy('started_at')
-            ->get()
-            ->each(fn (Activity $activity) => $bundler->bundle($activity));
+            Activity::query()
+                ->whereIn('id', $activityIds)
+                ->orderBy('started_at')
+                ->get()
+                ->each(fn (Activity $activity) => $bundler->bundle($activity));
+        });
 
         $this->info(sprintf(
             'Rebundled %d activities from %d suggestions into %d suggestions.',
