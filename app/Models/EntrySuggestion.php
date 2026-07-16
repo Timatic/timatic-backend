@@ -53,7 +53,6 @@ class EntrySuggestion extends Model
         return [
             'id' => 'integer',
             'is_internal' => 'bool',
-            'date' => 'date',
         ];
     }
 

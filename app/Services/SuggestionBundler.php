@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Activity;
 use App\Models\EntrySuggestion;
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 
 class SuggestionBundler
@@ -56,7 +55,7 @@ class SuggestionBundler
         $suggestion->ticket_type = $activity->ticket_type;
         $suggestion->customer_id = $activity->customer_id;
         $suggestion->is_internal = $activity->is_internal;
-        $suggestion->date = Carbon::parse($this->suggestionDateFor($activity));
+        $suggestion->date = $activity->started_at->setTimezone(config('timatic.preferred_timezone'));
 
         return $suggestion;
     }
