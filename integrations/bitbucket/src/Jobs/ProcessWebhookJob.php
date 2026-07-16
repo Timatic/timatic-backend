@@ -48,10 +48,11 @@ class ProcessWebhookJob implements ShouldQueue
     {
         foreach ($this->payload['push']['changes'] ?? [] as $change) {
             $branchName = is_string($change['new']['name'] ?? null) ? $change['new']['name'] : null;
+            $forced = (bool) ($change['forced'] ?? false);
 
             $knownCommits = [];
             foreach ($change['commits'] ?? [] as $commit) {
-                if ($this->isKnownCommit($commit)) {
+                if ($this->isKnownCommit($commit, $forced)) {
                     $knownCommits[] = $commit;
 
                     continue;
@@ -156,8 +157,14 @@ class ProcessWebhookJob implements ShouldQueue
         ]);
     }
 
-    /** @param array<string, mixed> $commit */
-    private function isKnownCommit(array $commit): bool
+    /**
+     * A force-pushed commit may carry a rewritten committer date (e.g. after a `git rebase`),
+     * so on forced pushes we match by title alone; on normal pushes we still require the date
+     * to match, since recurring titles (e.g. "composer update") are otherwise legitimate new commits.
+     *
+     * @param  array<string, mixed>  $commit
+     */
+    private function isKnownCommit(array $commit, bool $forced): bool
     {
         $email = $this->extractEmail($commit['author']['raw'] ?? '');
         $date = $commit['date'] ?? null;
@@ -174,7 +181,9 @@ class ProcessWebhookJob implements ShouldQueue
 
         [$commitTitle] = $this->splitCommitMessage((string) ($commit['message'] ?? ''));
 
-        return $this->eventExists($user, 'commit_pushed', $commitTitle, Carbon::parse($date)->utc());
+        $timestamp = $forced ? null : Carbon::parse($date)->utc();
+
+        return $this->eventExists($user, 'commit_pushed', $commitTitle, $timestamp);
     }
 
     /** @param non-empty-list<array<string, mixed>> $knownCommits */
@@ -206,14 +215,14 @@ class ProcessWebhookJob implements ShouldQueue
         );
     }
 
-    private function eventExists(User $user, string $eventTypeId, string $title, Carbon $timestamp): bool
+    private function eventExists(User $user, string $eventTypeId, string $title, ?Carbon $timestamp): bool
     {
         return Event::query()
             ->where('user_id', $user->id)
             ->where('source_id', ServiceProvider::SOURCE_ID)
             ->where('event_type_id', $eventTypeId)
-            ->where('started_at', $timestamp)
             ->where('title', mb_substr($title, 0, 255))
+            ->when($timestamp !== null, fn ($query) => $query->where('started_at', $timestamp))
             ->exists();
     }
 

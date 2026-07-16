@@ -16,12 +16,13 @@ uses(RefreshDatabase::class);
  * @param  list<array{message: string, date: string}>  $commits
  * @return array<string, mixed>
  */
-function pushPayload(string $email, array $commits): array
+function pushPayload(string $email, array $commits, bool $forced = false): array
 {
     return [
         'push' => [
             'changes' => [[
                 'new' => ['name' => 'feature/test'],
+                'forced' => $forced,
                 'commits' => array_map(fn (array $commit) => [
                     'hash' => fake()->sha1(),
                     'message' => $commit['message'],
@@ -113,4 +114,40 @@ it('creates events for new commits alongside a rebase event for known ones', fun
 
     expect(Event::where('event_type_id', 'commit_pushed')->count())->toBe(2)
         ->and(Event::where('event_type_id', 'rebase')->count())->toBe(1);
+});
+
+it('recognizes a rebased commit on a force-pushed branch by title even when the date changed', function () {
+    EventFacade::fake();
+    User::factory()->create(['email' => 'dev@example.com']);
+    $mapping = pushMapping();
+    $originalPush = pushPayload('dev@example.com', [
+        ['message' => 'add vite', 'date' => '2026-06-05T09:38:30+00:00'],
+    ]);
+    $forcedPush = pushPayload('dev@example.com', [
+        ['message' => 'add vite', 'date' => '2026-06-05T11:00:00+00:00'],
+    ], forced: true);
+
+    new ProcessWebhookJob($originalPush, $mapping, 'repo:push')->handle(app(TicketService::class));
+    new ProcessWebhookJob($forcedPush, $mapping, 'repo:push')->handle(app(TicketService::class));
+
+    expect(Event::where('event_type_id', 'commit_pushed')->count())->toBe(1)
+        ->and(Event::where('event_type_id', 'rebase')->count())->toBe(1);
+});
+
+it('creates a new commit_pushed event for a recurring commit title with a different date on a normal push', function () {
+    EventFacade::fake();
+    User::factory()->create(['email' => 'dev@example.com']);
+    $mapping = pushMapping();
+    $firstPush = pushPayload('dev@example.com', [
+        ['message' => 'composer update', 'date' => '2026-06-05T09:38:30+00:00'],
+    ]);
+    $secondPush = pushPayload('dev@example.com', [
+        ['message' => 'composer update', 'date' => '2026-06-06T09:38:30+00:00'],
+    ]);
+
+    new ProcessWebhookJob($firstPush, $mapping, 'repo:push')->handle(app(TicketService::class));
+    new ProcessWebhookJob($secondPush, $mapping, 'repo:push')->handle(app(TicketService::class));
+
+    expect(Event::where('event_type_id', 'commit_pushed')->count())->toBe(2)
+        ->and(Event::where('event_type_id', 'rebase')->count())->toBe(0);
 });
