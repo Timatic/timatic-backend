@@ -149,7 +149,9 @@ class ProcessWebhookJob implements ShouldQueue
             'budget_id' => $budgetId,
             'title' => mb_substr($title, 0, 255),
             'description' => $description,
-            'started_at' => $timestamp,
+            // webhook events are point events: the moment is known but the lead-up isn't,
+            // so started_at stays null and activity creation estimates the duration
+            'started_at' => null,
             'ended_at' => $timestamp,
             'ticket_id' => $ticket?->id,
             'ticket_number' => $ticket?->number,
@@ -222,7 +224,7 @@ class ProcessWebhookJob implements ShouldQueue
             ->where('source_id', ServiceProvider::SOURCE_ID)
             ->where('event_type_id', $eventTypeId)
             ->where('title', mb_substr($title, 0, 255))
-            ->when($timestamp !== null, fn ($query) => $query->where('started_at', $timestamp))
+            ->when($timestamp !== null, fn ($query) => $query->where('ended_at', $timestamp))
             ->exists();
     }
 

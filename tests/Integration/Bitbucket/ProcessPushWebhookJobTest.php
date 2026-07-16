@@ -66,6 +66,21 @@ it('creates a commit_pushed event for a new commit', function () {
         ->and(Event::where('event_type_id', 'rebase')->count())->toBe(0);
 });
 
+it('stores a commit as a point event without a start time', function () {
+    EventFacade::fake();
+    User::factory()->create(['email' => 'dev@example.com']);
+    $mapping = pushMapping();
+    $payload = pushPayload('dev@example.com', [
+        ['message' => 'add vite', 'date' => '2026-06-05T09:38:30+00:00'],
+    ]);
+
+    new ProcessWebhookJob($payload, $mapping, 'repo:push')->handle(app(TicketService::class));
+
+    $event = Event::sole();
+    expect($event->started_at)->toBeNull()
+        ->and($event->ended_at->toIso8601String())->toBe('2026-06-05T09:38:30+00:00');
+});
+
 it('creates one rebase event instead of duplicate commit events for known commits', function () {
     EventFacade::fake();
     User::factory()->create(['email' => 'dev@example.com']);
