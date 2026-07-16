@@ -24,6 +24,17 @@ To (re)seed dummy data at any time:
 php artisan db:seed --class=DummySeeder
 ```
 
+## Commands
+
+### Rebundle entry suggestions
+
+Deletes all open (not accepted, not rejected) entry suggestions and rebundles their
+activities chronologically using the current matching rules:
+
+```bash
+php artisan timatic:rebundle-suggestions [--user=1] [--from=2026-06-01] [--to=2026-06-30]
+```
+
 ## License
 
 Copyright (c) 2025 Timatic.
