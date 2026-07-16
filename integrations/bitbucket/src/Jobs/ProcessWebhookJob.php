@@ -49,8 +49,19 @@ class ProcessWebhookJob implements ShouldQueue
         foreach ($this->payload['push']['changes'] ?? [] as $change) {
             $branchName = is_string($change['new']['name'] ?? null) ? $change['new']['name'] : null;
 
+            $knownCommits = [];
             foreach ($change['commits'] ?? [] as $commit) {
+                if ($this->isKnownCommit($commit)) {
+                    $knownCommits[] = $commit;
+
+                    continue;
+                }
+
                 $this->createEventFromCommit($commit, $branchName, $ticketService);
+            }
+
+            if ($knownCommits !== []) {
+                $this->createRebaseEvent($knownCommits, $branchName);
             }
         }
     }
@@ -143,6 +154,67 @@ class ProcessWebhookJob implements ShouldQueue
             'ticket_number' => $ticket?->number,
             'ticket_type' => $ticket?->type,
         ]);
+    }
+
+    /** @param array<string, mixed> $commit */
+    private function isKnownCommit(array $commit): bool
+    {
+        $email = $this->extractEmail($commit['author']['raw'] ?? '');
+        $date = $commit['date'] ?? null;
+
+        if ($email === null || ! is_string($date)) {
+            return false;
+        }
+
+        $user = User::where('email', $email)->first();
+
+        if ($user === null) {
+            return false;
+        }
+
+        [$commitTitle] = $this->splitCommitMessage((string) ($commit['message'] ?? ''));
+
+        return $this->eventExists($user, 'commit_pushed', $commitTitle, Carbon::parse($date)->utc());
+    }
+
+    /** @param non-empty-list<array<string, mixed>> $knownCommits */
+    private function createRebaseEvent(array $knownCommits, ?string $branchName): void
+    {
+        $email = $this->extractEmail($knownCommits[0]['author']['raw'] ?? '');
+        $user = $email === null ? null : User::where('email', $email)->first();
+
+        if ($user === null) {
+            return;
+        }
+
+        $timestamp = collect($knownCommits)
+            ->map(fn (array $commit) => Carbon::parse($commit['date'])->utc())
+            ->max();
+
+        $title = sprintf('Rebased %d commits on %s', count($knownCommits), $branchName ?? 'unknown branch');
+
+        if ($this->eventExists($user, 'rebase', $title, $timestamp)) {
+            return;
+        }
+
+        $this->createEvent(
+            user: $user,
+            eventTypeId: 'rebase',
+            title: $title,
+            timestamp: $timestamp,
+            ticket: null,
+        );
+    }
+
+    private function eventExists(User $user, string $eventTypeId, string $title, Carbon $timestamp): bool
+    {
+        return Event::query()
+            ->where('user_id', $user->id)
+            ->where('source_id', ServiceProvider::SOURCE_ID)
+            ->where('event_type_id', $eventTypeId)
+            ->where('started_at', $timestamp)
+            ->where('title', mb_substr($title, 0, 255))
+            ->exists();
     }
 
     /** @return array{string, ?string} */
