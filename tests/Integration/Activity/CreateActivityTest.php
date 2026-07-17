@@ -373,7 +373,124 @@ test('a covered event of another customer stays unattached instead of mixing cus
         ->and($coveredEvent->fresh()->activity_id)->toBeNull();
 });
 
-it('loads the event type of an activity', function () {
+test('a fully covered event does not trim neighbouring activities', function () {
+    config()->set('timatic.feature.activity_overlap_detection', true);
+    Illuminate\Support\Facades\Event::fake();
+
+    $user = User::factory()->create();
+    Activity::factory()->create([
+        'user_id' => $user->id,
+        'event_type_id' => EventType::factory()->state(['weight' => 999])->create()->id,
+        'started_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 0, second: 0),
+        'ended_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 15, second: 0),
+    ]);
+    /** @var Activity $neighbouringActivity */
+    $neighbouringActivity = Activity::factory()->create([
+        'user_id' => $user->id,
+        'event_type_id' => EventType::factory()->state(['weight' => 1])->create()->id,
+        'started_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 8, second: 0),
+        'ended_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 20, second: 0),
+    ]);
+
+    /** @var Event $coveredEvent */
+    $coveredEvent = Event::factory()->create([
+        'user_id' => $user->id,
+        'event_type_id' => EventType::factory()->state(['weight' => 5])->create()->id,
+        'started_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 5, second: 0),
+        'ended_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 10, second: 0),
+    ]);
+
+    /** @var CreateActivity $listener */
+    $listener = app(CreateActivity::class);
+    $listener->handle(new EventCreated($coveredEvent));
+
+    expect(Activity::count())->toBe(2)
+        ->and($neighbouringActivity->fresh()->started_at)
+        ->toEqual(Carbon::now()->subWeek()->setTime(hour: 10, minute: 8, second: 0))
+        ->and($neighbouringActivity->fresh()->ended_at)
+        ->toEqual(Carbon::now()->subWeek()->setTime(hour: 10, minute: 20, second: 0))
+        ->and($coveredEvent->fresh()->activity_id)->toBeNull();
+});
+
+test('a collapsed event does not attach to an adjacent activity that does not cover it', function () {
+    config()->set('timatic.feature.activity_overlap_detection', true);
+    Illuminate\Support\Facades\Event::fake();
+
+    $user = User::factory()->create();
+    $lightEventTypeId = EventType::factory()->state(['weight' => 1])->create()->id;
+
+    /** @var Activity $adjacentActivity */
+    $adjacentActivity = Activity::factory()->create([
+        'user_id' => $user->id,
+        'event_type_id' => $lightEventTypeId,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'started_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 10, second: 0),
+        'ended_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 30, second: 0),
+    ]);
+    Activity::factory()->create([
+        'user_id' => $user->id,
+        'event_type_id' => EventType::factory()->state(['weight' => 999])->create()->id,
+        'started_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 0, second: 0),
+        'ended_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 12, second: 0),
+    ]);
+
+    /** @var Event $coveredEvent */
+    $coveredEvent = Event::factory()->create([
+        'user_id' => $user->id,
+        'event_type_id' => $lightEventTypeId,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'started_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 5, second: 0),
+        'ended_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 10, second: 0),
+    ]);
+
+    /** @var CreateActivity $listener */
+    $listener = app(CreateActivity::class);
+    $listener->handle(new EventCreated($coveredEvent));
+
+    expect(Activity::count())->toBe(2)
+        ->and($coveredEvent->fresh()->activity_id)->toBeNull()
+        ->and($adjacentActivity->fresh()->started_at)
+        ->toEqual(Carbon::now()->subWeek()->setTime(hour: 10, minute: 10, second: 0));
+});
+
+test('the new activity starts after the latest dominant overlapping activity', function () {
+    config()->set('timatic.feature.activity_overlap_detection', true);
+    Illuminate\Support\Facades\Event::fake();
+
+    $user = User::factory()->create();
+    $heavyEventTypeId = EventType::factory()->state(['weight' => 999])->create()->id;
+    Activity::factory()->create([
+        'user_id' => $user->id,
+        'event_type_id' => $heavyEventTypeId,
+        'started_at' => Carbon::now()->subWeek()->setTime(hour: 9, minute: 0, second: 0),
+        'ended_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 30, second: 0),
+    ]);
+    Activity::factory()->create([
+        'user_id' => $user->id,
+        'event_type_id' => $heavyEventTypeId,
+        'started_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 0, second: 0),
+        'ended_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 20, second: 0),
+    ]);
+
+    /** @var Event $event */
+    $event = Event::factory()->create([
+        'user_id' => $user->id,
+        'event_type_id' => EventType::factory()->state(['weight' => 5])->create()->id,
+        'started_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 15, second: 0),
+        'ended_at' => Carbon::now()->subWeek()->setTime(hour: 11, minute: 0, second: 0),
+    ]);
+
+    /** @var CreateActivity $listener */
+    $listener = app(CreateActivity::class);
+    $listener->handle(new EventCreated($event));
+
+    expect($event->fresh()->activity->started_at)
+        ->toEqual(Carbon::now()->subWeek()->setTime(hour: 10, minute: 30, second: 0));
+});
+
+test('loads the event type of an activity', function () {
     Illuminate\Support\Facades\Event::fake();
     $eventType = EventType::firstOrCreate(['id' => 'ticket_saved'], ['weight' => 1]);
 

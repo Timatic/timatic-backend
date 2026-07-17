@@ -98,20 +98,37 @@ class CreateActivity implements ShouldQueue
         $activity->is_internal = $event->is_internal;
         $activity->event_type_id = $event->eventType->id ?? null;
 
+        $trimmedActivities = collect();
         $absorbedActivities = collect();
         if (config('timatic.feature.activity_overlap_detection')) {
-            $absorbedActivities = $this->trimOverlappingActivities($activity);
+            $overlappingActivities = $this->getOverlappingActivities($activity);
+            $isDominant = function (Activity $overlappingActivity) use ($activity) {
+                return ! is_null($overlappingActivity->eventType)
+                    && $overlappingActivity->eventType->weight >= (int) $activity->eventType?->weight;
+            };
+
+            $dominantActivities = $overlappingActivities->filter($isDominant);
+            $activity->started_at = $this->startedAtAfterDominantActivities($activity, $dominantActivities);
 
             if (! $activity->ended_at->isAfter($activity->started_at)) {
-                $this->attachEventToCoveringActivity($event);
+                $this->attachEventToCoveringActivity($event, $dominantActivities);
 
                 return null;
             }
+
+            $trimmedActivities = $this->trimSubordinateActivities($activity, $overlappingActivities->reject($isDominant));
+            $isCollapsed = function (Activity $trimmedActivity) {
+                return ! $trimmedActivity->ended_at->isAfter($trimmedActivity->started_at);
+            };
+            $absorbedActivities = $trimmedActivities->filter($isCollapsed);
+            $trimmedActivities = $trimmedActivities->reject($isCollapsed);
         }
 
-        $this->db->transaction(function () use ($activity, $event, $absorbedActivities) {
+        $this->db->transaction(function () use ($activity, $event, $trimmedActivities, $absorbedActivities) {
             $activity->save();
             $activity->events()->save($event);
+
+            $trimmedActivities->each(fn (Activity $trimmedActivity) => $trimmedActivity->save());
 
             $absorbedActivities->each(function (Activity $absorbedActivity) use ($activity) {
                 $absorbedActivity->events()->update(['activity_id' => $activity->id]);
@@ -122,31 +139,13 @@ class CreateActivity implements ShouldQueue
         return $activity;
     }
 
-    private function attachEventToCoveringActivity(Event $event): void
-    {
-        /** @var ?Activity $coveringActivity */
-        $coveringActivity = Activity::query()
-            ->where('user_id', $event->user_id)
-            ->where('started_at', '<=', $event->ended_at)
-            ->where('ended_at', '>=', $event->ended_at)
-            ->first();
-
-        if ($coveringActivity && $this->canAbsorbEvent($coveringActivity, $event)) {
-            $coveringActivity->events()->save($event);
-        }
-    }
-
     /**
-     * Trims activities overlapping the new activity's period. An existing activity whose
-     * trimmed period would collapse is returned for absorption: the new activity takes
-     * over its events and the empty activity is deleted.
-     *
      * @return Collection<int, Activity>
      */
-    private function trimOverlappingActivities(Activity $activity): Collection
+    private function getOverlappingActivities(Activity $activity): Collection
     {
-        /** @var Collection|Activity[] $overlappingActivities */
-        $overlappingActivities = Activity::query()
+        return Activity::query()
+            ->with('eventType')
             ->where('user_id', $activity->user_id)
             ->where(function (Builder $query) use ($activity) {
                 $query
@@ -166,32 +165,60 @@ class CreateActivity implements ShouldQueue
                             ->where('ended_at', '<=', $activity->ended_at);
                     });
             })
+            ->orderBy('started_at')
             ->get();
+    }
 
-        $absorbedActivities = collect();
+    /**
+     * Dominant activities keep their period, so the new activity starts after
+     * the last of them. A start beyond the activity's end means the event was
+     * fully covered by dominant activities.
+     *
+     * @param  Collection<int, Activity>  $dominantActivities
+     */
+    private function startedAtAfterDominantActivities(Activity $activity, Collection $dominantActivities): Carbon
+    {
+        return $dominantActivities->reduce(
+            fn (Carbon $startedAt, Activity $dominantActivity): Carbon => $startedAt->max($dominantActivity->ended_at),
+            $activity->started_at,
+        );
+    }
 
-        $overlappingActivities->each(function ($overlappingActivity) use ($activity, $absorbedActivities) {
-            /** @var Activity $overlappingActivity */
-            if (! is_null($overlappingActivity->eventType)
-                && $overlappingActivity->eventType->weight >= (int) $activity->eventType?->weight) {
-                // overlappingActivity gets priority, move startedAt to after this activity
-                $activity->started_at = $overlappingActivity->ended_at;
-            } else {
-                // new event gets priority, reduce overlapping start or end time from overlappingActivity
-                if ($overlappingActivity->ended_at < $activity->ended_at) {
-                    $overlappingActivity->ended_at = $activity->started_at;
-                } else {
-                    $overlappingActivity->started_at = $activity->ended_at;
-                }
-
-                if ($overlappingActivity->ended_at->isAfter($overlappingActivity->started_at)) {
-                    $overlappingActivity->save();
-                } else {
-                    $absorbedActivities->push($overlappingActivity);
-                }
-            }
+    /**
+     * @param  Collection<int, Activity>  $coveringCandidates
+     */
+    private function attachEventToCoveringActivity(Event $event, Collection $coveringCandidates): void
+    {
+        $coveringActivity = $coveringCandidates->first(function (Activity $coveringCandidate) use ($event) {
+            return $coveringCandidate->started_at->lessThanOrEqualTo($this->getEstimatedStartedAt($event))
+                && $coveringCandidate->ended_at->greaterThanOrEqualTo($event->ended_at)
+                && $this->canAbsorbEvent($coveringCandidate, $event);
         });
 
-        return $absorbedActivities;
+        $coveringActivity?->events()->save($event);
+    }
+
+    /**
+     * The new activity gets priority, so subordinate activities still overlapping
+     * its final period lose the overlapping part. An activity whose trimmed period
+     * collapses is absorbed: the new activity takes over its events.
+     *
+     * @param  Collection<int, Activity>  $subordinateActivities
+     * @return Collection<int, Activity>
+     */
+    private function trimSubordinateActivities(Activity $activity, Collection $subordinateActivities): Collection
+    {
+        return $subordinateActivities
+            ->filter(function (Activity $subordinateActivity) use ($activity) {
+                return $subordinateActivity->started_at->lessThan($activity->ended_at)
+                    && $subordinateActivity->ended_at->greaterThan($activity->started_at);
+            })
+            ->each(function (Activity $subordinateActivity) use ($activity) {
+                if ($subordinateActivity->ended_at < $activity->ended_at) {
+                    $subordinateActivity->ended_at = $activity->started_at;
+                } else {
+                    $subordinateActivity->started_at = $activity->ended_at;
+                }
+            });
     }
 }
