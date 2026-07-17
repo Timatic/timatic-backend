@@ -98,21 +98,36 @@ class CreateActivity implements ShouldQueue
         $activity->is_internal = $event->is_internal;
         $activity->event_type_id = $event->eventType->id ?? null;
 
+        $absorbedActivities = collect();
         if (config('timatic.feature.activity_overlap_detection')) {
-            $activity = $this->handleOverlappingActivities($activity);
+            $absorbedActivities = $this->trimOverlappingActivities($activity);
+
+            if (! $activity->ended_at->isAfter($activity->started_at)) {
+                return null;
+            }
         }
 
-        if ($activity) {
-            $this->db->transaction(function () use ($activity, $event) {
-                $activity->save();
-                $activity->events()->save($event);
+        $this->db->transaction(function () use ($activity, $event, $absorbedActivities) {
+            $activity->save();
+            $activity->events()->save($event);
+
+            $absorbedActivities->each(function (Activity $absorbedActivity) use ($activity) {
+                $absorbedActivity->events()->update(['activity_id' => $activity->id]);
+                $absorbedActivity->delete();
             });
-        }
+        });
 
         return $activity;
     }
 
-    private function handleOverlappingActivities(Activity $activity): ?Activity
+    /**
+     * Trims activities overlapping the new activity's period. An existing activity whose
+     * trimmed period would collapse is returned for absorption: the new activity takes
+     * over its events and the empty activity is deleted.
+     *
+     * @return Collection<int, Activity>
+     */
+    private function trimOverlappingActivities(Activity $activity): Collection
     {
         /** @var Collection|Activity[] $overlappingActivities */
         $overlappingActivities = Activity::query()
@@ -137,7 +152,9 @@ class CreateActivity implements ShouldQueue
             })
             ->get();
 
-        $overlappingActivities->each(function ($overlappingActivity) use ($activity) {
+        $absorbedActivities = collect();
+
+        $overlappingActivities->each(function ($overlappingActivity) use ($activity, $absorbedActivities) {
             /** @var Activity $overlappingActivity */
             if (! is_null($overlappingActivity->eventType)
                 && $overlappingActivity->eventType->weight >= (int) $activity->eventType?->weight) {
@@ -150,14 +167,15 @@ class CreateActivity implements ShouldQueue
                 } else {
                     $overlappingActivity->started_at = $activity->ended_at;
                 }
-                $overlappingActivity->save();
+
+                if ($overlappingActivity->ended_at->isAfter($overlappingActivity->started_at)) {
+                    $overlappingActivity->save();
+                } else {
+                    $absorbedActivities->push($overlappingActivity);
+                }
             }
         });
 
-        if ($activity->ended_at->isAfter($activity->started_at)) {
-            return $activity;
-        } else {
-            return null;
-        }
+        return $absorbedActivities;
     }
 }
