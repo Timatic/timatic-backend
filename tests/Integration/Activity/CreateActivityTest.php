@@ -305,37 +305,72 @@ test('a fully covered lower-weight activity is absorbed instead of getting a neg
         ->and($coveredEvent->fresh()->activity_id)->toBe($coveringEvent->fresh()->activity_id);
 });
 
-test('an event fully covered by a higher-weight activity attaches to that activity', function () {
+test('an event fully covered by a matching activity attaches to that activity', function () {
     config()->set('timatic.feature.activity_overlap_detection', true);
     Illuminate\Support\Facades\Event::fake();
 
-    $eventTypeLight = EventType::factory()->state(['weight' => 1])->create();
-    $eventTypeHeavy = EventType::factory()->state(['weight' => 999])->create();
+    $sameState = [
+        'event_type_id' => EventType::factory()->state(['weight' => 1])->create()->id,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'user_id' => User::factory()->create()->id,
+    ];
+
+    /** @var Event $coveringEvent */
+    $coveringEvent = Event::factory()->create(array_merge($sameState, [
+        'started_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 0, second: 0),
+        'ended_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 30, second: 0),
+    ]));
+
+    /** @var CreateActivity $listener */
+    $listener = app(CreateActivity::class);
+    $listener->handle(new EventCreated($coveringEvent));
+
+    /** @var Event $coveredEvent */
+    $coveredEvent = Event::factory()->create(array_merge($sameState, [
+        'started_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 5, second: 0),
+        'ended_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 10, second: 0),
+    ]));
+    $listener->handle(new EventCreated($coveredEvent));
+
+    expect(Activity::count())->toBe(1)
+        ->and($coveredEvent->fresh()->activity_id)->toBe($coveringEvent->fresh()->activity_id);
+});
+
+test('a covered event of another customer stays unattached instead of mixing customers', function () {
+    config()->set('timatic.feature.activity_overlap_detection', true);
+    Illuminate\Support\Facades\Event::fake();
+
+    $eventTypeId = EventType::factory()->state(['weight' => 1])->create()->id;
     $user = User::factory()->create();
 
-    /** @var Event $meetingEvent */
-    $meetingEvent = Event::factory()->create([
+    /** @var Event $coveringEvent */
+    $coveringEvent = Event::factory()->create([
+        'event_type_id' => $eventTypeId,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
         'user_id' => $user->id,
-        'event_type_id' => $eventTypeHeavy->id,
         'started_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 0, second: 0),
         'ended_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 30, second: 0),
     ]);
 
     /** @var CreateActivity $listener */
     $listener = app(CreateActivity::class);
-    $listener->handle(new EventCreated($meetingEvent));
+    $listener->handle(new EventCreated($coveringEvent));
 
     /** @var Event $coveredEvent */
     $coveredEvent = Event::factory()->create([
+        'event_type_id' => $eventTypeId,
+        'customer_id' => 'customerY',
+        'ticket_number' => 'TIC-2',
         'user_id' => $user->id,
-        'event_type_id' => $eventTypeLight->id,
         'started_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 5, second: 0),
         'ended_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 10, second: 0),
     ]);
     $listener->handle(new EventCreated($coveredEvent));
 
     expect(Activity::count())->toBe(1)
-        ->and($coveredEvent->fresh()->activity_id)->toBe($meetingEvent->fresh()->activity_id);
+        ->and($coveredEvent->fresh()->activity_id)->toBeNull();
 });
 
 it('loads the event type of an activity', function () {

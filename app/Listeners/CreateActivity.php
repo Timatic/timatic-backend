@@ -34,7 +34,7 @@ class CreateActivity implements ShouldQueue
         $event = $eventCreated->getEvent();
 
         $adjacentActivity = $this->getAdjacentActivity($event);
-        if ($adjacentActivity && $this->canBeMergedWithAdjacentActivity($adjacentActivity, $event)) {
+        if ($adjacentActivity && $this->canAbsorbEvent($adjacentActivity, $event)) {
             $startedAt = $adjacentActivity->started_at;
             if ($event->started_at) {
                 $startedAt = $adjacentActivity->started_at->min($event->started_at);
@@ -49,7 +49,7 @@ class CreateActivity implements ShouldQueue
         }
     }
 
-    private function canBeMergedWithAdjacentActivity(Activity $lastActivity, Event $event): bool
+    private function canAbsorbEvent(Activity $lastActivity, Event $event): bool
     {
         $suggestion = $lastActivity->entrySuggestion;
 
@@ -131,7 +131,9 @@ class CreateActivity implements ShouldQueue
             ->where('ended_at', '>=', $event->ended_at)
             ->first();
 
-        $coveringActivity?->events()->save($event);
+        if ($coveringActivity && $this->canAbsorbEvent($coveringActivity, $event)) {
+            $coveringActivity->events()->save($event);
+        }
     }
 
     /**
