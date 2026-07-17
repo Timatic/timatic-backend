@@ -103,6 +103,8 @@ class CreateActivity implements ShouldQueue
             $absorbedActivities = $this->trimOverlappingActivities($activity);
 
             if (! $activity->ended_at->isAfter($activity->started_at)) {
+                $this->attachEventToCoveringActivity($event);
+
                 return null;
             }
         }
@@ -118,6 +120,18 @@ class CreateActivity implements ShouldQueue
         });
 
         return $activity;
+    }
+
+    private function attachEventToCoveringActivity(Event $event): void
+    {
+        /** @var ?Activity $coveringActivity */
+        $coveringActivity = Activity::query()
+            ->where('user_id', $event->user_id)
+            ->where('started_at', '<=', $event->ended_at)
+            ->where('ended_at', '>=', $event->ended_at)
+            ->first();
+
+        $coveringActivity?->events()->save($event);
     }
 
     /**

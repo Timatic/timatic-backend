@@ -305,6 +305,39 @@ test('a fully covered lower-weight activity is absorbed instead of getting a neg
         ->and($coveredEvent->fresh()->activity_id)->toBe($coveringEvent->fresh()->activity_id);
 });
 
+test('an event fully covered by a higher-weight activity attaches to that activity', function () {
+    config()->set('timatic.feature.activity_overlap_detection', true);
+    Illuminate\Support\Facades\Event::fake();
+
+    $eventTypeLight = EventType::factory()->state(['weight' => 1])->create();
+    $eventTypeHeavy = EventType::factory()->state(['weight' => 999])->create();
+    $user = User::factory()->create();
+
+    /** @var Event $meetingEvent */
+    $meetingEvent = Event::factory()->create([
+        'user_id' => $user->id,
+        'event_type_id' => $eventTypeHeavy->id,
+        'started_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 0, second: 0),
+        'ended_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 30, second: 0),
+    ]);
+
+    /** @var CreateActivity $listener */
+    $listener = app(CreateActivity::class);
+    $listener->handle(new EventCreated($meetingEvent));
+
+    /** @var Event $coveredEvent */
+    $coveredEvent = Event::factory()->create([
+        'user_id' => $user->id,
+        'event_type_id' => $eventTypeLight->id,
+        'started_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 5, second: 0),
+        'ended_at' => Carbon::now()->subWeek()->setTime(hour: 10, minute: 10, second: 0),
+    ]);
+    $listener->handle(new EventCreated($coveredEvent));
+
+    expect(Activity::count())->toBe(1)
+        ->and($coveredEvent->fresh()->activity_id)->toBe($meetingEvent->fresh()->activity_id);
+});
+
 it('loads the event type of an activity', function () {
     Illuminate\Support\Facades\Event::fake();
     $eventType = EventType::firstOrCreate(['id' => 'ticket_saved'], ['weight' => 1]);
