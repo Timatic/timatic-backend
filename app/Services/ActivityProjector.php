@@ -5,6 +5,7 @@ namespace App\Services;
 use App\DataTransferObjects\TimeSlot;
 use App\Models\Activity;
 use App\Models\Event;
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Closure;
 use Illuminate\Support\Collection;
@@ -121,8 +122,8 @@ class ActivityProjector
         $activity->customer_id = $group->customerId;
         $activity->is_internal = $template->is_internal;
         $activity->event_type_id = $group->eventTypeId;
-        $activity->started_at = $period->startedAt;
-        $activity->ended_at = $period->endedAt;
+        $activity->started_at = Carbon::instance($period->startedAt);
+        $activity->ended_at = Carbon::instance($period->endedAt);
         $activity->setRelation('events', $events->values());
         $activity->setRelation('eventType', $template->eventType);
 
@@ -165,7 +166,9 @@ class ActivityProjector
         $remaining = $group->events;
 
         foreach ($segments as $segment) {
-            [$segmentEvents, $remaining] = $remaining->partition(fn (Event $event) => $this->eventPeriod($event)->overlaps($segment));
+            $partitioned = $remaining->partition(fn (Event $event) => $this->eventPeriod($event)->overlaps($segment));
+            $segmentEvents = $partitioned->get(0, collect());
+            $remaining = $partitioned->get(1, collect());
 
             if ($segmentEvents->isEmpty()) {
                 continue;
@@ -215,14 +218,17 @@ class ActivityProjector
         return $activities->flatMap(function (Activity $activity) use ($entryPeriods) {
             $segments = (new TimeSlot($activity->started_at, $activity->ended_at))->subtract($entryPeriods);
 
-            if ($segments->count() === 1 && $segments[0]->startedAt->equalTo($activity->started_at) && $segments[0]->endedAt->equalTo($activity->ended_at)) {
+            $first = $segments->first();
+            if ($segments->count() === 1 && $first !== null && $first->startedAt->equalTo($activity->started_at) && $first->endedAt->equalTo($activity->ended_at)) {
                 return [$activity];
             }
 
             $splits = [];
             $remaining = $activity->events;
             foreach ($segments as $segment) {
-                [$segmentEvents, $remaining] = $remaining->partition(fn (Event $event) => $this->eventPeriod($event)->overlaps($segment));
+                $partitioned = $remaining->partition(fn (Event $event) => $this->eventPeriod($event)->overlaps($segment));
+                $segmentEvents = $partitioned->get(0, collect());
+                $remaining = $partitioned->get(1, collect());
 
                 if ($segmentEvents->isEmpty()) {
                     continue;
@@ -241,8 +247,8 @@ class ActivityProjector
     private function cloneActivityForSegment(Activity $activity, TimeSlot $segment, Collection $events): Activity
     {
         $split = $activity->replicate(['started_at', 'ended_at']);
-        $split->started_at = $segment->startedAt;
-        $split->ended_at = $segment->endedAt;
+        $split->started_at = Carbon::instance($segment->startedAt);
+        $split->ended_at = Carbon::instance($segment->endedAt);
         $split->setRelation('events', $events);
         $split->setRelation('eventType', $activity->eventType);
 

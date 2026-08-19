@@ -36,11 +36,6 @@ parameters:
 			path: app/Jobs/RemindUsersOfUnusedSuggestions.php
 
 		-
-			message: "#^PHPDoc tag @var for variable \\$overlappingActivities contains generic class Illuminate\\\\Support\\\\Collection but does not specify its types\\: TKey, TValue$#"
-			count: 1
-			path: app/Listeners/CreateActivity.php
-
-		-
 			message: "#^Method App\\\\Mail\\\\BudgetMonthlyBalance\\:\\:__construct\\(\\) has parameter \\$budgets with generic class Illuminate\\\\Support\\\\Collection but does not specify its types\\: TKey, TValue$#"
 			count: 1
 			path: app/Mail/BudgetMonthlyBalance.php

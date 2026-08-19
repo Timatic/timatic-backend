@@ -18,7 +18,11 @@ class SuggestionProjector
     {
         return $activities
             ->groupBy(fn (Activity $activity) => $this->groupKey($activity))
-            ->reject(fn (Collection $group) => $this->isDismissed($group->first(), $dismissedSuggestions))
+            ->reject(function (Collection $group) use ($dismissedSuggestions) {
+                $first = $group->first();
+
+                return $first !== null && $this->isDismissed($first, $dismissedSuggestions);
+            })
             ->map(fn (Collection $group) => $this->suggestionFromActivities($group, $date))
             ->values();
     }
