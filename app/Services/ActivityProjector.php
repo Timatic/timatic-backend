@@ -10,6 +10,8 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Closure;
 use Illuminate\Support\Collection;
+use Spatie\Period\Period;
+use Spatie\Period\PeriodCollection;
 
 class ActivityProjector
 {
@@ -24,17 +26,63 @@ class ActivityProjector
      */
     public function project(Collection $events, Collection $entryTimeSlots): Collection
     {
-        $groups = $this->chainEventsIntoGroups($events);
-        $activities = $this->resolveWeightDominance($groups);
+        $activities = $this->buildActivities($events);
 
         return $this->trimAroundEntryPeriods($activities, $entryTimeSlots)->values();
     }
 
     /**
      * @param  Collection<int, Event>  $events
+     * @return Collection<int, Activity>
+     */
+    private function buildActivities(Collection $events): Collection
+    {
+        $tiers = $events->groupBy(fn (Event $event) => (int) $event->eventType?->weight)
+            ->sortKeysDesc();
+
+        /** @var Collection<int, Activity> $activities */
+        $activities = collect();
+        $claimed = new PeriodCollection;
+
+        foreach ($tiers as $tierEvents) {
+            $groups = $this->chainTier($tierEvents);
+            $tierClaimed = new PeriodCollection;
+
+            foreach ($groups->sortBy('startedAt')->values() as $group) {
+                $blockers = new PeriodCollection(...[...$claimed, ...$tierClaimed]);
+                $groupPeriod = $group->period();
+                $segments = PeriodCollection::make($groupPeriod)->subtract($blockers);
+
+                if ($segments->isEmpty()) {
+                    $group->events->each(fn (Event $event) => $this->attachToCoveringActivity($event, $group, $activities));
+
+                    continue;
+                }
+
+                foreach ($segments as $segment) {
+                    $segmentEvents = $group->events->filter(fn (Event $event) => $this->eventPeriod($event)->overlapsWith($segment));
+
+                    if ($segmentEvents->isEmpty()) {
+                        continue;
+                    }
+
+                    $activities->push($this->activityFromGroup($group, $segment, $segmentEvents));
+                }
+
+                $tierClaimed = $tierClaimed->add($groupPeriod);
+            }
+
+            $claimed = new PeriodCollection(...[...$claimed, ...$tierClaimed]);
+        }
+
+        return $activities;
+    }
+
+    /**
+     * @param  Collection<int, Event>  $events
      * @return Collection<int, EventGroup>
      */
-    private function chainEventsIntoGroups(Collection $events): Collection
+    private function chainTier(Collection $events): Collection
     {
         $sorted = $events->sortBy(fn (Event $event) => $this->effectiveStart($event))->values();
 
@@ -50,26 +98,43 @@ class ActivityProjector
                 continue;
             }
 
+            $eventStart = $this->effectiveStart($event);
+
             if ($event->ticket_number === null) {
-                $preceding = $this->lastChainableGroup($groups, $event,
-                    fn (EventGroup $group) => $group->customerId === $event->customer_id);
-                $preceding ? $preceding->add($event, $this->effectiveStart($event)) : $unclaimed->push($event);
+                $recentGroup = $this->recentChainableGroup($groups, $event,
+                    fn (EventGroup $group) => $group->customerId === $event->customer_id
+                );
+
+                if ($recentGroup) {
+                    $recentGroup->add($event, $eventStart);
+                } else {
+                    $unclaimed->push($event);
+                }
 
                 continue;
             }
 
-            $matching = $this->lastChainableGroup($groups, $event,
+            $matchingGroup = $this->recentChainableGroup($groups, $event,
                 fn (EventGroup $group) => $group->customerId === $event->customer_id
                     && $group->ticketNumber === $event->ticket_number
-                    && $group->eventTypeId === $event->event_type_id);
-            $matching ? $matching->add($event, $this->effectiveStart($event)) : $groups->push($this->newGroup($event));
+                    && $group->eventTypeId === $event->event_type_id
+            );
+
+            if ($matchingGroup) {
+                $matchingGroup->add($event, $eventStart);
+            } else {
+                $groups->push($this->newGroup($event));
+            }
         }
 
         foreach ($unclaimed as $event) {
-            $following = $groups->first(fn (EventGroup $group) => $group->customerId === $event->customer_id
-                && $group->startedAt->lessThanOrEqualTo($event->ended_at->copy()->addMinutes(self::CHAIN_GAP_MINUTES))
-                && $group->endedAt->greaterThanOrEqualTo($this->effectiveStart($event)));
-            $following ? $following->add($event, $this->effectiveStart($event)) : $groups->push($this->newGroup($event));
+            $eventStart = $this->effectiveStart($event);
+
+            $following = $this->recentChainableGroup($groups, $event,
+                fn (EventGroup $group) => $group->customerId === $event->customer_id
+            );
+
+            $following ? $following->add($event, $eventStart) : $groups->push($this->newGroup($event));
         }
 
         return $groups;
@@ -79,12 +144,39 @@ class ActivityProjector
      * @param  Collection<int, EventGroup>  $groups
      * @param  Closure(EventGroup): bool  $matches
      */
-    private function lastChainableGroup(Collection $groups, Event $event, Closure $matches): ?EventGroup
+    private function recentChainableGroup(Collection $groups, Event $event, Closure $matches): ?EventGroup
     {
-        $effectiveStart = $this->effectiveStart($event);
+        return $this->lastRecentChainableGroup($groups, $event, $matches)
+            ?? $this->nextRecentChainableGroup($groups, $event, $matches);
+    }
 
-        return $groups->last(fn (EventGroup $group) => $matches($group)
-            && $effectiveStart->lessThanOrEqualTo($group->endedAt->copy()->addMinutes(self::CHAIN_GAP_MINUTES)));
+    /**
+     * @param  Collection<int, EventGroup>  $groups
+     * @param  Closure(EventGroup): bool  $matches
+     */
+    private function lastRecentChainableGroup(Collection $groups, Event $event, Closure $matches): ?EventGroup
+    {
+        $eventStart = $this->effectiveStart($event);
+
+        return $groups
+            ->filter(fn (EventGroup $group) => $eventStart->isBefore($group->endedAt->copy()->addMinutes(self::CHAIN_GAP_MINUTES)))
+            ->last(fn (EventGroup $group) => $matches($group));
+    }
+
+    /**
+     * @param  Collection<int, EventGroup>  $groups
+     * @param  Closure(EventGroup): bool  $matches
+     */
+    private function nextRecentChainableGroup(Collection $groups, Event $event, Closure $matches): ?EventGroup
+    {
+        $eventStart = $this->effectiveStart($event);
+        $eventEnd = $event->ended_at->copy();
+
+        return $groups
+            ->filter(fn (EventGroup $group) => $group->endedAt->isAfter($eventStart)
+                && $group->startedAt->isBefore($eventEnd->addMinutes(self::CHAIN_GAP_MINUTES))
+            )
+            ->first(fn (EventGroup $group) => $matches($group));
     }
 
     private function newGroup(Event $event): EventGroup
@@ -106,7 +198,7 @@ class ActivityProjector
     /**
      * @param  Collection<int, Event>  $events
      */
-    private function activityFromGroup(EventGroup $group, TimeSlot $period, Collection $events): Activity
+    private function activityFromGroup(EventGroup $group, Period $period, Collection $events): Activity
     {
         /** @var Event $template */
         $template = $events->sortBy(fn (Event $event) => $this->effectiveStart($event))->first();
@@ -123,64 +215,12 @@ class ActivityProjector
         $activity->customer_id = $group->customerId;
         $activity->is_internal = $template->is_internal;
         $activity->event_type_id = $group->eventTypeId;
-        $activity->started_at = Carbon::instance($period->startedAt);
-        $activity->ended_at = Carbon::instance($period->endedAt);
+        $activity->started_at = Carbon::instance($period->start());
+        $activity->ended_at = Carbon::instance($period->end());
         $activity->setRelation('events', $events->values());
         $activity->setRelation('eventType', $template->eventType);
 
         return $activity;
-    }
-
-    /**
-     * @param  Collection<int, EventGroup>  $groups
-     * @return Collection<int, Activity>
-     */
-    private function resolveWeightDominance(Collection $groups): Collection
-    {
-        $ranked = $groups->sortBy([
-            fn (EventGroup $a, EventGroup $b) => $this->weight($b) <=> $this->weight($a),
-            fn (EventGroup $a, EventGroup $b) => $a->startedAt <=> $b->startedAt,
-        ])->values();
-
-        /** @var Collection<int, Activity> $accepted */
-        $accepted = collect();
-
-        foreach ($ranked as $group) {
-            $blockers = $accepted->map(fn (Activity $activity) => new TimeSlot($activity->started_at, $activity->ended_at));
-            $segments = $group->period()->subtract($blockers);
-
-            $accepted = $accepted->concat($this->activitiesFromSegments($group, $segments, $accepted));
-        }
-
-        return $accepted;
-    }
-
-    /**
-     * @param  Collection<int, TimeSlot>  $segments
-     * @param  Collection<int, Activity>  $coveringCandidates
-     * @return Collection<int, Activity>
-     */
-    private function activitiesFromSegments(EventGroup $group, Collection $segments, Collection $coveringCandidates): Collection
-    {
-        /** @var Collection<int, Activity> $activities */
-        $activities = collect();
-        $remaining = $group->events;
-
-        foreach ($segments as $segment) {
-            $partitioned = $remaining->partition(fn (Event $event) => $this->eventPeriod($event)->overlaps($segment));
-            $segmentEvents = $partitioned->get(0, collect());
-            $remaining = $partitioned->get(1, collect());
-
-            if ($segmentEvents->isEmpty()) {
-                continue;
-            }
-
-            $activities->push($this->activityFromGroup($group, $segment, $segmentEvents->values()));
-        }
-
-        $remaining->each(fn (Event $event) => $this->attachToCoveringActivity($event, $group, $coveringCandidates));
-
-        return $activities;
     }
 
     /**
@@ -190,7 +230,7 @@ class ActivityProjector
     {
         $covering = $candidates->first(fn (Activity $activity) => $activity->customer_id === $group->customerId
             && $activity->ticket_number === $group->ticketNumber
-            && (new TimeSlot($activity->started_at, $activity->ended_at))->covers($this->eventPeriod($event)));
+            && (new TimeSlot($activity->started_at, $activity->ended_at))->contains($this->eventPeriod($event)));
 
         $covering?->events->push($event);
     }
@@ -198,11 +238,6 @@ class ActivityProjector
     private function eventPeriod(Event $event): TimeSlot
     {
         return new TimeSlot($this->effectiveStart($event), $event->ended_at);
-    }
-
-    private function weight(EventGroup $group): int
-    {
-        return (int) $group->events->first()?->eventType?->weight;
     }
 
     /**
@@ -216,25 +251,19 @@ class ActivityProjector
             return $activities;
         }
 
-        return $activities->flatMap(function (Activity $activity) use ($entryTimeSlots) {
-            $segments = (new TimeSlot($activity->started_at, $activity->ended_at))->subtract($entryTimeSlots);
+        $blockers = new PeriodCollection(...$entryTimeSlots->all());
 
-            $first = $segments->first();
-            $activityUnchanged = $segments->count() === 1
-                && $first !== null
-                && $first->startedAt->equalTo($activity->started_at)
-                && $first->endedAt->equalTo($activity->ended_at);
+        return $activities->flatMap(function (Activity $activity) use ($blockers) {
+            $activityPeriod = new TimeSlot($activity->started_at, $activity->ended_at);
+            $segments = PeriodCollection::make($activityPeriod)->subtract($blockers);
 
-            if ($activityUnchanged) {
+            if (count($segments) === 1 && $segments[0]->equals($activityPeriod)) {
                 return [$activity];
             }
 
             $splits = [];
-            $remaining = $activity->events;
             foreach ($segments as $segment) {
-                $partitioned = $remaining->partition(fn (Event $event) => $this->eventPeriod($event)->overlaps($segment));
-                $segmentEvents = $partitioned->get(0, collect());
-                $remaining = $partitioned->get(1, collect());
+                $segmentEvents = $activity->events->filter(fn (Event $event) => $this->eventPeriod($event)->overlapsWith($segment));
 
                 if ($segmentEvents->isEmpty()) {
                     continue;
@@ -250,11 +279,11 @@ class ActivityProjector
     /**
      * @param  Collection<int, Event>  $events
      */
-    private function cloneActivityForSegment(Activity $activity, TimeSlot $segment, Collection $events): Activity
+    private function cloneActivityForSegment(Activity $activity, Period $segment, Collection $events): Activity
     {
         $split = $activity->replicate(['started_at', 'ended_at']);
-        $split->started_at = Carbon::instance($segment->startedAt);
-        $split->ended_at = Carbon::instance($segment->endedAt);
+        $split->started_at = Carbon::instance($segment->start());
+        $split->ended_at = Carbon::instance($segment->end());
         $split->setRelation('events', $events);
         $split->setRelation('eventType', $activity->eventType);
 

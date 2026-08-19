@@ -32,6 +32,7 @@
         "spatie/laravel-json-api-paginate": "^1.16",
         "spatie/laravel-permission": "^6.17",
         "spatie/laravel-query-builder": "^6.3",
+        "spatie/period": "^2.4",
         "timacdonald/json-api": "dev-main as 1.0.0-beta.99",
         "timatic/bitbucket-integration": "1.0.0",
         "timatic/exact-globe-integration": "1.0.0",

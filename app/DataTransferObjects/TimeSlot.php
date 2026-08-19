@@ -2,55 +2,34 @@
 
 namespace App\DataTransferObjects;
 
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
-use Illuminate\Support\Collection;
+use DateTimeImmutable;
+use DateTimeInterface;
+use Spatie\Period\Boundaries;
+use Spatie\Period\Period;
+use Spatie\Period\Precision;
 
-readonly class TimeSlot
+class TimeSlot extends Period
 {
+    public readonly CarbonInterface $startedAt;
+
+    public readonly CarbonInterface $endedAt;
+
     public function __construct(
-        public CarbonInterface $startedAt,
-        public CarbonInterface $endedAt,
-    ) {}
+        DateTimeInterface $start,
+        DateTimeInterface $end,
+        ?Precision $precision = null,
+        ?Boundaries $boundaries = null,
+    ) {
+        parent::__construct(
+            $start instanceof DateTimeImmutable ? $start : DateTimeImmutable::createFromInterface($start),
+            $end instanceof DateTimeImmutable ? $end : DateTimeImmutable::createFromInterface($end),
+            $precision ?? Precision::SECOND(),
+            $boundaries ?? Boundaries::EXCLUDE_END(),
+        );
 
-    public function overlaps(TimeSlot $other): bool
-    {
-        return $this->startedAt->lessThan($other->endedAt)
-            && $this->endedAt->greaterThan($other->startedAt);
-    }
-
-    public function covers(TimeSlot $other): bool
-    {
-        return $this->startedAt->lessThanOrEqualTo($other->startedAt)
-            && $this->endedAt->greaterThanOrEqualTo($other->endedAt);
-    }
-
-    /**
-     * @param  Collection<int, TimeSlot>  $blockers
-     * @return Collection<int, TimeSlot>
-     */
-    public function subtract(Collection $blockers): Collection
-    {
-        /** @var Collection<int, TimeSlot> $segments */
-        $segments = collect([$this]);
-
-        foreach ($blockers->sortBy('startedAt') as $blocker) {
-            $segments = $segments->flatMap(function (TimeSlot $segment) use ($blocker) {
-                if (! $segment->overlaps($blocker)) {
-                    return [$segment];
-                }
-
-                $remaining = [];
-                if ($blocker->startedAt->greaterThan($segment->startedAt)) {
-                    $remaining[] = new TimeSlot($segment->startedAt, $blocker->startedAt);
-                }
-                if ($blocker->endedAt->lessThan($segment->endedAt)) {
-                    $remaining[] = new TimeSlot($blocker->endedAt, $segment->endedAt);
-                }
-
-                return $remaining;
-            });
-        }
-
-        return $segments->values();
+        $this->startedAt = $start instanceof CarbonInterface ? $start : Carbon::instance($start);
+        $this->endedAt = $end instanceof CarbonInterface ? $end : Carbon::instance($end);
     }
 }

@@ -513,3 +513,37 @@ test('an activity fully inside entry periods is not created', function () {
 
     expect($activities)->toBeEmpty();
 });
+
+test('a high-weight event inside a low-weight event splits the low-weight into two activities', function () {
+    $meeting = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'calendar_event_started',
+        'started_at' => Carbon::parse('2026-07-16 09:00'),
+        'ended_at' => Carbon::parse('2026-07-16 10:00'),
+    ]);
+    $meeting->setRelation('eventType', new EventType(['id' => 'calendar_event_started', 'weight' => 1]));
+    $commit = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerY',
+        'ticket_number' => 'TIC-2',
+        'event_type_id' => 'commit_pushed',
+        'started_at' => Carbon::parse('2026-07-16 09:30'),
+        'ended_at' => Carbon::parse('2026-07-16 09:45'),
+    ]);
+    $commit->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 999]));
+
+    $activities = (new ActivityProjector)->project(collect([$meeting, $commit]), collect());
+
+    $meetingActivities = $activities->filter(fn ($a) => $a->ticket_number === 'TIC-1')->values();
+    $commitActivity = $activities->first(fn ($a) => $a->ticket_number === 'TIC-2');
+    expect($activities)->toHaveCount(3)
+        ->and($meetingActivities)->toHaveCount(2)
+        ->and($meetingActivities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 09:00'))
+        ->and($meetingActivities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:30'))
+        ->and($commitActivity->started_at)->toEqual(Carbon::parse('2026-07-16 09:30'))
+        ->and($commitActivity->ended_at)->toEqual(Carbon::parse('2026-07-16 09:45'))
+        ->and($meetingActivities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 09:45'))
+        ->and($meetingActivities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:00'));
+});
