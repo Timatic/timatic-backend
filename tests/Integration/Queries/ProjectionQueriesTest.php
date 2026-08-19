@@ -1,6 +1,5 @@
 <?php
 
-use App\Events\ActivityCreated;
 use App\Events\EventCreated;
 use App\Models\Entry;
 use App\Models\EntrySuggestion;
@@ -15,7 +14,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 test('user day events returns only events ending within the day with their event type loaded', function () {
-    Illuminate\Support\Facades\Event::fake([EventCreated::class, ActivityCreated::class]);
+    Illuminate\Support\Facades\Event::fake([EventCreated::class]);
     $user = User::factory()->create();
     $inside = Event::factory()->create([
         'user_id' => $user->id,
@@ -36,7 +35,7 @@ test('user day events returns only events ending within the day with their event
 });
 
 test('user entries in day returns entries overlapping the day bounds', function () {
-    Illuminate\Support\Facades\Event::fake([EventCreated::class, ActivityCreated::class]);
+    Illuminate\Support\Facades\Event::fake([EventCreated::class]);
     $user = User::factory()->create();
     $overlapping = Entry::factory()->create([
         'user_id' => $user->id,
@@ -55,7 +54,7 @@ test('user entries in day returns entries overlapping the day bounds', function 
 });
 
 test('user dismissed suggestions returns trashed suggestions without entry for the date', function () {
-    Illuminate\Support\Facades\Event::fake([EventCreated::class, ActivityCreated::class]);
+    Illuminate\Support\Facades\Event::fake([EventCreated::class]);
     $user = User::factory()->create();
     $dismissed = EntrySuggestion::factory()->create([
         'user_id' => $user->id,

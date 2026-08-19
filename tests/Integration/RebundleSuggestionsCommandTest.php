@@ -1,151 +1,53 @@
 <?php
 
-use App\Models\Activity;
-use App\Models\Entry;
+use App\Events\EventCreated;
 use App\Models\EntrySuggestion;
-use App\Models\Source;
+use App\Models\Event;
+use App\Models\EventType;
 use App\Models\User;
-use App\Services\SuggestionBundler;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Event as EventFacade;
 
 uses(RefreshDatabase::class);
 
-it('rebundles one-to-one suggestions into stacks', function () {
-    EventFacade::fake();
+test('rebundling rebuilds the user-days of open suggestions from their events', function () {
+    Illuminate\Support\Facades\Event::fake([EventCreated::class]);
     $user = User::factory()->create();
-    $source = Source::factory()->create();
-    $bundler = app(SuggestionBundler::class);
-
-    foreach (['09:00:00', '11:00:00', '13:00:00'] as $time) {
-        $activity = Activity::factory()->create([
-            'user_id' => $user->id,
-            'source_id' => $source->id,
-            'customer_id' => '1',
-            'ticket_number' => 'PIO-12',
-            'started_at' => '2026-06-04 '.$time,
-            'ended_at' => '2026-06-04 '.$time,
-        ]);
-        $bundler->createNewSuggestionFor($activity);
-    }
-
-    expect(EntrySuggestion::count())->toBe(3);
+    $stale = EntrySuggestion::factory()->create([
+        'user_id' => $user->id,
+        'date' => '2026-07-16',
+        'ticket_number' => 'STALE-1',
+    ]);
+    Event::factory()->create([
+        'user_id' => $user->id,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => EventType::factory()->create(['weight' => 1])->id,
+        'started_at' => Carbon::parse('2026-07-16 09:00', 'Europe/Amsterdam'),
+        'ended_at' => Carbon::parse('2026-07-16 09:30', 'Europe/Amsterdam'),
+    ]);
 
     $this->artisan('timatic:rebundle-suggestions')->assertSuccessful();
 
-    expect(EntrySuggestion::count())->toBe(1)
-        ->and(EntrySuggestion::first()->activities()->count())->toBe(3);
+    expect(EntrySuggestion::withTrashed()->whereKey($stale->id)->exists())->toBeFalse()
+        ->and(EntrySuggestion::sole()->ticket_number)->toBe('TIC-1');
 });
 
-it('leaves accepted suggestions and their activities untouched', function () {
-    EventFacade::fake();
-    $user = User::factory()->create();
-    $source = Source::factory()->create();
-    $bundler = app(SuggestionBundler::class);
-
-    $acceptedActivity = Activity::factory()->create([
-        'user_id' => $user->id,
-        'source_id' => $source->id,
-        'customer_id' => '1',
-        'ticket_number' => 'PIO-12',
-        'started_at' => '2026-06-04 09:00:00',
-        'ended_at' => '2026-06-04 10:00:00',
+test('rebundling respects the user filter', function () {
+    Illuminate\Support\Facades\Event::fake([EventCreated::class]);
+    $targetUser = User::factory()->create();
+    $otherUser = User::factory()->create();
+    EntrySuggestion::factory()->create([
+        'user_id' => $targetUser->id,
+        'date' => '2026-07-16',
     ]);
-    $accepted = $bundler->createNewSuggestionFor($acceptedActivity);
-    Entry::factory()->create(['entry_suggestion_id' => $accepted->id]);
-
-    $openActivity = Activity::factory()->create([
-        'user_id' => $user->id,
-        'source_id' => $source->id,
-        'customer_id' => '1',
-        'ticket_number' => 'PIO-12',
-        'started_at' => '2026-06-04 11:00:00',
-        'ended_at' => '2026-06-04 12:00:00',
+    $untouched = EntrySuggestion::factory()->create([
+        'user_id' => $otherUser->id,
+        'date' => '2026-07-16',
     ]);
-    $bundler->createNewSuggestionFor($openActivity);
 
-    $this->artisan('timatic:rebundle-suggestions')->assertSuccessful();
+    $this->artisan('timatic:rebundle-suggestions', ['--user' => $targetUser->id])->assertSuccessful();
 
-    $acceptedActivity->refresh();
-    expect($acceptedActivity->entry_suggestion_id)->toBe($accepted->id)
-        ->and($accepted->fresh()->activities()->count())->toBe(1);
-});
-
-it('leaves rejected suggestions and their activities untouched', function () {
-    EventFacade::fake();
-    $user = User::factory()->create();
-    $source = Source::factory()->create();
-    $bundler = app(SuggestionBundler::class);
-
-    $rejectedActivity = Activity::factory()->create([
-        'user_id' => $user->id,
-        'source_id' => $source->id,
-        'customer_id' => '1',
-        'ticket_number' => 'PIO-12',
-        'started_at' => '2026-06-04 09:00:00',
-        'ended_at' => '2026-06-04 10:00:00',
-    ]);
-    $rejected = $bundler->createNewSuggestionFor($rejectedActivity);
-    $rejected->delete();
-
-    $this->artisan('timatic:rebundle-suggestions')->assertSuccessful();
-
-    $rejectedActivity->refresh();
-    expect($rejectedActivity->entry_suggestion_id)->toBe($rejected->id)
-        ->and(EntrySuggestion::withTrashed()->count())->toBe(1);
-});
-
-it('scopes rebundling with the user option', function () {
-    EventFacade::fake();
-    $userA = User::factory()->create();
-    $userB = User::factory()->create();
-    $source = Source::factory()->create();
-    $bundler = app(SuggestionBundler::class);
-
-    foreach ([$userA, $userA, $userB] as $index => $user) {
-        $activity = Activity::factory()->create([
-            'user_id' => $user->id,
-            'source_id' => $source->id,
-            'customer_id' => '1',
-            'ticket_number' => 'PIO-12',
-            'started_at' => '2026-06-04 '.(9 + $index).':00:00',
-            'ended_at' => '2026-06-04 '.(9 + $index).':30:00',
-        ]);
-        $bundler->createNewSuggestionFor($activity);
-    }
-
-    $this->artisan('timatic:rebundle-suggestions', ['--user' => $userA->id])->assertSuccessful();
-
-    expect(EntrySuggestion::where('user_id', $userA->id)->count())->toBe(1)
-        ->and(EntrySuggestion::where('user_id', $userB->id)->count())->toBe(1);
-});
-
-it('rolls back when bundling fails mid-replay', function () {
-    EventFacade::fake();
-    $user = User::factory()->create();
-    $source = Source::factory()->create();
-    $bundler = app(SuggestionBundler::class);
-
-    $activity = Activity::factory()->create([
-        'user_id' => $user->id,
-        'source_id' => $source->id,
-        'customer_id' => '1',
-        'ticket_number' => 'PIO-12',
-        'started_at' => '2026-06-04 09:00:00',
-        'ended_at' => '2026-06-04 10:00:00',
-    ]);
-    $suggestion = $bundler->createNewSuggestionFor($activity);
-
-    $this->mock(SuggestionBundler::class)
-        ->shouldReceive('bundle')
-        ->andThrow(new RuntimeException('bundling failed'));
-
-    try {
-        $this->artisan('timatic:rebundle-suggestions');
-    } catch (RuntimeException) {
-    }
-
-    $activity->refresh();
-    expect(EntrySuggestion::count())->toBe(1)
-        ->and($activity->entry_suggestion_id)->toBe($suggestion->id);
+    expect(EntrySuggestion::query()->whereKey($untouched->id)->exists())->toBeTrue()
+        ->and(EntrySuggestion::query()->where('user_id', $targetUser->id)->count())->toBe(0);
 });

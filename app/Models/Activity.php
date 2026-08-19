@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Events\ActivityCreated;
 use App\Events\CreatingActivity;
 use Carbon\Carbon;
 use Database\Factories\ActivityFactory;
@@ -53,7 +52,6 @@ class Activity extends Model
      * @var array<string, class-string>
      */
     protected $dispatchesEvents = [
-        'created' => ActivityCreated::class,
         'creating' => CreatingActivity::class,
     ];
 

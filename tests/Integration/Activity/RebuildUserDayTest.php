@@ -1,6 +1,5 @@
 <?php
 
-use App\Events\ActivityCreated;
 use App\Events\EventCreated;
 use App\Jobs\RebuildUserDay;
 use App\Models\Activity;
@@ -15,7 +14,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 test('rebuilding a day projects activities and suggestions from its events', function () {
-    Illuminate\Support\Facades\Event::fake([EventCreated::class, ActivityCreated::class]);
+    Illuminate\Support\Facades\Event::fake([EventCreated::class]);
     $user = User::factory()->create();
     $event = Event::factory()->create([
         'user_id' => $user->id,
@@ -38,7 +37,7 @@ test('rebuilding a day projects activities and suggestions from its events', fun
 });
 
 test('rebuilding replaces the previous activities and force-deletes open suggestions of the day', function () {
-    Illuminate\Support\Facades\Event::fake([EventCreated::class, ActivityCreated::class]);
+    Illuminate\Support\Facades\Event::fake([EventCreated::class]);
     $user = User::factory()->create();
     $staleSuggestion = EntrySuggestion::factory()->create([
         'user_id' => $user->id,
@@ -68,7 +67,7 @@ test('rebuilding replaces the previous activities and force-deletes open suggest
 });
 
 test('a dismissed suggestion suppresses its group but the activity is still saved', function () {
-    Illuminate\Support\Facades\Event::fake([EventCreated::class, ActivityCreated::class]);
+    Illuminate\Support\Facades\Event::fake([EventCreated::class]);
     $user = User::factory()->create();
     $dismissed = EntrySuggestion::factory()->create([
         'user_id' => $user->id,
@@ -96,7 +95,7 @@ test('a dismissed suggestion suppresses its group but the activity is still save
 });
 
 test('an entry blocks its period and entry-backed suggestions survive the rebuild', function () {
-    Illuminate\Support\Facades\Event::fake([EventCreated::class, ActivityCreated::class]);
+    Illuminate\Support\Facades\Event::fake([EventCreated::class]);
     $user = User::factory()->create();
     $acceptedSuggestion = EntrySuggestion::factory()->create([
         'user_id' => $user->id,
