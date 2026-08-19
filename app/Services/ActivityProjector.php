@@ -22,9 +22,9 @@ class ActivityProjector
      */
     public function project(Collection $events, Collection $entryPeriods): Collection
     {
-        return $this->chainEventsIntoGroups($events)
-            ->map(fn (EventGroup $group) => $this->activityFromGroup($group, $group->period(), $group->events))
-            ->values();
+        $groups = $this->chainEventsIntoGroups($events);
+
+        return $this->resolveWeightDominance($groups)->values();
     }
 
     /**
@@ -126,5 +126,77 @@ class ActivityProjector
         $activity->setRelation('eventType', $template->eventType);
 
         return $activity;
+    }
+
+    /**
+     * @param  Collection<int, EventGroup>  $groups
+     * @return Collection<int, Activity>
+     */
+    private function resolveWeightDominance(Collection $groups): Collection
+    {
+        $ranked = $groups->sortBy([
+            fn (EventGroup $a, EventGroup $b) => $this->weight($b) <=> $this->weight($a),
+            fn (EventGroup $a, EventGroup $b) => $a->startedAt <=> $b->startedAt,
+        ])->values();
+
+        /** @var Collection<int, Activity> $accepted */
+        $accepted = collect();
+
+        foreach ($ranked as $group) {
+            $blockers = $accepted->map(fn (Activity $activity) => new Period($activity->started_at, $activity->ended_at));
+            $segments = $group->period()->subtract($blockers);
+
+            $accepted = $accepted->concat($this->activitiesFromSegments($group, $segments, $accepted));
+        }
+
+        return $accepted;
+    }
+
+    /**
+     * @param  Collection<int, Period>  $segments
+     * @param  Collection<int, Activity>  $coveringCandidates
+     * @return Collection<int, Activity>
+     */
+    private function activitiesFromSegments(EventGroup $group, Collection $segments, Collection $coveringCandidates): Collection
+    {
+        /** @var Collection<int, Activity> $activities */
+        $activities = collect();
+        $remaining = $group->events;
+
+        foreach ($segments as $segment) {
+            [$segmentEvents, $remaining] = $remaining->partition(fn (Event $event) => $this->eventPeriod($event)->overlaps($segment));
+
+            if ($segmentEvents->isEmpty()) {
+                continue;
+            }
+
+            $activities->push($this->activityFromGroup($group, $segment, $segmentEvents->values()));
+        }
+
+        $remaining->each(fn (Event $event) => $this->attachToCoveringActivity($event, $group, $coveringCandidates));
+
+        return $activities;
+    }
+
+    /**
+     * @param  Collection<int, Activity>  $candidates
+     */
+    private function attachToCoveringActivity(Event $event, EventGroup $group, Collection $candidates): void
+    {
+        $covering = $candidates->first(fn (Activity $activity) => $activity->customer_id === $group->customerId
+            && $activity->ticket_number === $group->ticketNumber
+            && (new Period($activity->started_at, $activity->ended_at))->covers($this->eventPeriod($event)));
+
+        $covering?->events->push($event);
+    }
+
+    private function eventPeriod(Event $event): Period
+    {
+        return new Period($this->effectiveStart($event), $event->ended_at);
+    }
+
+    private function weight(EventGroup $group): int
+    {
+        return (int) $group->events->first()?->eventType?->weight;
     }
 }
