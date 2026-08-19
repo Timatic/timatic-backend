@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use App\DataTransferObjects\TimeSlot;
 use App\Models\Activity;
 use App\Models\Entry;
 use App\Models\EntrySuggestion;
@@ -42,12 +41,11 @@ class RebuildUserDay implements ShouldBeUnique, ShouldQueue
             ->where('ended_at', '<', $day->copy()->addDay())
             ->get();
 
-        $entryTimeSlots = Entry::query()
+        $entries = Entry::query()
             ->where('user_id', $this->userId)
             ->where('started_at', '<', $day->copy()->addDay())
             ->where('ended_at', '>', $day)
-            ->get()
-            ->map(fn (Entry $entry) => new TimeSlot($entry->started_at, $entry->ended_at));
+            ->get();
 
         $dismissedSuggestions = EntrySuggestion::onlyTrashed()
             ->whereDoesntHave('entry')
@@ -55,7 +53,7 @@ class RebuildUserDay implements ShouldBeUnique, ShouldQueue
             ->where('date', $day->toDateString())
             ->get();
 
-        $activities = $activityProjector->project($events, $entryTimeSlots);
+        $activities = $activityProjector->project($events, $entries);
         $suggestions = $suggestionProjector->project($activities, $dismissedSuggestions, $day);
 
         $db->transaction(function () use ($activities, $suggestions, $day) {
