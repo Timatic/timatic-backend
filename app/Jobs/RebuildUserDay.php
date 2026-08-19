@@ -6,9 +6,7 @@ use App\DataTransferObjects\TimeSlot;
 use App\Models\Activity;
 use App\Models\Entry;
 use App\Models\EntrySuggestion;
-use App\Queries\UserDayEvents;
-use App\Queries\UserDismissedSuggestionsOnDate;
-use App\Queries\UserEntriesInDay;
+use App\Models\Event;
 use App\Services\ActivityProjector;
 use App\Services\SuggestionProjector;
 use Carbon\Carbon;
@@ -37,10 +35,25 @@ class RebuildUserDay implements ShouldBeUnique, ShouldQueue
     {
         $day = Carbon::parse($this->date, config('timatic.preferred_timezone'))->startOfDay();
 
-        $events = UserDayEvents::query($this->userId, $day)->get();
-        $entryPeriods = UserEntriesInDay::query($this->userId, $day)->get()
+        $events = Event::query()
+            ->with('eventType')
+            ->where('user_id', $this->userId)
+            ->where('ended_at', '>=', $day)
+            ->where('ended_at', '<', $day->copy()->addDay())
+            ->get();
+
+        $entryPeriods = Entry::query()
+            ->where('user_id', $this->userId)
+            ->where('started_at', '<', $day->copy()->addDay())
+            ->where('ended_at', '>', $day)
+            ->get()
             ->map(fn (Entry $entry) => new TimeSlot($entry->started_at, $entry->ended_at));
-        $dismissedSuggestions = UserDismissedSuggestionsOnDate::query($this->userId, $day)->get();
+
+        $dismissedSuggestions = EntrySuggestion::onlyTrashed()
+            ->whereDoesntHave('entry')
+            ->where('user_id', $this->userId)
+            ->where('date', $day->toDateString())
+            ->get();
 
         $activities = $activityProjector->project($events, $entryPeriods);
         $suggestions = $suggestionProjector->project($activities, $dismissedSuggestions, $day);
