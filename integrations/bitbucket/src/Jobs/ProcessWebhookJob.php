@@ -48,9 +48,21 @@ class ProcessWebhookJob implements ShouldQueue
     {
         foreach ($this->payload['push']['changes'] ?? [] as $change) {
             $branchName = is_string($change['new']['name'] ?? null) ? $change['new']['name'] : null;
+            $forced = (bool) ($change['forced'] ?? false);
 
+            $knownCommits = [];
             foreach ($change['commits'] ?? [] as $commit) {
+                if ($this->isKnownCommit($commit, $forced)) {
+                    $knownCommits[] = $commit;
+
+                    continue;
+                }
+
                 $this->createEventFromCommit($commit, $branchName, $ticketService);
+            }
+
+            if ($knownCommits !== []) {
+                $this->createRebaseEvent($knownCommits, $branchName);
             }
         }
     }
@@ -137,12 +149,83 @@ class ProcessWebhookJob implements ShouldQueue
             'budget_id' => $budgetId,
             'title' => mb_substr($title, 0, 255),
             'description' => $description,
-            'started_at' => $timestamp,
+            // webhook events are point events: the moment is known but the lead-up isn't,
+            // so started_at stays null and activity creation estimates the duration
+            'started_at' => null,
             'ended_at' => $timestamp,
             'ticket_id' => $ticket?->id,
             'ticket_number' => $ticket?->number,
             'ticket_type' => $ticket?->type,
         ]);
+    }
+
+    /**
+     * A force-pushed commit may carry a rewritten committer date (e.g. after a `git rebase`),
+     * so on forced pushes we match by title alone; on normal pushes we still require the date
+     * to match, since recurring titles (e.g. "composer update") are otherwise legitimate new commits.
+     *
+     * @param  array<string, mixed>  $commit
+     */
+    private function isKnownCommit(array $commit, bool $forced): bool
+    {
+        $email = $this->extractEmail($commit['author']['raw'] ?? '');
+        $date = $commit['date'] ?? null;
+
+        if ($email === null || ! is_string($date)) {
+            return false;
+        }
+
+        $user = User::where('email', $email)->first();
+
+        if ($user === null) {
+            return false;
+        }
+
+        [$commitTitle] = $this->splitCommitMessage((string) ($commit['message'] ?? ''));
+
+        $timestamp = $forced ? null : Carbon::parse($date)->utc();
+
+        return $this->eventExists($user, 'commit_pushed', $commitTitle, $timestamp);
+    }
+
+    /** @param non-empty-list<array<string, mixed>> $knownCommits */
+    private function createRebaseEvent(array $knownCommits, ?string $branchName): void
+    {
+        $email = $this->extractEmail($knownCommits[0]['author']['raw'] ?? '');
+        $user = $email === null ? null : User::where('email', $email)->first();
+
+        if ($user === null) {
+            return;
+        }
+
+        $timestamp = collect($knownCommits)
+            ->map(fn (array $commit) => Carbon::parse($commit['date'])->utc())
+            ->max();
+
+        $title = sprintf('Rebased %d commits on %s', count($knownCommits), $branchName ?? 'unknown branch');
+
+        if ($this->eventExists($user, 'rebase', $title, $timestamp)) {
+            return;
+        }
+
+        $this->createEvent(
+            user: $user,
+            eventTypeId: 'rebase',
+            title: $title,
+            timestamp: $timestamp,
+            ticket: null,
+        );
+    }
+
+    private function eventExists(User $user, string $eventTypeId, string $title, ?Carbon $timestamp): bool
+    {
+        return Event::query()
+            ->where('user_id', $user->id)
+            ->where('source_id', ServiceProvider::SOURCE_ID)
+            ->where('event_type_id', $eventTypeId)
+            ->where('title', mb_substr($title, 0, 255))
+            ->when($timestamp !== null, fn ($query) => $query->where('ended_at', $timestamp))
+            ->exists();
     }
 
     /** @return array{string, ?string} */
