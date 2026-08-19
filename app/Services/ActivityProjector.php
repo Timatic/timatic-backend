@@ -23,8 +23,9 @@ class ActivityProjector
     public function project(Collection $events, Collection $entryPeriods): Collection
     {
         $groups = $this->chainEventsIntoGroups($events);
+        $activities = $this->resolveWeightDominance($groups);
 
-        return $this->resolveWeightDominance($groups)->values();
+        return $this->trimAroundEntryPeriods($activities, $entryPeriods)->values();
     }
 
     /**
@@ -198,5 +199,53 @@ class ActivityProjector
     private function weight(EventGroup $group): int
     {
         return (int) $group->events->first()?->eventType?->weight;
+    }
+
+    /**
+     * @param  Collection<int, Activity>  $activities
+     * @param  Collection<int, Period>  $entryPeriods
+     * @return Collection<int, Activity>
+     */
+    private function trimAroundEntryPeriods(Collection $activities, Collection $entryPeriods): Collection
+    {
+        if ($entryPeriods->isEmpty()) {
+            return $activities;
+        }
+
+        return $activities->flatMap(function (Activity $activity) use ($entryPeriods) {
+            $segments = (new Period($activity->started_at, $activity->ended_at))->subtract($entryPeriods);
+
+            if ($segments->count() === 1 && $segments[0]->startedAt->equalTo($activity->started_at) && $segments[0]->endedAt->equalTo($activity->ended_at)) {
+                return [$activity];
+            }
+
+            $splits = [];
+            $remaining = $activity->events;
+            foreach ($segments as $segment) {
+                [$segmentEvents, $remaining] = $remaining->partition(fn (Event $event) => $this->eventPeriod($event)->overlaps($segment));
+
+                if ($segmentEvents->isEmpty()) {
+                    continue;
+                }
+
+                $splits[] = $this->cloneActivityForSegment($activity, $segment, $segmentEvents->values());
+            }
+
+            return $splits;
+        });
+    }
+
+    /**
+     * @param  Collection<int, Event>  $events
+     */
+    private function cloneActivityForSegment(Activity $activity, Period $segment, Collection $events): Activity
+    {
+        $split = $activity->replicate(['started_at', 'ended_at']);
+        $split->started_at = $segment->startedAt;
+        $split->ended_at = $segment->endedAt;
+        $split->setRelation('events', $events);
+        $split->setRelation('eventType', $activity->eventType);
+
+        return $split;
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\DataTransferObjects\Period;
 use App\Models\Event;
 use App\Models\EventType;
 use App\Services\ActivityProjector;
@@ -444,4 +445,71 @@ test('shuffled input produces the same activities as chronological input', funct
         ->map(fn ($activity) => $activity->ticket_number.'|'.$activity->started_at.'|'.$activity->ended_at.'|'.$activity->events->count())
         ->sort()->values()->all();
     expect($signature($shuffled))->toBe($signature($chronological));
+});
+
+test('an activity partially overlapping an entry period is trimmed to the unbooked part', function () {
+    $event = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'commit_pushed',
+        'started_at' => Carbon::parse('2026-07-16 09:00'),
+        'ended_at' => Carbon::parse('2026-07-16 12:00'),
+    ]);
+    $event->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
+    $entry = new Period(Carbon::parse('2026-07-16 09:00'), Carbon::parse('2026-07-16 10:00'));
+
+    $activities = (new ActivityProjector)->project(collect([$event]), collect([$entry]));
+
+    expect($activities)->toHaveCount(1)
+        ->and($activities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
+        ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 12:00'));
+});
+
+test('an entry period inside an activity splits it into two activities', function () {
+    $eventType = new EventType(['id' => 'commit_pushed', 'weight' => 1]);
+    $morning = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'commit_pushed',
+        'started_at' => Carbon::parse('2026-07-16 09:00'),
+        'ended_at' => Carbon::parse('2026-07-16 09:50'),
+    ]);
+    $morning->setRelation('eventType', $eventType);
+    $noon = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'commit_pushed',
+        'started_at' => Carbon::parse('2026-07-16 10:00'),
+        'ended_at' => Carbon::parse('2026-07-16 12:00'),
+    ]);
+    $noon->setRelation('eventType', $eventType);
+    $entry = new Period(Carbon::parse('2026-07-16 09:50'), Carbon::parse('2026-07-16 10:00'));
+
+    $activities = (new ActivityProjector)->project(collect([$morning, $noon]), collect([$entry]));
+
+    expect($activities)->toHaveCount(2)
+        ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:50'))
+        ->and($activities[0]->events->all())->toBe([$morning])
+        ->and($activities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
+        ->and($activities[1]->events->all())->toBe([$noon]);
+});
+
+test('an activity fully inside entry periods is not created', function () {
+    $event = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'commit_pushed',
+        'started_at' => Carbon::parse('2026-07-16 10:00'),
+        'ended_at' => Carbon::parse('2026-07-16 10:30'),
+    ]);
+    $event->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
+    $entry = new Period(Carbon::parse('2026-07-16 09:00'), Carbon::parse('2026-07-16 11:00'));
+
+    $activities = (new ActivityProjector)->project(collect([$event]), collect([$entry]));
+
+    expect($activities)->toBeEmpty();
 });
