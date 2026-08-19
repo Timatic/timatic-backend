@@ -220,7 +220,12 @@ class ActivityProjector
             $segments = (new TimeSlot($activity->started_at, $activity->ended_at))->subtract($entryPeriods);
 
             $first = $segments->first();
-            if ($segments->count() === 1 && $first !== null && $first->startedAt->equalTo($activity->started_at) && $first->endedAt->equalTo($activity->ended_at)) {
+            $activityUnchanged = $segments->count() === 1
+                && $first !== null
+                && $first->startedAt->equalTo($activity->started_at)
+                && $first->endedAt->equalTo($activity->ended_at);
+
+            if ($activityUnchanged) {
                 return [$activity];
             }
 

@@ -23,11 +23,10 @@ class RebundleSuggestionsCommand extends Command
             ->when($this->option('from'), fn ($query, $from) => $query->where('date', '>=', $from))
             ->when($this->option('to'), fn ($query, $to) => $query->where('date', '<=', $to))
             ->get(['user_id', 'date'])
-            ->map(fn (EntrySuggestion $suggestion) => ['userId' => (int) $suggestion->user_id, 'date' => (string) $suggestion->date])
-            ->unique(fn (array $userDay) => $userDay['userId'].':'.$userDay['date'])
+            ->unique(fn (EntrySuggestion $suggestion) => $suggestion->user_id.':'.$suggestion->date)
             ->values();
 
-        $userDays->each(fn (array $userDay) => RebuildUserDay::dispatchSync($userDay['userId'], $userDay['date']));
+        $userDays->each(fn (EntrySuggestion $suggestion) => RebuildUserDay::dispatchSync((int) $suggestion->user_id, (string) $suggestion->date));
 
         $this->info(sprintf('Rebuilt %d user-days.', $userDays->count()));
 

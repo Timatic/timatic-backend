@@ -33,7 +33,11 @@ class SuggestionProjector
             $activity->customer_id ?? '',
             (string) $activity->budget_id,
             $activity->ticket_number ?? '',
-            $activity->is_internal === null ? '' : (string) (int) $activity->is_internal,
+            match ($activity->is_internal) {
+                null => '',
+                true => '1',
+                false => '0',
+            },
         ]);
     }
 

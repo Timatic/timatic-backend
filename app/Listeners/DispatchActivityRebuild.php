@@ -22,7 +22,7 @@ class DispatchActivityRebuild
      */
     private function touchedDates(Event $event): array
     {
-        $start = ($event->started_at ?: $event->ended_at->copy()->subMinutes(15))->copy()->startOfDay();
+        $start = ($event->started_at ?? $event->ended_at->copy()->subMinutes(15))->copy()->startOfDay();
         $end = $event->ended_at->copy();
 
         $dates = [];
