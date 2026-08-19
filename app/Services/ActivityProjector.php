@@ -22,9 +22,7 @@ class ActivityProjector
     /** @var Collection<int, Activity> */
     private Collection $activities;
 
-    /**
-     * @var Collection<int, Event>
-     */
+    /** @var Collection<int, Entry> */
     private Collection $entries;
 
     public function __construct()
@@ -98,7 +96,7 @@ class ActivityProjector
         return $this->activities;
     }
 
-    private function createActivity(Event $event)
+    private function createActivity(Event $event): void
     {
         $newActivity = $this->activityFromEvent($event);
         $newActivityPartsWithoutOverlap = $this->reduceOverlap($newActivity);
@@ -144,7 +142,6 @@ class ActivityProjector
     }
 
     /**
-     * @param  Collection<int, Activity>  $activities
      * @param  Closure(Activity): bool  $matches
      */
     private function findChainableActivity(Event $event, Closure $matches): ?Activity
@@ -153,18 +150,26 @@ class ActivityProjector
         $eventEnd = $event->ended_at->copy();
 
         $precedingActivity = $this->activities
-            ->filter(fn (Activity $a) => $eventStart->isBefore($a->ended_at->copy()->addMinutes(self::CHAIN_GAP_MINUTES)))
-            ->last(fn (Activity $a) => $matches($a));
+            ->filter(fn (Activity $a) => $a->ended_at->isBefore($eventEnd)
+                && $a->ended_at->copy()->addMinutes(self::CHAIN_GAP_MINUTES)->isAfter($eventStart)
+            )
+            ->last();
 
-        if ($precedingActivity) {
+        if ($precedingActivity && $matches($precedingActivity)) {
             return $precedingActivity;
         }
 
-        return $this->activities
-            ->filter(fn (Activity $a) => $a->ended_at->isAfter($eventStart)
-                && $a->started_at->isBefore($eventEnd->addMinutes(self::CHAIN_GAP_MINUTES))
+        $followingActivity = $this->activities
+            ->filter(fn (Activity $a) => $a->started_at->isAfter($eventStart)
+                && $a->started_at->copy()->subMinutes(self::CHAIN_GAP_MINUTES)->isBefore($eventEnd)
             )
-            ->first(fn (Activity $a) => $matches($a));
+            ->first();
+
+        if ($followingActivity && $matches($followingActivity)) {
+            return $followingActivity;
+        }
+
+        return null;
     }
 
     private function activityFromEvent(Event $event): Activity

@@ -569,6 +569,57 @@ test('a meeting spanning two commits is split into three activities around the c
         ->and($meetingActivities[2]->ended_at)->toEqual(Carbon::parse('2026-07-16 12:00'));
 });
 
+test('fast sequential point events of equal weight each get their own time slice', function () {
+    $eventType = new EventType(['id' => 'commit_pushed', 'weight' => 1]);
+
+    $commit1 = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'commit_pushed',
+        'ended_at' => Carbon::parse('2026-07-16 10:00'),
+    ]);
+    $commit1->setRelation('eventType', $eventType);
+
+    $commit2 = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-2',
+        'event_type_id' => 'commit_pushed',
+        'ended_at' => Carbon::parse('2026-07-16 10:05'),
+    ]);
+    $commit2->setRelation('eventType', $eventType);
+
+    $commit3 = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'commit_pushed',
+        'ended_at' => Carbon::parse('2026-07-16 10:10'),
+    ]);
+    $commit3->setRelation('eventType', $eventType);
+
+    $activities = (new ActivityProjector)->project(collect([$commit1, $commit2, $commit3]), collect());
+
+    $tic1 = $activities->filter(fn ($a) => $a->ticket_number === 'TIC-1')
+        ->sortBy('started_at')->values();
+    $tic2 = $activities->filter(fn ($a) => $a->ticket_number === 'TIC-2')
+        ->sortBy('started_at')->values();
+
+    expect($activities)
+        ->and($tic1)->toHaveCount(2)
+        ->and($tic1[0]->started_at)->toEqual(Carbon::parse('2026-07-16 09:45'))
+        ->and($tic1[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
+        ->and((int) $tic1[0]->started_at->diffInMinutes($tic1[0]->ended_at))->toBe(15)
+        ->and($tic1[1]->started_at)->toEqual(Carbon::parse('2026-07-16 10:05'))
+        ->and($tic1[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:10'))
+        ->and((int) $tic1[1]->started_at->diffInMinutes($tic1[1]->ended_at))->toBe(5)
+        ->and($tic2)->toHaveCount(1)
+        ->and($tic2[0]->started_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
+        ->and($tic2[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:05'))
+        ->and((int) $tic2[0]->started_at->diffInMinutes($tic2[0]->ended_at))->toBe(5);
+});
+
 test('a high-weight event inside a low-weight event splits the low-weight into two activities', function () {
     $meeting = new Event([
         'user_id' => 1,
