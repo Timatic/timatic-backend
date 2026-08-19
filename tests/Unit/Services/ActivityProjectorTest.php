@@ -1,6 +1,6 @@
 <?php
 
-use App\DataTransferObjects\Period;
+use App\DataTransferObjects\TimeSlot;
 use App\Models\Event;
 use App\Models\EventType;
 use App\Services\ActivityProjector;
@@ -457,7 +457,7 @@ test('an activity partially overlapping an entry period is trimmed to the unbook
         'ended_at' => Carbon::parse('2026-07-16 12:00'),
     ]);
     $event->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
-    $entry = new Period(Carbon::parse('2026-07-16 09:00'), Carbon::parse('2026-07-16 10:00'));
+    $entry = new TimeSlot(Carbon::parse('2026-07-16 09:00'), Carbon::parse('2026-07-16 10:00'));
 
     $activities = (new ActivityProjector)->project(collect([$event]), collect([$entry]));
 
@@ -486,7 +486,7 @@ test('an entry period inside an activity splits it into two activities', functio
         'ended_at' => Carbon::parse('2026-07-16 12:00'),
     ]);
     $noon->setRelation('eventType', $eventType);
-    $entry = new Period(Carbon::parse('2026-07-16 09:50'), Carbon::parse('2026-07-16 10:00'));
+    $entry = new TimeSlot(Carbon::parse('2026-07-16 09:50'), Carbon::parse('2026-07-16 10:00'));
 
     $activities = (new ActivityProjector)->project(collect([$morning, $noon]), collect([$entry]));
 
@@ -507,7 +507,7 @@ test('an activity fully inside entry periods is not created', function () {
         'ended_at' => Carbon::parse('2026-07-16 10:30'),
     ]);
     $event->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
-    $entry = new Period(Carbon::parse('2026-07-16 09:00'), Carbon::parse('2026-07-16 11:00'));
+    $entry = new TimeSlot(Carbon::parse('2026-07-16 09:00'), Carbon::parse('2026-07-16 11:00'));
 
     $activities = (new ActivityProjector)->project(collect([$event]), collect([$entry]));
 

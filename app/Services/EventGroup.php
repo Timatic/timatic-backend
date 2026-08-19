@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\DataTransferObjects\Period;
+use App\DataTransferObjects\TimeSlot;
 use App\Models\Event;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
@@ -35,8 +35,8 @@ class EventGroup
         $this->endedAt = $this->endedAt->max($event->ended_at);
     }
 
-    public function period(): Period
+    public function period(): TimeSlot
     {
-        return new Period($this->startedAt, $this->endedAt);
+        return new TimeSlot($this->startedAt, $this->endedAt);
     }
 }

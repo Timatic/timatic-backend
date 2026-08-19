@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\DataTransferObjects\Period;
+use App\DataTransferObjects\TimeSlot;
 use App\Models\Activity;
 use App\Models\Event;
 use Carbon\CarbonInterface;
@@ -17,7 +17,7 @@ class ActivityProjector
 
     /**
      * @param  Collection<int, Event>  $events
-     * @param  Collection<int, Period>  $entryPeriods
+     * @param  Collection<int, TimeSlot>  $entryPeriods
      * @return Collection<int, Activity>
      */
     public function project(Collection $events, Collection $entryPeriods): Collection
@@ -104,7 +104,7 @@ class ActivityProjector
     /**
      * @param  Collection<int, Event>  $events
      */
-    private function activityFromGroup(EventGroup $group, Period $period, Collection $events): Activity
+    private function activityFromGroup(EventGroup $group, TimeSlot $period, Collection $events): Activity
     {
         /** @var Event $template */
         $template = $events->sortBy(fn (Event $event) => $this->effectiveStart($event))->first();
@@ -144,7 +144,7 @@ class ActivityProjector
         $accepted = collect();
 
         foreach ($ranked as $group) {
-            $blockers = $accepted->map(fn (Activity $activity) => new Period($activity->started_at, $activity->ended_at));
+            $blockers = $accepted->map(fn (Activity $activity) => new TimeSlot($activity->started_at, $activity->ended_at));
             $segments = $group->period()->subtract($blockers);
 
             $accepted = $accepted->concat($this->activitiesFromSegments($group, $segments, $accepted));
@@ -154,7 +154,7 @@ class ActivityProjector
     }
 
     /**
-     * @param  Collection<int, Period>  $segments
+     * @param  Collection<int, TimeSlot>  $segments
      * @param  Collection<int, Activity>  $coveringCandidates
      * @return Collection<int, Activity>
      */
@@ -186,14 +186,14 @@ class ActivityProjector
     {
         $covering = $candidates->first(fn (Activity $activity) => $activity->customer_id === $group->customerId
             && $activity->ticket_number === $group->ticketNumber
-            && (new Period($activity->started_at, $activity->ended_at))->covers($this->eventPeriod($event)));
+            && (new TimeSlot($activity->started_at, $activity->ended_at))->covers($this->eventPeriod($event)));
 
         $covering?->events->push($event);
     }
 
-    private function eventPeriod(Event $event): Period
+    private function eventPeriod(Event $event): TimeSlot
     {
-        return new Period($this->effectiveStart($event), $event->ended_at);
+        return new TimeSlot($this->effectiveStart($event), $event->ended_at);
     }
 
     private function weight(EventGroup $group): int
@@ -203,7 +203,7 @@ class ActivityProjector
 
     /**
      * @param  Collection<int, Activity>  $activities
-     * @param  Collection<int, Period>  $entryPeriods
+     * @param  Collection<int, TimeSlot>  $entryPeriods
      * @return Collection<int, Activity>
      */
     private function trimAroundEntryPeriods(Collection $activities, Collection $entryPeriods): Collection
@@ -213,7 +213,7 @@ class ActivityProjector
         }
 
         return $activities->flatMap(function (Activity $activity) use ($entryPeriods) {
-            $segments = (new Period($activity->started_at, $activity->ended_at))->subtract($entryPeriods);
+            $segments = (new TimeSlot($activity->started_at, $activity->ended_at))->subtract($entryPeriods);
 
             if ($segments->count() === 1 && $segments[0]->startedAt->equalTo($activity->started_at) && $segments[0]->endedAt->equalTo($activity->ended_at)) {
                 return [$activity];
@@ -238,7 +238,7 @@ class ActivityProjector
     /**
      * @param  Collection<int, Event>  $events
      */
-    private function cloneActivityForSegment(Activity $activity, Period $segment, Collection $events): Activity
+    private function cloneActivityForSegment(Activity $activity, TimeSlot $segment, Collection $events): Activity
     {
         $split = $activity->replicate(['started_at', 'ended_at']);
         $split->started_at = $segment->startedAt;
