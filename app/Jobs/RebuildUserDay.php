@@ -42,7 +42,7 @@ class RebuildUserDay implements ShouldBeUnique, ShouldQueue
             ->where('ended_at', '<', $day->copy()->addDay())
             ->get();
 
-        $entryPeriods = Entry::query()
+        $entryTimeSlots = Entry::query()
             ->where('user_id', $this->userId)
             ->where('started_at', '<', $day->copy()->addDay())
             ->where('ended_at', '>', $day)
@@ -55,7 +55,7 @@ class RebuildUserDay implements ShouldBeUnique, ShouldQueue
             ->where('date', $day->toDateString())
             ->get();
 
-        $activities = $activityProjector->project($events, $entryPeriods);
+        $activities = $activityProjector->project($events, $entryTimeSlots);
         $suggestions = $suggestionProjector->project($activities, $dismissedSuggestions, $day);
 
         $db->transaction(function () use ($activities, $suggestions, $day) {

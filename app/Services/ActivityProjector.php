@@ -19,15 +19,15 @@ class ActivityProjector
 
     /**
      * @param  Collection<int, Event>  $events
-     * @param  Collection<int, TimeSlot>  $entryPeriods
+     * @param  Collection<int, TimeSlot>  $entryTimeSlots
      * @return Collection<int, Activity>
      */
-    public function project(Collection $events, Collection $entryPeriods): Collection
+    public function project(Collection $events, Collection $entryTimeSlots): Collection
     {
         $groups = $this->chainEventsIntoGroups($events);
         $activities = $this->resolveWeightDominance($groups);
 
-        return $this->trimAroundEntryPeriods($activities, $entryPeriods)->values();
+        return $this->trimAroundEntryPeriods($activities, $entryTimeSlots)->values();
     }
 
     /**
@@ -207,17 +207,17 @@ class ActivityProjector
 
     /**
      * @param  Collection<int, Activity>  $activities
-     * @param  Collection<int, TimeSlot>  $entryPeriods
+     * @param  Collection<int, TimeSlot>  $entryTimeSlots
      * @return Collection<int, Activity>
      */
-    private function trimAroundEntryPeriods(Collection $activities, Collection $entryPeriods): Collection
+    private function trimAroundEntryPeriods(Collection $activities, Collection $entryTimeSlots): Collection
     {
-        if ($entryPeriods->isEmpty()) {
+        if ($entryTimeSlots->isEmpty()) {
             return $activities;
         }
 
-        return $activities->flatMap(function (Activity $activity) use ($entryPeriods) {
-            $segments = (new TimeSlot($activity->started_at, $activity->ended_at))->subtract($entryPeriods);
+        return $activities->flatMap(function (Activity $activity) use ($entryTimeSlots) {
+            $segments = (new TimeSlot($activity->started_at, $activity->ended_at))->subtract($entryTimeSlots);
 
             $first = $segments->first();
             $activityUnchanged = $segments->count() === 1
