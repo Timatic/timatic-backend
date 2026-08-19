@@ -279,7 +279,7 @@ test('the higher-weight group keeps its period and the lower one is trimmed', fu
         'started_at' => Carbon::parse('2026-07-16 00:10'),
         'ended_at' => Carbon::parse('2026-07-16 00:20'),
     ]);
-    $light->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
+    $light->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 99]));
     $heavy = new Event([
         'user_id' => 1,
         'customer_id' => 'customerY',
@@ -288,7 +288,7 @@ test('the higher-weight group keeps its period and the lower one is trimmed', fu
         'started_at' => Carbon::parse('2026-07-16 00:05'),
         'ended_at' => Carbon::parse('2026-07-16 00:15'),
     ]);
-    $heavy->setRelation('eventType', new EventType(['id' => 'calendar_event_started', 'weight' => 999]));
+    $heavy->setRelation('eventType', new EventType(['id' => 'calendar_event_started', 'weight' => 1]));
 
     $activities = (new ActivityProjector)->project(collect([$light, $heavy]), collect());
 
@@ -301,7 +301,7 @@ test('the higher-weight group keeps its period and the lower one is trimmed', fu
         ->and($lightActivity->ended_at)->toEqual(Carbon::parse('2026-07-16 00:20'));
 });
 
-test('a group fully covered by a matching dominant group attaches its events to the covering activity', function () {
+test('a group fully covered by a dominant group is dropped', function () {
     $covering = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
@@ -310,7 +310,7 @@ test('a group fully covered by a matching dominant group attaches its events to 
         'started_at' => Carbon::parse('2026-07-16 10:00'),
         'ended_at' => Carbon::parse('2026-07-16 10:30'),
     ]);
-    $covering->setRelation('eventType', new EventType(['id' => 'calendar_event_started', 'weight' => 999]));
+    $covering->setRelation('eventType', new EventType(['id' => 'calendar_event_started', 'weight' => 1]));
     $covered = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
@@ -319,12 +319,13 @@ test('a group fully covered by a matching dominant group attaches its events to 
         'started_at' => Carbon::parse('2026-07-16 10:05'),
         'ended_at' => Carbon::parse('2026-07-16 10:10'),
     ]);
-    $covered->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
+    $covered->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 99]));
 
     $activities = (new ActivityProjector)->project(collect([$covering, $covered]), collect());
 
     expect($activities)->toHaveCount(1)
-        ->and($activities[0]->events)->toHaveCount(2);
+        ->and($activities[0]->events)->toHaveCount(1)
+        ->and($activities[0]->events->first())->toBe($covering);
 });
 
 test('a covered group of another customer stays unattached instead of mixing customers', function () {
@@ -336,7 +337,7 @@ test('a covered group of another customer stays unattached instead of mixing cus
         'started_at' => Carbon::parse('2026-07-16 10:00'),
         'ended_at' => Carbon::parse('2026-07-16 10:30'),
     ]);
-    $covering->setRelation('eventType', new EventType(['id' => 'calendar_event_started', 'weight' => 999]));
+    $covering->setRelation('eventType', new EventType(['id' => 'calendar_event_started', 'weight' => 1]));
     $covered = new Event([
         'user_id' => 1,
         'customer_id' => 'customerY',
@@ -345,7 +346,7 @@ test('a covered group of another customer stays unattached instead of mixing cus
         'started_at' => Carbon::parse('2026-07-16 10:05'),
         'ended_at' => Carbon::parse('2026-07-16 10:10'),
     ]);
-    $covered->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
+    $covered->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 99]));
 
     $activities = (new ActivityProjector)->project(collect([$covering, $covered]), collect());
 
@@ -383,7 +384,7 @@ test('on equal weight the earlier-starting group is dominant', function () {
 });
 
 test('a subordinate group starts after the latest dominant overlapping group', function () {
-    $heavyType = new EventType(['id' => 'calendar_event_started', 'weight' => 999]);
+    $heavyType = new EventType(['id' => 'calendar_event_started', 'weight' => 1]);
     $firstDominant = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
@@ -410,7 +411,7 @@ test('a subordinate group starts after the latest dominant overlapping group', f
         'started_at' => Carbon::parse('2026-07-16 10:15'),
         'ended_at' => Carbon::parse('2026-07-16 11:00'),
     ]);
-    $subordinate->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 5]));
+    $subordinate->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 99]));
 
     $activities = (new ActivityProjector)->project(collect([$firstDominant, $secondDominant, $subordinate]), collect());
 
@@ -486,15 +487,13 @@ test('an entry period inside an activity splits it into two activities', functio
         'ended_at' => Carbon::parse('2026-07-16 12:00'),
     ]);
     $noon->setRelation('eventType', $eventType);
-    $entry = new Entry(['started_at' => Carbon::parse('2026-07-16 09:50'), 'ended_at' => Carbon::parse('2026-07-16 10:00')]);
+    $entry = new Entry(['started_at' => Carbon::parse('2026-07-16 09:45'), 'ended_at' => Carbon::parse('2026-07-16 10:15')]);
 
     $activities = (new ActivityProjector)->project(collect([$morning, $noon]), collect([$entry]));
 
     expect($activities)->toHaveCount(2)
-        ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:50'))
-        ->and($activities[0]->events->all())->toBe([$morning])
-        ->and($activities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
-        ->and($activities[1]->events->all())->toBe([$noon]);
+        ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:45'))
+        ->and($activities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 10:15'));
 });
 
 test('an activity fully inside entry periods is not created', function () {
@@ -514,6 +513,62 @@ test('an activity fully inside entry periods is not created', function () {
     expect($activities)->toBeEmpty();
 });
 
+test('a meeting spanning two commits is split into three activities around the commits', function () {
+    $commitType = new EventType(['id' => 'commit_pushed', 'weight' => 1]);
+    $meetingType = new EventType(['id' => 'calendar_event_started', 'weight' => 100]);
+
+    $commit1 = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'commit_pushed',
+        'started_at' => Carbon::parse('2026-07-16 10:10'),
+        'ended_at' => Carbon::parse('2026-07-16 10:25'),
+    ]);
+    $commit1->setRelation('eventType', $commitType);
+
+    $commit2 = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'commit_pushed',
+        'started_at' => Carbon::parse('2026-07-16 11:00'),
+        'ended_at' => Carbon::parse('2026-07-16 11:15'),
+    ]);
+    $commit2->setRelation('eventType', $commitType);
+
+    $meeting = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerY',
+        'ticket_number' => 'TIC-2',
+        'event_type_id' => 'calendar_event_started',
+        'started_at' => Carbon::parse('2026-07-16 10:00'),
+        'ended_at' => Carbon::parse('2026-07-16 12:00'),
+    ]);
+    $meeting->setRelation('eventType', $meetingType);
+
+    $activities = (new ActivityProjector)->project(collect([$commit1, $commit2, $meeting]), collect());
+
+    $commitActivities = $activities->filter(fn ($a) => $a->ticket_number === 'TIC-1')
+        ->sortBy('started_at')->values();
+    $meetingActivities = $activities->filter(fn ($a) => $a->ticket_number === 'TIC-2')
+        ->sortBy('started_at')->values();
+
+    expect($activities)->toHaveCount(5)
+        ->and($commitActivities)->toHaveCount(2)
+        ->and($commitActivities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 10:10'))
+        ->and($commitActivities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:25'))
+        ->and($commitActivities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 11:00'))
+        ->and($commitActivities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 11:15'))
+        ->and($meetingActivities)->toHaveCount(3)
+        ->and($meetingActivities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
+        ->and($meetingActivities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:10'))
+        ->and($meetingActivities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 10:25'))
+        ->and($meetingActivities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 11:00'))
+        ->and($meetingActivities[2]->started_at)->toEqual(Carbon::parse('2026-07-16 11:15'))
+        ->and($meetingActivities[2]->ended_at)->toEqual(Carbon::parse('2026-07-16 12:00'));
+});
+
 test('a high-weight event inside a low-weight event splits the low-weight into two activities', function () {
     $meeting = new Event([
         'user_id' => 1,
@@ -523,7 +578,7 @@ test('a high-weight event inside a low-weight event splits the low-weight into t
         'started_at' => Carbon::parse('2026-07-16 09:00'),
         'ended_at' => Carbon::parse('2026-07-16 10:00'),
     ]);
-    $meeting->setRelation('eventType', new EventType(['id' => 'calendar_event_started', 'weight' => 1]));
+    $meeting->setRelation('eventType', new EventType(['id' => 'calendar_event_started', 'weight' => 99]));
     $commit = new Event([
         'user_id' => 1,
         'customer_id' => 'customerY',
@@ -532,7 +587,7 @@ test('a high-weight event inside a low-weight event splits the low-weight into t
         'started_at' => Carbon::parse('2026-07-16 09:30'),
         'ended_at' => Carbon::parse('2026-07-16 09:45'),
     ]);
-    $commit->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 999]));
+    $commit->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
 
     $activities = (new ActivityProjector)->project(collect([$meeting, $commit]), collect());
 

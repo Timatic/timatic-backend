@@ -19,6 +19,19 @@ class ActivityProjector
 {
     private const CHAIN_GAP_MINUTES = 15;
 
+    /** @var Collection<int, Activity> */
+    private Collection $activities;
+
+    /**
+     * @var Collection<int, Event>
+     */
+    private Collection $entries;
+
+    public function __construct()
+    {
+        $this->activities = collect();
+    }
+
     /**
      * @param  Collection<int, Event>  $events
      * @param  Collection<int, Entry>  $entries
@@ -26,41 +39,30 @@ class ActivityProjector
      */
     public function project(Collection $events, Collection $entries): Collection
     {
-        $activities = $this->chainEvents($events);
+        $this->entries = $entries;
 
-        return $this->reduceOverlap($activities, $entries);
-    }
-
-    /**
-     * @param  Collection<int, Event>  $events
-     * @return Collection<int, Activity>
-     */
-    private function chainEvents(Collection $events): Collection
-    {
         $sorted = $events->sort(function (Event $a, Event $b) {
-            return ((int) $b->eventType?->weight <=> (int) $a->eventType?->weight)
+            return ((int) $a->eventType?->weight <=> (int) $b->eventType?->weight)
                 ?: $a->effectiveStart()->getTimestamp() <=> $b->effectiveStart()->getTimestamp();
         })->values();
 
-        /** @var Collection<int, Activity> $activities */
-        $activities = collect();
         /** @var Collection<int, Event> $unclaimed */
         $unclaimed = collect();
 
         foreach ($sorted as $event) {
             if ($event->customer_id === null) {
-                $activities->push($this->activityFromEvent($event));
+                $this->createActivity($event);
 
                 continue;
             }
 
             if ($event->ticket_number === null) {
-                $match = $this->findChainableActivity($activities, $event,
+                $match = $this->findChainableActivity($event,
                     fn (Activity $a) => $a->customer_id === $event->customer_id
                 );
 
                 if ($match) {
-                    $this->appendEvent($match, $event);
+                    $this->appendEventToActivity($match, $event);
                 } else {
                     $unclaimed->push($event);
                 }
@@ -68,115 +70,97 @@ class ActivityProjector
                 continue;
             }
 
-            $match = $this->findChainableActivity($activities, $event,
+            $match = $this->findChainableActivity($event,
                 fn (Activity $a) => $a->customer_id === $event->customer_id
                     && $a->ticket_number === $event->ticket_number
                     && $a->event_type_id === $event->event_type_id
             );
 
             if ($match) {
-                $this->appendEvent($match, $event);
+                $this->appendEventToActivity($match, $event);
             } else {
-                $activities->push($this->activityFromEvent($event));
+                $this->createActivity($event);
             }
         }
 
         foreach ($unclaimed as $event) {
-            $match = $this->findChainableActivity($activities, $event,
+            $match = $this->findChainableActivity($event,
                 fn (Activity $a) => $a->customer_id === $event->customer_id
             );
 
             if ($match) {
-                $this->appendEvent($match, $event);
+                $this->appendEventToActivity($match, $event);
             } else {
-                $activities->push($this->activityFromEvent($event));
+                $this->createActivity($event);
             }
         }
 
-        return $activities;
+        return $this->activities;
+    }
+
+    private function createActivity(Event $event)
+    {
+        $newActivity = $this->activityFromEvent($event);
+        $newActivityPartsWithoutOverlap = $this->reduceOverlap($newActivity);
+        $this->activities->push(...$newActivityPartsWithoutOverlap);
     }
 
     /**
-     * @param  Collection<int, Activity>  $activities
-     * @param  Collection<int, Entry>  $entries
-     * @return Collection<int, Activity>
+     * @return array<int, Activity>
      */
-    private function reduceOverlap(Collection $activities, Collection $entries): Collection
+    private function reduceOverlap(Activity $activity): array
     {
-        $sorted = $activities->sort(function (Activity $a, Activity $b) {
-            return ((int) $b->eventType?->weight <=> (int) $a->eventType?->weight)
-                ?: $a->started_at->getTimestamp() <=> $b->started_at->getTimestamp();
-        })->values();
-
         $claimed = new PeriodCollection(
-            ...$entries->map(fn (Entry $entry) => $this->period($entry->started_at, $entry->ended_at))->all()
+            ...$this->entries->map(fn (Entry $entry) => $this->period($entry->started_at, $entry->ended_at))->all(),
+            ...$this->activities->map(fn (Activity $activity) => $this->period($activity->started_at, $activity->ended_at))->all(),
         );
 
-        /** @var Collection<int, Activity> $result */
-        $result = collect();
+        $activityPeriod = $this->period($activity->started_at, $activity->ended_at);
+        $segments = PeriodCollection::make($activityPeriod)->subtract($claimed);
 
-        foreach ($sorted as $activity) {
-            $activityPeriod = $this->period($activity->started_at, $activity->ended_at);
-            $segments = PeriodCollection::make($activityPeriod)->subtract($claimed);
-
-            if ($segments->isEmpty()) {
-                $this->attachEventsToCovers($activity, $result);
-
-                continue;
-            }
-
-            foreach ($segments as $segment) {
-                $segmentEvents = $activity->events->filter(
-                    fn (Event $event) => $this->period($event->effectiveStart(), $event->ended_at)
-                        ->overlapsWith($segment)
-                );
-
-                if ($segmentEvents->isEmpty()) {
-                    continue;
-                }
-
-                $result->push($this->splitActivity($activity, $segment, $segmentEvents->values()));
-            }
-
-            $claimed = $claimed->add($activityPeriod);
+        if ($segments->isEmpty()) {
+            return [];
         }
 
-        return $result->values();
+        if ($segments->count() === 1) {
+            $activity->started_at = Carbon::instance($segments[0]->start());
+            $activity->ended_at = Carbon::instance($segments[0]->end());
+
+            return [$activity];
+        }
+
+        $parts = [];
+        foreach ($segments as $segment) {
+            $partialActivity = $activity->replicate(except: ['started_at', 'ended_at']);
+            $partialActivity->started_at = Carbon::instance($segment->start());
+            $partialActivity->ended_at = Carbon::instance($segment->end());
+
+            $events = $activity->events->whereBetween('ended_at', [$segment->start(), $segment->end()]);
+            $partialActivity->setRelation('events', $events);
+            $parts[] = $partialActivity;
+        }
+
+        return $parts;
     }
 
     /**
      * @param  Collection<int, Activity>  $activities
      * @param  Closure(Activity): bool  $matches
      */
-    private function findChainableActivity(Collection $activities, Event $event, Closure $matches): ?Activity
-    {
-        return $this->precedingChainableActivity($activities, $event, $matches)
-            ?? $this->followingChainableActivity($activities, $event, $matches);
-    }
-
-    /**
-     * @param  Collection<int, Activity>  $activities
-     * @param  Closure(Activity): bool  $matches
-     */
-    private function precedingChainableActivity(Collection $activities, Event $event, Closure $matches): ?Activity
-    {
-        $eventStart = $event->effectiveStart();
-
-        return $activities
-            ->filter(fn (Activity $a) => $eventStart->isBefore($a->ended_at->copy()->addMinutes(self::CHAIN_GAP_MINUTES)))
-            ->last(fn (Activity $a) => $matches($a));
-    }
-
-    /**
-     * @param  Collection<int, Activity>  $activities
-     * @param  Closure(Activity): bool  $matches
-     */
-    private function followingChainableActivity(Collection $activities, Event $event, Closure $matches): ?Activity
+    private function findChainableActivity(Event $event, Closure $matches): ?Activity
     {
         $eventStart = $event->effectiveStart();
         $eventEnd = $event->ended_at->copy();
 
-        return $activities
+        $precedingActivity = $this->activities
+            ->filter(fn (Activity $a) => $eventStart->isBefore($a->ended_at->copy()->addMinutes(self::CHAIN_GAP_MINUTES)))
+            ->last(fn (Activity $a) => $matches($a));
+
+        if ($precedingActivity) {
+            return $precedingActivity;
+        }
+
+        return $this->activities
             ->filter(fn (Activity $a) => $a->ended_at->isAfter($eventStart)
                 && $a->started_at->isBefore($eventEnd->addMinutes(self::CHAIN_GAP_MINUTES))
             )
@@ -205,7 +189,7 @@ class ActivityProjector
         return $activity;
     }
 
-    private function appendEvent(Activity $activity, Event $event): void
+    private function appendEventToActivity(Activity $activity, Event $event): void
     {
         $activity->events->push($event);
         $effectiveStart = $event->effectiveStart();
@@ -217,36 +201,6 @@ class ActivityProjector
         if ($event->ended_at->isAfter($activity->ended_at)) {
             $activity->ended_at = $event->ended_at;
         }
-    }
-
-    /**
-     * @param  Collection<int, Activity>  $candidates
-     */
-    private function attachEventsToCovers(Activity $covered, Collection $candidates): void
-    {
-        foreach ($covered->events as $event) {
-            $eventPeriod = $this->period($event->effectiveStart(), $event->ended_at);
-
-            $covering = $candidates->first(fn (Activity $a) => $a->customer_id === $covered->customer_id
-                && $a->ticket_number === $covered->ticket_number
-                && $this->period($a->started_at, $a->ended_at)->contains($eventPeriod));
-
-            $covering?->events->push($event);
-        }
-    }
-
-    /**
-     * @param  Collection<int, Event>  $events
-     */
-    private function splitActivity(Activity $activity, Period $segment, Collection $events): Activity
-    {
-        $split = $activity->replicate(['started_at', 'ended_at']);
-        $split->started_at = Carbon::instance($segment->start());
-        $split->ended_at = Carbon::instance($segment->end());
-        $split->setRelation('events', $events);
-        $split->setRelation('eventType', $activity->eventType);
-
-        return $split;
     }
 
     private function period(CarbonInterface $start, CarbonInterface $end): Period
