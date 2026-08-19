@@ -1,0 +1,170 @@
+<?php
+
+use App\Models\Activity;
+use App\Models\EntrySuggestion;
+use App\Services\SuggestionProjector;
+use Carbon\Carbon;
+
+test('activities sharing customer, budget, ticket and is_internal bundle into one suggestion', function () {
+    $first = new Activity;
+    $first->user_id = 1;
+    $first->customer_id = 'customerX';
+    $first->budget_id = 7;
+    $first->ticket_number = 'TIC-1';
+    $first->ticket_id = 'uuid-1';
+    $first->ticket_type = 'incident';
+    $first->is_internal = false;
+    $first->started_at = Carbon::parse('2026-07-16 09:00', 'Europe/Amsterdam');
+    $first->ended_at = Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam');
+    $second = new Activity;
+    $second->user_id = 1;
+    $second->customer_id = 'customerX';
+    $second->budget_id = 7;
+    $second->ticket_number = 'TIC-1';
+    $second->ticket_id = 'uuid-1';
+    $second->ticket_type = 'incident';
+    $second->is_internal = false;
+    $second->started_at = Carbon::parse('2026-07-16 14:00', 'Europe/Amsterdam');
+    $second->ended_at = Carbon::parse('2026-07-16 15:00', 'Europe/Amsterdam');
+
+    $suggestions = (new SuggestionProjector)->project(
+        collect([$first, $second]),
+        collect(),
+        Carbon::parse('2026-07-16', 'Europe/Amsterdam'),
+    );
+
+    expect($suggestions)->toHaveCount(1)
+        ->and($suggestions[0]->activities)->toHaveCount(2)
+        ->and($suggestions[0]->ticket_number)->toBe('TIC-1')
+        ->and($suggestions[0]->customer_id)->toBe('customerX')
+        ->and($suggestions[0]->date)->toBe('2026-07-16');
+});
+
+test('activities on different budgets get separate suggestions', function () {
+    $first = new Activity;
+    $first->user_id = 1;
+    $first->customer_id = 'customerX';
+    $first->budget_id = 7;
+    $first->ticket_number = 'TIC-1';
+    $first->is_internal = false;
+    $first->started_at = Carbon::parse('2026-07-16 09:00', 'Europe/Amsterdam');
+    $first->ended_at = Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam');
+    $second = new Activity;
+    $second->user_id = 1;
+    $second->customer_id = 'customerX';
+    $second->budget_id = 8;
+    $second->ticket_number = 'TIC-1';
+    $second->is_internal = false;
+    $second->started_at = Carbon::parse('2026-07-16 14:00', 'Europe/Amsterdam');
+    $second->ended_at = Carbon::parse('2026-07-16 15:00', 'Europe/Amsterdam');
+
+    $suggestions = (new SuggestionProjector)->project(
+        collect([$first, $second]),
+        collect(),
+        Carbon::parse('2026-07-16', 'Europe/Amsterdam'),
+    );
+
+    expect($suggestions)->toHaveCount(2);
+});
+
+test('internal and external activities on the same ticket get separate suggestions', function () {
+    $internal = new Activity;
+    $internal->user_id = 1;
+    $internal->customer_id = 'customerX';
+    $internal->budget_id = 7;
+    $internal->ticket_number = 'TIC-1';
+    $internal->is_internal = true;
+    $internal->started_at = Carbon::parse('2026-07-16 09:00', 'Europe/Amsterdam');
+    $internal->ended_at = Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam');
+    $external = new Activity;
+    $external->user_id = 1;
+    $external->customer_id = 'customerX';
+    $external->budget_id = 7;
+    $external->ticket_number = 'TIC-1';
+    $external->is_internal = false;
+    $external->started_at = Carbon::parse('2026-07-16 14:00', 'Europe/Amsterdam');
+    $external->ended_at = Carbon::parse('2026-07-16 15:00', 'Europe/Amsterdam');
+
+    $suggestions = (new SuggestionProjector)->project(
+        collect([$internal, $external]),
+        collect(),
+        Carbon::parse('2026-07-16', 'Europe/Amsterdam'),
+    );
+
+    expect($suggestions)->toHaveCount(2);
+});
+
+test('a null-ticket activity keeps its own suggestion next to a ticketed one', function () {
+    $ticketless = new Activity;
+    $ticketless->user_id = 1;
+    $ticketless->customer_id = 'customerX';
+    $ticketless->budget_id = 7;
+    $ticketless->ticket_number = null;
+    $ticketless->is_internal = false;
+    $ticketless->started_at = Carbon::parse('2026-07-16 09:00', 'Europe/Amsterdam');
+    $ticketless->ended_at = Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam');
+    $ticketed = new Activity;
+    $ticketed->user_id = 1;
+    $ticketed->customer_id = 'customerX';
+    $ticketed->budget_id = 7;
+    $ticketed->ticket_number = 'TIC-1';
+    $ticketed->is_internal = false;
+    $ticketed->started_at = Carbon::parse('2026-07-16 14:00', 'Europe/Amsterdam');
+    $ticketed->ended_at = Carbon::parse('2026-07-16 15:00', 'Europe/Amsterdam');
+
+    $suggestions = (new SuggestionProjector)->project(
+        collect([$ticketless, $ticketed]),
+        collect(),
+        Carbon::parse('2026-07-16', 'Europe/Amsterdam'),
+    );
+
+    expect($suggestions)->toHaveCount(2);
+});
+
+test('no suggestion is projected when a dismissed suggestion matches the group key', function () {
+    $activity = new Activity;
+    $activity->user_id = 1;
+    $activity->customer_id = 'customerX';
+    $activity->budget_id = 7;
+    $activity->ticket_number = 'TIC-1';
+    $activity->is_internal = false;
+    $activity->started_at = Carbon::parse('2026-07-16 09:00', 'Europe/Amsterdam');
+    $activity->ended_at = Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam');
+    $dismissed = new EntrySuggestion;
+    $dismissed->customer_id = 'customerX';
+    $dismissed->budget_id = 7;
+    $dismissed->ticket_number = 'TIC-1';
+    $dismissed->is_internal = false;
+
+    $suggestions = (new SuggestionProjector)->project(
+        collect([$activity]),
+        collect([$dismissed]),
+        Carbon::parse('2026-07-16', 'Europe/Amsterdam'),
+    );
+
+    expect($suggestions)->toBeEmpty();
+});
+
+test('a dismissed suggestion with a different ticket does not suppress the group', function () {
+    $activity = new Activity;
+    $activity->user_id = 1;
+    $activity->customer_id = 'customerX';
+    $activity->budget_id = 7;
+    $activity->ticket_number = 'TIC-1';
+    $activity->is_internal = false;
+    $activity->started_at = Carbon::parse('2026-07-16 09:00', 'Europe/Amsterdam');
+    $activity->ended_at = Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam');
+    $dismissed = new EntrySuggestion;
+    $dismissed->customer_id = 'customerX';
+    $dismissed->budget_id = 7;
+    $dismissed->ticket_number = 'TIC-2';
+    $dismissed->is_internal = false;
+
+    $suggestions = (new SuggestionProjector)->project(
+        collect([$activity]),
+        collect([$dismissed]),
+        Carbon::parse('2026-07-16', 'Europe/Amsterdam'),
+    );
+
+    expect($suggestions)->toHaveCount(1);
+});
