@@ -66,18 +66,18 @@ class RebuildUserDay implements ShouldBeUnique, ShouldQueue
 
     private function deleteProjectedState(CarbonInterface $day): void
     {
-        Activity::query()
-            ->where('user_id', $this->userId)
-            ->where('ended_at', '>=', $day)
-            ->where('ended_at', '<', $day->copy()->addDay())
-            ->delete();
-
         EntrySuggestion::query()
             ->where('user_id', $this->userId)
             ->where('date', $day->toDateString())
             ->whereDoesntHave('entry')
             ->whereNull('deleted_at')
             ->forceDelete();
+
+        Activity::query()
+            ->where('user_id', $this->userId)
+            ->where('ended_at', '>=', $day)
+            ->where('ended_at', '<', $day->copy()->addDay())
+            ->delete();
     }
 
     /**
@@ -86,14 +86,15 @@ class RebuildUserDay implements ShouldBeUnique, ShouldQueue
      */
     private function saveProjectedState(Collection $activities, Collection $suggestions): void
     {
-        $suggestions->each(function (EntrySuggestion $suggestion) {
-            $suggestion->save();
-            $suggestion->activities->each(fn (Activity $activity) => $activity->entry_suggestion_id = $suggestion->id);
-        });
-
         $activities->each(function (Activity $activity) {
             $activity->save();
             $activity->events()->saveMany($activity->events);
+        });
+
+        $suggestions->each(function (EntrySuggestion $suggestion) {
+            $suggestion->save();
+            Activity::whereKey($suggestion->activities->pluck('id'))
+                ->update(['entry_suggestion_id' => $suggestion->id]);
         });
     }
 }
