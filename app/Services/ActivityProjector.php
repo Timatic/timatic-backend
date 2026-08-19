@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\DataTransferObjects\EventGroup;
 use App\DataTransferObjects\TimeSlot;
 use App\Models\Activity;
 use App\Models\Event;

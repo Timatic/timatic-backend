@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Services;
+namespace App\DataTransferObjects;
 
-use App\DataTransferObjects\TimeSlot;
 use App\Models\Event;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
