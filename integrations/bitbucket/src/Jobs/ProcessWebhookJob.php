@@ -52,6 +52,10 @@ class ProcessWebhookJob implements ShouldQueue
 
             $knownCommits = [];
             foreach ($change['commits'] ?? [] as $commit) {
+                if ($this->isDuplicateDelivery($commit)) {
+                    continue;
+                }
+
                 if ($this->isKnownCommit($commit, $forced)) {
                     $knownCommits[] = $commit;
 
@@ -86,13 +90,18 @@ class ProcessWebhookJob implements ShouldQueue
         $branchName = is_string($pullRequest['source']['branch']['name'] ?? null)
             ? $pullRequest['source']['branch']['name']
             : null;
+        $prId = $pullRequest['id'] ?? null;
+        $eventTimestamp = $pullRequest['updated_on'] ?? $pullRequest['created_on'] ?? null;
 
         $this->createEvent(
             user: $user,
             eventTypeId: self::PR_EVENT_TYPE_MAP[$this->eventKey],
             title: $title,
-            timestamp: Carbon::parse($pullRequest['updated_on'] ?? $pullRequest['created_on'] ?? null)->utc(),
+            timestamp: Carbon::parse($eventTimestamp)->utc(),
             ticket: $this->findTicket($ticketService, ...array_filter([$title, $branchName])),
+            externalId: $prId !== null && $eventTimestamp !== null
+                ? $this->eventKey.':'.$prId.':'.$eventTimestamp
+                : null,
         );
     }
 
@@ -129,10 +138,11 @@ class ProcessWebhookJob implements ShouldQueue
             timestamp: Carbon::parse($date)->utc(),
             ticket: $this->findTicket($ticketService, ...array_filter([$message, $branchName])),
             description: $commitDescription,
+            externalId: $this->commitExternalId($commit),
         );
     }
 
-    private function createEvent(User $user, string $eventTypeId, string $title, Carbon $timestamp, ?Ticket $ticket, ?string $description = null): void
+    private function createEvent(User $user, string $eventTypeId, string $title, Carbon $timestamp, ?Ticket $ticket, ?string $description = null, ?string $externalId = null): void
     {
         if ($ticket === null && $this->mapping?->customer_id === null) {
             return;
@@ -141,7 +151,7 @@ class ProcessWebhookJob implements ShouldQueue
         $customerId = $this->mapping->customer_id ?? $ticket?->customer_id;
         $budgetId = $this->mapping->budget_id ?? $ticket?->budget_id;
 
-        Event::create([
+        $attributes = [
             'user_id' => $user->id,
             'source_id' => ServiceProvider::SOURCE_ID,
             'event_type_id' => $eventTypeId,
@@ -156,7 +166,35 @@ class ProcessWebhookJob implements ShouldQueue
             'ticket_id' => $ticket?->id,
             'ticket_number' => $ticket?->number,
             'ticket_type' => $ticket?->type,
-        ]);
+        ];
+
+        if ($externalId !== null) {
+            Event::firstOrCreate(['source_id' => ServiceProvider::SOURCE_ID, 'external_id' => $externalId], $attributes);
+
+            return;
+        }
+
+        Event::create($attributes);
+    }
+
+    /** @param array<string, mixed> $commit */
+    private function commitExternalId(array $commit): ?string
+    {
+        $repositoryFullName = (string) ($this->payload['repository']['full_name'] ?? '');
+        $hash = (string) ($commit['hash'] ?? '');
+
+        return $repositoryFullName !== '' && $hash !== '' ? $repositoryFullName.'@'.$hash : null;
+    }
+
+    /** @param array<string, mixed> $commit */
+    private function isDuplicateDelivery(array $commit): bool
+    {
+        $externalId = $this->commitExternalId($commit);
+
+        return $externalId !== null && Event::query()
+            ->where('source_id', ServiceProvider::SOURCE_ID)
+            ->where('external_id', $externalId)
+            ->exists();
     }
 
     /**
