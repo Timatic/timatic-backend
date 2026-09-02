@@ -30,43 +30,40 @@ class SuggestionProjector
      */
     private function buildGroups(Collection $activities): Collection
     {
-        $groups = collect();
+        [$customerActivities, $customerlessActivities] = $activities
+            ->partition(fn (Activity $activity) => $activity->customer_id !== null)
+            ->all();
 
-        $activities
-            ->filter(fn (Activity $a) => $a->customer_id === null)
-            ->each(fn (Activity $a) => $groups->push(collect([$a])));
+        $customerlessGroups = $customerlessActivities->map(fn (Activity $activity) => collect([$activity]));
 
-        $activities
-            ->filter(fn (Activity $a) => $a->customer_id !== null)
+        $customerGroups = $customerActivities
             ->groupBy('customer_id')
-            ->each(function (Collection $customerActivities) use ($groups) {
-                $groups->push(...$this->chainSequentially($customerActivities));
-            });
+            ->flatMap(fn (Collection $activitiesOfCustomer) => $this->chainIntoGroups($activitiesOfCustomer));
 
-        return $groups;
+        return $customerlessGroups->concat($customerGroups)->values();
     }
 
     /**
      * Walks the customer's activities in chronological order, attaching each
-     * one to the preceding group when it matches that group's representative.
+     * one to the preceding group when it chains onto that group.
      *
      * @param  Collection<int, Activity>  $activities
-     * @return array<int, Collection<int, Activity>>
+     * @return Collection<int, Collection<int, Activity>>
      */
-    private function chainSequentially(Collection $activities): array
+    private function chainIntoGroups(Collection $activities): Collection
     {
-        $sorted = $activities->sortBy('started_at')->values();
-
-        $groups = [];
+        $groups = collect();
         $currentGroup = null;
 
-        foreach ($sorted as $activity) {
-            if ($currentGroup !== null && $this->chains($currentGroup, $activity)) {
+        foreach ($activities->sortBy('started_at') as $activity) {
+            if ($currentGroup !== null && $this->chainsOnto($activity, $currentGroup)) {
                 $currentGroup->push($activity);
-            } else {
-                $currentGroup = collect([$activity]);
-                $groups[] = $currentGroup;
+
+                continue;
             }
+
+            $currentGroup = collect([$activity]);
+            $groups->push($currentGroup);
         }
 
         return $groups;
@@ -75,11 +72,15 @@ class SuggestionProjector
     /**
      * @param  Collection<int, Activity>  $group
      */
-    private function chains(Collection $group, Activity $activity): bool
+    private function chainsOnto(Activity $activity, Collection $group): bool
     {
         $representative = $this->representative($group);
 
-        if ($representative->budget_id !== $activity->budget_id || $representative->is_internal !== $activity->is_internal) {
+        if ($representative->is_internal !== $activity->is_internal) {
+            return false;
+        }
+
+        if (! $this->compatible($representative->budget_id, $activity->budget_id)) {
             return false;
         }
 
@@ -87,14 +88,24 @@ class SuggestionProjector
             return $representative->ticket_number === $activity->ticket_number;
         }
 
-        $last = $group->last() ?? $representative;
+        $previous = $group->last() ?? $representative;
 
-        return $last->ended_at->copy()->addMinutes(self::CHAIN_GAP_MINUTES)->isAfter($activity->started_at);
+        return $previous->ended_at->copy()->addMinutes(self::CHAIN_GAP_MINUTES)->isAfter($activity->started_at);
+    }
+
+    /**
+     * Two values are compatible for chaining when either is unset, or when
+     * both are set and equal.
+     */
+    private function compatible(?int $a, ?int $b): bool
+    {
+        return $a === null || $b === null || $a === $b;
     }
 
     /**
      * The activity whose fields best represent the group: the earliest
-     * ticketed activity if any, otherwise the earliest activity overall.
+     * activity with both a ticket and a budget, else the earliest ticketed
+     * activity, else the earliest activity overall.
      *
      * @param  Collection<int, Activity>  $group
      */
@@ -102,7 +113,9 @@ class SuggestionProjector
     {
         $sorted = $group->sortBy('started_at');
 
-        return $sorted->first(fn (Activity $a) => $a->ticket_number !== null) ?? $sorted->firstOrFail();
+        return $sorted->first(fn (Activity $activity) => $activity->ticket_number !== null && $activity->budget_id !== null)
+            ?? $sorted->first(fn (Activity $activity) => $activity->ticket_number !== null)
+            ?? $sorted->firstOrFail();
     }
 
     /**

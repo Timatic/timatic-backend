@@ -145,6 +145,62 @@ test('no suggestion is projected when a dismissed suggestion matches the group k
     expect($suggestions)->toBeEmpty();
 });
 
+test('a budgetless activity chains onto a budgeted activity of the same ticket, and the suggestion keeps the budget', function () {
+    $budgetless = new Activity;
+    $budgetless->user_id = 1;
+    $budgetless->customer_id = 'customerX';
+    $budgetless->budget_id = null;
+    $budgetless->ticket_number = 'TIC-1';
+    $budgetless->is_internal = false;
+    $budgetless->started_at = Carbon::parse('2026-07-16 09:00', 'Europe/Amsterdam');
+    $budgetless->ended_at = Carbon::parse('2026-07-16 09:10', 'Europe/Amsterdam');
+    $budgeted = new Activity;
+    $budgeted->user_id = 1;
+    $budgeted->customer_id = 'customerX';
+    $budgeted->budget_id = 7;
+    $budgeted->ticket_number = 'TIC-1';
+    $budgeted->is_internal = false;
+    $budgeted->started_at = Carbon::parse('2026-07-16 14:00', 'Europe/Amsterdam');
+    $budgeted->ended_at = Carbon::parse('2026-07-16 15:00', 'Europe/Amsterdam');
+
+    $suggestions = (new SuggestionProjector)->project(
+        collect([$budgetless, $budgeted]),
+        collect(),
+        Carbon::parse('2026-07-16', 'Europe/Amsterdam'),
+    );
+
+    expect($suggestions)->toHaveCount(1)
+        ->and($suggestions[0]->activities)->toHaveCount(2)
+        ->and($suggestions[0]->budget_id)->toBe(7);
+});
+
+test('activities with conflicting budgets do not chain even without ticket numbers', function () {
+    $first = new Activity;
+    $first->user_id = 1;
+    $first->customer_id = 'customerX';
+    $first->budget_id = 7;
+    $first->ticket_number = null;
+    $first->is_internal = false;
+    $first->started_at = Carbon::parse('2026-07-16 09:00', 'Europe/Amsterdam');
+    $first->ended_at = Carbon::parse('2026-07-16 09:10', 'Europe/Amsterdam');
+    $second = new Activity;
+    $second->user_id = 1;
+    $second->customer_id = 'customerX';
+    $second->budget_id = 8;
+    $second->ticket_number = null;
+    $second->is_internal = false;
+    $second->started_at = Carbon::parse('2026-07-16 09:12', 'Europe/Amsterdam');
+    $second->ended_at = Carbon::parse('2026-07-16 09:20', 'Europe/Amsterdam');
+
+    $suggestions = (new SuggestionProjector)->project(
+        collect([$first, $second]),
+        collect(),
+        Carbon::parse('2026-07-16', 'Europe/Amsterdam'),
+    );
+
+    expect($suggestions)->toHaveCount(2);
+});
+
 test('a ticketless activity does not bridge two differently-ticketed activities', function () {
     $first = new Activity;
     $first->user_id = 1;
