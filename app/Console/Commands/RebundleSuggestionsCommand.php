@@ -3,32 +3,41 @@
 namespace App\Console\Commands;
 
 use App\Jobs\RebuildUserDay;
-use App\Models\EntrySuggestion;
+use App\Models\Event;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 
 class RebundleSuggestionsCommand extends Command
 {
     protected $signature = 'timatic:rebundle-suggestions
         {--user= : Only rebuild suggestions of this user id}
-        {--from= : Only rebuild suggestions on or after this date (Y-m-d)}
-        {--to= : Only rebuild suggestions on or before this date (Y-m-d)}';
+        {--from= : Rebuild suggestions from this date (Y-m-d), defaults to 90 days ago}
+        {--to= : Rebuild suggestions up to this date (Y-m-d), defaults to today}';
 
-    protected $description = 'Rebuild the activities and open suggestions of every user-day that has an open suggestion';
+    protected $description = 'Rebuild the activities and suggestions for every date in the given range';
 
     public function handle(): int
     {
-        $userDays = EntrySuggestion::query()
-            ->whereDoesntHave('entry')
+        $from = $this->option('from') ? Carbon::parse($this->option('from'))->startOfDay() : now()->subMonth()->startOfMonth();
+        $to = $this->option('to') ? Carbon::parse($this->option('to'))->startOfDay() : now()->startOfDay();
+
+        $userIds = Event::query()
+            ->where('ended_at', '>=', $from)
+            ->where('ended_at', '<', $to->copy()->addDay())
             ->when($this->option('user'), fn ($query, $user) => $query->where('user_id', $user))
-            ->when($this->option('from'), fn ($query, $from) => $query->where('date', '>=', $from))
-            ->when($this->option('to'), fn ($query, $to) => $query->where('date', '<=', $to))
-            ->get(['user_id', 'date'])
-            ->unique(fn (EntrySuggestion $suggestion) => $suggestion->user_id.':'.$suggestion->date)
-            ->values();
+            ->distinct()
+            ->pluck('user_id');
 
-        $userDays->each(fn (EntrySuggestion $suggestion) => RebuildUserDay::dispatchSync((int) $suggestion->user_id, (string) $suggestion->date));
+        $count = 0;
 
-        $this->info(sprintf('Rebuilt %d user-days.', $userDays->count()));
+        foreach ($userIds as $userId) {
+            for ($date = $from->copy(); $date->lte($to); $date->addDay()) {
+                RebuildUserDay::dispatchSync((int) $userId, $date->toDateString());
+                $count++;
+            }
+        }
+
+        $this->info(sprintf('Rebuilt %d user-days.', $count));
 
         return self::SUCCESS;
     }
