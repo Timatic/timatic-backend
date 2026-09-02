@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Customers\Schemas;
 use App\Models\User;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 
 class CustomerForm
@@ -19,6 +20,8 @@ class CustomerForm
                 ->label('Account manager')
                 ->options(User::pluck('email', 'id'))
                 ->searchable(),
+            Toggle::make('is_own_organization')
+                ->label('Own organization'),
         ]);
     }
 }

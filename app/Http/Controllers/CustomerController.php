@@ -48,6 +48,7 @@ class CustomerController extends Controller implements HasMiddleware
         $customer = Customer::query()->create([
             'external_id' => $validated['externalId'] ?? null,
             'name' => $validated['name'],
+            'is_own_organization' => $validated['isOwnOrganization'] ?? false,
         ]);
 
         return new Resources\Customer($customer);
@@ -67,7 +68,8 @@ class CustomerController extends Controller implements HasMiddleware
         $customer->update(array_filter([
             'external_id' => $validated['externalId'] ?? null,
             'name' => $validated['name'] ?? null,
-        ]));
+            'is_own_organization' => $validated['isOwnOrganization'] ?? null,
+        ], fn ($value) => $value !== null));
 
         return new Resources\Customer($customer);
     }

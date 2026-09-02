@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property ?string $external_id
  * @property ?string $name
  * @property ?string $hourly_rate
+ * @property bool $is_own_organization
  * @property ?int $account_manager_user_id
  * @property ?Carbon $created_at
  * @property ?Carbon $updated_at
@@ -31,6 +32,7 @@ class Customer extends Model
         'external_id',
         'name',
         'hourly_rate',
+        'is_own_organization',
         'account_manager_user_id',
     ];
 
@@ -40,5 +42,12 @@ class Customer extends Model
     public function accountManager(): BelongsTo
     {
         return $this->belongsTo(User::class, 'account_manager_user_id');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'is_own_organization' => 'boolean',
+        ];
     }
 }

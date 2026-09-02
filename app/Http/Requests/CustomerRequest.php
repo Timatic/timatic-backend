@@ -30,6 +30,7 @@ class CustomerRequest extends FormRequest
             'data.type' => ['required', 'in:customers'],
             'data.attributes.externalId' => ['string'],
             'data.attributes.name' => ['required', 'string'],
+            'data.attributes.isOwnOrganization' => ['boolean'],
         ]);
     }
 }

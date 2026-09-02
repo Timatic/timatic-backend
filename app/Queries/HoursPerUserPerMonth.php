@@ -15,13 +15,14 @@ class HoursPerUserPerMonth
     public static function query(CarbonInterface $start, CarbonInterface $end): Builder
     {
         return Entry::query()
+            ->leftJoin('customers', 'customers.id', '=', 'entries.customer_id')
             ->select(DB::raw(
                 <<<'QUERY'
                 user_id, user_full_name, user_email,
                 SUM(minutes_spent)/60 AS total,
                 SUM(IF(entry_suggestion_id IS NOT NULL, minutes_spent, 0))/60 AS based_on_suggestions,
-                SUM(IF(is_internal = 1 AND customer_id IN (50340, 10641), minutes_spent, 0))/60 AS internal_tenant,
-                SUM(IF(is_internal = 1 AND customer_id NOT IN (50340, 10641), minutes_spent, 0))/60 AS internal_customers,
+                SUM(IF(is_internal = 1 AND COALESCE(customers.is_own_organization, 0) = 1, minutes_spent, 0))/60 AS internal_tenant,
+                SUM(IF(is_internal = 1 AND COALESCE(customers.is_own_organization, 0) = 0, minutes_spent, 0))/60 AS internal_customers,
                 SUM(IF(budget_id IS NOT NULL, minutes_spent, 0))/60 AS on_budgets,
                 SUM(IF(budget_id IS NULL AND is_internal = 0, minutes_spent, 0))/60 AS paid_per_hour
                 QUERY
