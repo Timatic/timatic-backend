@@ -2048,6 +2048,40 @@
                 }
             }
         },
+        "/export-formats": {
+            "get": {
+                "operationId": "export-formats.index",
+                "tags": [
+                    "ExportFormat"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `ExportFormat`",
+                        "content": {
+                            "application/vnd.api+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ExportFormat"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/overtimes": {
             "get": {
                 "operationId": "overtimes.index",
@@ -5168,6 +5202,41 @@
                 ],
                 "title": "EventRequest"
             },
+            "ExportFormat": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "attributes": {
+                        "type": "object",
+                        "properties": {
+                            "label": {
+                                "type": "string"
+                            },
+                            "periodOptions": {
+                                "type": "string"
+                            },
+                            "extension": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "label",
+                            "periodOptions",
+                            "extension"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "type"
+                ],
+                "title": "ExportFormat"
+            },
             "Overtime": {
                 "type": "object",
                 "properties": {
@@ -5974,8 +6043,8 @@
             }
         },
         "responses": {
-            "AuthorizationException": {
-                "description": "Authorization error",
+            "AuthenticationException": {
+                "description": "Unauthenticated",
                 "content": {
                     "application/json": {
                         "schema": {
@@ -5993,8 +6062,8 @@
                     }
                 }
             },
-            "AuthenticationException": {
-                "description": "Unauthenticated",
+            "AuthorizationException": {
+                "description": "Authorization error",
                 "content": {
                     "application/json": {
                         "schema": {
