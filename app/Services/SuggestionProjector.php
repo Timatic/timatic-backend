@@ -9,6 +9,8 @@ use Illuminate\Support\Collection;
 
 class SuggestionProjector
 {
+    private const CHAIN_GAP_MINUTES = 15;
+
     /**
      * @param  Collection<int, Activity>  $activities
      * @param  Collection<int, EntrySuggestion>  $dismissedSuggestions
@@ -16,29 +18,91 @@ class SuggestionProjector
      */
     public function project(Collection $activities, Collection $dismissedSuggestions, CarbonInterface $date): Collection
     {
-        return $activities
-            ->groupBy(fn (Activity $activity) => $this->groupKey($activity))
-            ->reject(function (Collection $group) use ($dismissedSuggestions) {
-                $first = $group->first();
-
-                return $first !== null && $this->isDismissed($first, $dismissedSuggestions);
-            })
+        return $this->buildGroups($activities)
+            ->reject(fn (Collection $group) => $this->isDismissed($this->representative($group), $dismissedSuggestions))
             ->map(fn (Collection $group) => $this->suggestionFromActivities($group, $date))
             ->values();
     }
 
-    private function groupKey(Activity $activity): string
+    /**
+     * @param  Collection<int, Activity>  $activities
+     * @return Collection<int, Collection<int, Activity>>
+     */
+    private function buildGroups(Collection $activities): Collection
     {
-        return implode('|', [
-            $activity->customer_id ?? '',
-            (string) $activity->budget_id,
-            $activity->ticket_number ?? '',
-            match ($activity->is_internal) {
-                null => '',
-                true => '1',
-                false => '0',
-            },
-        ]);
+        $groups = collect();
+
+        $activities
+            ->filter(fn (Activity $a) => $a->customer_id === null)
+            ->each(fn (Activity $a) => $groups->push(collect([$a])));
+
+        $activities
+            ->filter(fn (Activity $a) => $a->customer_id !== null)
+            ->groupBy('customer_id')
+            ->each(function (Collection $customerActivities) use ($groups) {
+                $groups->push(...$this->chainSequentially($customerActivities));
+            });
+
+        return $groups;
+    }
+
+    /**
+     * Walks the customer's activities in chronological order, attaching each
+     * one to the preceding group when it matches that group's representative.
+     *
+     * @param  Collection<int, Activity>  $activities
+     * @return array<int, Collection<int, Activity>>
+     */
+    private function chainSequentially(Collection $activities): array
+    {
+        $sorted = $activities->sortBy('started_at')->values();
+
+        $groups = [];
+        $currentGroup = null;
+
+        foreach ($sorted as $activity) {
+            if ($currentGroup !== null && $this->chains($currentGroup, $activity)) {
+                $currentGroup->push($activity);
+            } else {
+                $currentGroup = collect([$activity]);
+                $groups[] = $currentGroup;
+            }
+        }
+
+        return $groups;
+    }
+
+    /**
+     * @param  Collection<int, Activity>  $group
+     */
+    private function chains(Collection $group, Activity $activity): bool
+    {
+        $representative = $this->representative($group);
+
+        if ($representative->budget_id !== $activity->budget_id || $representative->is_internal !== $activity->is_internal) {
+            return false;
+        }
+
+        if ($representative->ticket_number !== null && $activity->ticket_number !== null) {
+            return $representative->ticket_number === $activity->ticket_number;
+        }
+
+        $last = $group->last() ?? $representative;
+
+        return $last->ended_at->copy()->addMinutes(self::CHAIN_GAP_MINUTES)->isAfter($activity->started_at);
+    }
+
+    /**
+     * The activity whose fields best represent the group: the earliest
+     * ticketed activity if any, otherwise the earliest activity overall.
+     *
+     * @param  Collection<int, Activity>  $group
+     */
+    private function representative(Collection $group): Activity
+    {
+        $sorted = $group->sortBy('started_at');
+
+        return $sorted->first(fn (Activity $a) => $a->ticket_number !== null) ?? $sorted->firstOrFail();
     }
 
     /**
@@ -57,8 +121,7 @@ class SuggestionProjector
      */
     private function suggestionFromActivities(Collection $activities, CarbonInterface $date): EntrySuggestion
     {
-        /** @var Activity $template */
-        $template = $activities->sortBy('started_at')->first();
+        $template = $this->representative($activities);
 
         $suggestion = new EntrySuggestion;
         $suggestion->user_id = $template->user_id;
@@ -69,7 +132,7 @@ class SuggestionProjector
         $suggestion->customer_id = $template->customer_id;
         $suggestion->is_internal = $template->is_internal;
         $suggestion->date = $date->toDateString();
-        $suggestion->setRelation('activities', $activities->values());
+        $suggestion->setRelation('activities', $activities->sortBy('started_at')->values());
 
         return $suggestion;
     }
