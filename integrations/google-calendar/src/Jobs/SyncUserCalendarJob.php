@@ -47,15 +47,17 @@ class SyncUserCalendarJob implements ShouldQueue
 
             $calendarEvent = CalendarEvent::fromApiResponse($item);
 
-            if (! $calendarEvent->startedAt->between(now()->subMinutes(15), now())) {
+            if (! $calendarEvent->startedAt->between(now()->subMinutes(ListEventsRequest::LOOKBACK_MINUTES), now())) {
                 continue;
             }
 
             $ticket = $this->findTicket($ticketService, $calendarEvent->title, $calendarEvent->description ?? '');
 
-            Event::create([
-                'user_id' => $user->id,
+            Event::firstOrCreate([
                 'source_id' => ServiceProvider::SOURCE_ID,
+                'external_id' => $calendarEvent->googleEventId,
+            ], [
+                'user_id' => $user->id,
                 'event_type_id' => ServiceProvider::EVENT_TYPE_CALENDAR_EVENT_STARTED,
                 'title' => mb_substr($calendarEvent->title, 0, 255),
                 'description' => $calendarEvent->description !== null

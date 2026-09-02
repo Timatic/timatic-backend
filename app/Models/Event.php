@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
  * @property ?int $budget_id
  * @property ?string $ticket_id
  * @property ?string $source_id
+ * @property ?string $external_id
  * @property ?string $ticket_number
  * @property ?string $ticket_type
  * @property ?string $title
@@ -45,6 +46,7 @@ class Event extends Model
         'budget_id',
         'ticket_id',
         'source_id',
+        'external_id',
         'activity_id',
         'ticket_number',
         'ticket_type',

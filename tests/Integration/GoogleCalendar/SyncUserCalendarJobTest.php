@@ -1,0 +1,66 @@
+<?php
+
+use App\Integrations\TicketService;
+use App\Models\Event;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Saloon\Http\Faking\MockClient;
+use Saloon\Http\Faking\MockResponse;
+use Timatic\GoogleCalendar\Jobs\SyncUserCalendarJob;
+use Timatic\GoogleCalendar\OAuthService;
+use Timatic\GoogleCalendar\Requests\ListEventsRequest;
+use Timatic\GoogleCalendar\ServiceProvider;
+
+uses(RefreshDatabase::class);
+
+afterEach(function () {
+    MockClient::destroyGlobal();
+});
+
+function connectedCalendarUser(): User
+{
+    return User::factory()->create([
+        'oauth_access_token' => 'test-access-token',
+        'oauth_refresh_token' => 'test-refresh-token',
+        'oauth_token_expires_at' => now()->addHour()->timestamp,
+    ]);
+}
+
+/** @param array<string, mixed> $overrides */
+function calendarItem(array $overrides = []): array
+{
+    return array_merge([
+        'id' => 'google-event-1',
+        'status' => 'confirmed',
+        'summary' => 'Standup',
+        'start' => ['dateTime' => now()->subMinutes(5)->toRfc3339String()],
+        'end' => ['dateTime' => now()->subMinutes(0)->toRfc3339String()],
+    ], $overrides);
+}
+
+it('creates an event with the google event id as external_id', function () {
+    $user = connectedCalendarUser();
+
+    MockClient::global([
+        ListEventsRequest::class => MockResponse::make(['items' => [calendarItem()]]),
+    ]);
+
+    new SyncUserCalendarJob($user)->handle(app(OAuthService::class), app(TicketService::class));
+
+    $event = Event::sole();
+    expect($event->source_id)->toBe(ServiceProvider::SOURCE_ID)
+        ->and($event->external_id)->toBe('google-event-1');
+});
+
+it('does not create a duplicate event when the same google event is fetched again by an overlapping sync', function () {
+    $user = connectedCalendarUser();
+
+    MockClient::global([
+        ListEventsRequest::class => MockResponse::make(['items' => [calendarItem()]]),
+    ]);
+
+    new SyncUserCalendarJob($user)->handle(app(OAuthService::class), app(TicketService::class));
+    new SyncUserCalendarJob($user)->handle(app(OAuthService::class), app(TicketService::class));
+
+    expect(Event::count())->toBe(1);
+});
