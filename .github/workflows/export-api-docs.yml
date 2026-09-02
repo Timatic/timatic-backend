@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - migrate-to-scramble
     paths:
       - 'app/**'
       - 'routes/**'
@@ -79,14 +78,9 @@ jobs:
       - name: Export API documentation
         run: php artisan scramble:export --path=public/api.json
 
-      - name: Extract commit message
-        run: echo "COMMIT_MESSAGE=$(git log -1 --pretty=%s)" >> $GITHUB_ENV
-
       - name: Commit API documentation
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "${{ env.COMMIT_MESSAGE }} [skip ci]"
-          commit_options: '--amend --no-edit'
-          push_options: '--force'
+          commit_message: "docs: update generated API documentation [skip ci]"
           skip_fetch: true
           file_pattern: 'public/api.json'
