@@ -39,6 +39,7 @@ class SyncUserCalendarJob implements ShouldQueue
         }
 
         $data = $response->json();
+        $lookbackStartsAt = now()->subMinutes(ListEventsRequest::LOOKBACK_MINUTES);
 
         foreach ($data['items'] ?? [] as $item) {
             if (($item['status'] ?? '') === 'cancelled' || ! isset($item['start']['dateTime'])) {
@@ -47,7 +48,7 @@ class SyncUserCalendarJob implements ShouldQueue
 
             $calendarEvent = CalendarEvent::fromApiResponse($item);
 
-            if (! $calendarEvent->startedAt->between(now()->subMinutes(ListEventsRequest::LOOKBACK_MINUTES), now())) {
+            if (! $calendarEvent->startedAt->between($lookbackStartsAt, now())) {
                 continue;
             }
 
