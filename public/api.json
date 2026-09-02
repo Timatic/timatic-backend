@@ -4181,6 +4181,9 @@
                             "hourlyRate": {
                                 "type": "string"
                             },
+                            "isOwnOrganization": {
+                                "type": "boolean"
+                            },
                             "createdAt": {
                                 "type": [
                                     "string",
@@ -4200,6 +4203,7 @@
                             "externalId",
                             "name",
                             "hourlyRate",
+                            "isOwnOrganization",
                             "createdAt",
                             "updatedAt"
                         ]
@@ -4273,6 +4277,9 @@
                                     },
                                     "name": {
                                         "type": "string"
+                                    },
+                                    "isOwnOrganization": {
+                                        "type": "boolean"
                                     }
                                 },
                                 "required": [
