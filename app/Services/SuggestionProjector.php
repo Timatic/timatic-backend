@@ -9,8 +9,6 @@ use Illuminate\Support\Collection;
 
 class SuggestionProjector
 {
-    private const CHAIN_GAP_MINUTES = 15;
-
     /**
      * @param  Collection<int, Activity>  $activities
      * @param  Collection<int, EntrySuggestion>  $dismissedSuggestions
@@ -56,7 +54,7 @@ class SuggestionProjector
         $currentGroup = null;
 
         foreach ($activities->sortBy('started_at') as $activity) {
-            if ($currentGroup !== null && $this->chainsOnto($activity, $currentGroup)) {
+            if ($currentGroup !== null && $this->canChainOnto($activity, $currentGroup)) {
                 $currentGroup->push($activity);
 
                 continue;
@@ -72,7 +70,7 @@ class SuggestionProjector
     /**
      * @param  Collection<int, Activity>  $group
      */
-    private function chainsOnto(Activity $activity, Collection $group): bool
+    private function canChainOnto(Activity $activity, Collection $group): bool
     {
         $representative = $this->representative($group);
 
@@ -84,20 +82,18 @@ class SuggestionProjector
             return false;
         }
 
-        if ($representative->ticket_number !== null && $activity->ticket_number !== null) {
-            return $representative->ticket_number === $activity->ticket_number;
+        if (! $this->compatible($representative->ticket_number, $activity->ticket_number)) {
+            return false;
         }
 
-        $previous = $group->last() ?? $representative;
-
-        return $previous->ended_at->copy()->addMinutes(self::CHAIN_GAP_MINUTES)->isAfter($activity->started_at);
+        return true;
     }
 
     /**
      * Two values are compatible for chaining when either is unset, or when
      * both are set and equal.
      */
-    private function compatible(?int $a, ?int $b): bool
+    private function compatible(int|string|null $a, int|string|null $b): bool
     {
         return $a === null || $b === null || $a === $b;
     }

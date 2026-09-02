@@ -94,7 +94,7 @@ test('internal and external activities on the same ticket get separate suggestio
     expect($suggestions)->toHaveCount(2);
 });
 
-test('a null-ticket activity keeps its own suggestion next to a ticketed one', function () {
+test('a null-ticket activity chains onto a ticketed one of the same customer on the same day', function () {
     $ticketless = new Activity;
     $ticketless->user_id = 1;
     $ticketless->customer_id = 'customerX';
@@ -118,7 +118,9 @@ test('a null-ticket activity keeps its own suggestion next to a ticketed one', f
         Carbon::parse('2026-07-16', 'Europe/Amsterdam'),
     );
 
-    expect($suggestions)->toHaveCount(2);
+    expect($suggestions)->toHaveCount(1)
+        ->and($suggestions[0]->activities)->toHaveCount(2)
+        ->and($suggestions[0]->ticket_number)->toBe('TIC-1');
 });
 
 test('no suggestion is projected when a dismissed suggestion matches the group key', function () {
