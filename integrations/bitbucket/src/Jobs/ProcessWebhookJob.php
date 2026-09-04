@@ -144,10 +144,6 @@ class ProcessWebhookJob implements ShouldQueue
 
     private function createEvent(User $user, string $eventTypeId, string $title, Carbon $timestamp, ?Ticket $ticket, ?string $description = null, ?string $externalId = null): void
     {
-        if ($ticket === null && $this->mapping?->customer_id === null) {
-            return;
-        }
-
         $customerId = $this->mapping->customer_id ?? $ticket?->customer_id;
         $budgetId = $this->mapping->budget_id ?? $ticket?->budget_id;
 
