@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('events', function (Blueprint $table) {
             $table->string('external_id')->nullable()->after('source_id');
-            $table->unique(['source_id', 'external_id']);
+            $table->index(['source_id', 'external_id']);
         });
     }
 
@@ -23,7 +23,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('events', function (Blueprint $table) {
-            $table->dropUnique(['source_id', 'external_id']);
+            $table->dropIndex(['source_id', 'external_id']);
             $table->dropColumn('external_id');
         });
     }
