@@ -89,14 +89,16 @@ it('does not create an event when the actor account id is unknown', function () 
     expect(Event::count())->toBe(0);
 });
 
-it('does not create an event when there is no customer and no ticket', function () {
+it('creates an event with no customer when there is no mapping and no ticket', function () {
     EventFacade::fake();
 
     User::factory()->create(['bitbucket_account_id' => 'bb-account-789']);
 
     new ProcessWebhookJob(prPayload('bb-account-789'), null, 'pullrequest:approved')->handle(app(TicketService::class));
 
-    expect(Event::count())->toBe(0);
+    $event = Event::sole();
+    expect($event->customer_id)->toBeNull()
+        ->and($event->budget_id)->toBeNull();
 });
 
 it('does not create a duplicate event when the same PR webhook is redelivered', function () {
