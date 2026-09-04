@@ -7,7 +7,7 @@
     },
     "servers": [
         {
-            "url": "https://api.tenant.timatic.test"
+            "url": "https://api.app.timatic.test"
         }
     ],
     "security": [
