@@ -24,7 +24,7 @@ class OAuthService
         return 'https://bitbucket.org/site/oauth2/authorize?'.http_build_query([
             'client_id' => config('bitbucket.client_id'),
             'response_type' => 'code',
-            'scope' => 'repository account',
+            'scope' => 'repository account webhook',
             'redirect_uri' => $this->redirectUri(),
             'state' => $this->buildStateJwt($integration->id, $nonce),
         ]);

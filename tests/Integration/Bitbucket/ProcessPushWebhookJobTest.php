@@ -85,19 +85,19 @@ it('creates one rebase event instead of duplicate commit events for known commit
     EventFacade::fake();
     User::factory()->create(['email' => 'dev@example.com']);
     $mapping = pushMapping();
-    $payload = pushPayload('dev@example.com', [
+    $commits = [
         ['message' => 'add vite', 'date' => '2026-06-05T09:38:30+00:00'],
         ['message' => 'fix pest', 'date' => '2026-06-05T09:40:00+00:00'],
-    ]);
+    ];
 
-    new ProcessWebhookJob($payload, $mapping, 'repo:push')->handle(app(TicketService::class));
-    new ProcessWebhookJob($payload, $mapping, 'repo:push')->handle(app(TicketService::class));
+    new ProcessWebhookJob(pushPayload('dev@example.com', $commits), $mapping, 'repo:push')->handle(app(TicketService::class));
+    new ProcessWebhookJob(pushPayload('dev@example.com', $commits), $mapping, 'repo:push')->handle(app(TicketService::class));
 
     expect(Event::where('event_type_id', 'commit_pushed')->count())->toBe(2)
         ->and(Event::where('event_type_id', 'rebase')->count())->toBe(1);
 });
 
-it('does not create a second rebase event when the same push is replayed again', function () {
+it('is a no-op when the exact same push webhook is redelivered', function () {
     EventFacade::fake();
     User::factory()->create(['email' => 'dev@example.com']);
     $mapping = pushMapping();
@@ -109,7 +109,8 @@ it('does not create a second rebase event when the same push is replayed again',
     new ProcessWebhookJob($payload, $mapping, 'repo:push')->handle(app(TicketService::class));
     new ProcessWebhookJob($payload, $mapping, 'repo:push')->handle(app(TicketService::class));
 
-    expect(Event::where('event_type_id', 'rebase')->count())->toBe(1);
+    expect(Event::where('event_type_id', 'commit_pushed')->count())->toBe(1)
+        ->and(Event::where('event_type_id', 'rebase')->count())->toBe(0);
 });
 
 it('creates events for new commits alongside a rebase event for known ones', function () {

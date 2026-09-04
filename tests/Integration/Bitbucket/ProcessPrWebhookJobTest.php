@@ -98,3 +98,16 @@ it('does not create an event when there is no customer and no ticket', function 
 
     expect(Event::count())->toBe(0);
 });
+
+it('does not create a duplicate event when the same PR webhook is redelivered', function () {
+    EventFacade::fake();
+
+    User::factory()->create(['bitbucket_account_id' => 'bb-account-123']);
+    $mapping = createMappingWithCustomer();
+    $payload = prPayload('bb-account-123');
+
+    new ProcessWebhookJob($payload, $mapping, 'pullrequest:approved')->handle(app(TicketService::class));
+    new ProcessWebhookJob($payload, $mapping, 'pullrequest:approved')->handle(app(TicketService::class));
+
+    expect(Event::where('event_type_id', 'pr_approved')->count())->toBe(1);
+});
