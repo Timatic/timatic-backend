@@ -13,19 +13,18 @@ class DelegateController
     {
         $integration = Integration::where('share_token', $token)->firstOrFail();
 
-        if (! $integration->isShareTokenValid()) {
-            return view('jira::delegate.show', ['integration' => $integration, 'expired' => true]);
-        }
-
-        return view('jira::delegate.show', ['integration' => $integration, 'expired' => false]);
+        return view('jira::delegate.show', [
+            'integration' => $integration,
+            'configured' => $this->isConfigured($integration),
+        ]);
     }
 
     public function oauthRedirect(string $token): RedirectResponse
     {
         $integration = Integration::where('share_token', $token)->firstOrFail();
 
-        if (! $integration->isShareTokenValid()) {
-            return redirect()->route('jira.delegate.show', $token)->with('error', 'link_expired');
+        if ($this->isConfigured($integration)) {
+            return redirect()->route('jira.delegate.show', $token);
         }
 
         $integration->update([
@@ -33,5 +32,12 @@ class DelegateController
         ]);
 
         return redirect(app(OAuthService::class)->buildAuthorizationUrl($integration));
+    }
+
+    private function isConfigured(Integration $integration): bool
+    {
+        $config = $integration->config ?? [];
+
+        return filled($config['access_token'] ?? null) && filled($config['cloud_id'] ?? null);
     }
 }

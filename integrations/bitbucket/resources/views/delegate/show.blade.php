@@ -5,20 +5,16 @@
 @section('content')
     @php $config = $integration->config ?? []; @endphp
 
-    @if($expired || request('error') === 'link_expired')
-        <div class="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700">
-            Deze koppellink is verlopen. Vraag een nieuwe link aan bij uw Timatic consultant.
-        </div>
-
-    @elseif(request('webhook_installed'))
-        <div class="rounded-lg bg-green-50 border border-green-200 p-4 text-sm text-green-700">
-            Webhook succesvol geïnstalleerd. De integratie is volledig geconfigureerd.
-        </div>
-
-    @elseif(filled($config['webhook_uuid'] ?? null))
-        <div class="rounded-lg bg-green-50 border border-green-200 p-4 text-sm text-green-700">
-            Bitbucket is verbonden en de webhook is geïnstalleerd.
-        </div>
+    @if($configured)
+        @if(request('webhook_installed'))
+            <div class="rounded-lg bg-green-50 border border-green-200 p-4 text-sm text-green-700">
+                Webhook succesvol geïnstalleerd. De integratie is volledig geconfigureerd.
+            </div>
+        @else
+            <div class="rounded-lg bg-green-50 border border-green-200 p-4 text-sm text-green-700">
+                Bitbucket is verbonden en de webhook is geïnstalleerd.
+            </div>
+        @endif
 
     @elseif(filled($config['access_token'] ?? null))
         @if(request('connected'))

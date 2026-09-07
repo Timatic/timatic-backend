@@ -15,7 +15,7 @@ class GenerateShareLinkAction
             ->label(__("$translationNamespace.settings.action_share_link"))
             ->icon('heroicon-o-share')
             ->mountUsing(function (Integration $record, Schema $form): void {
-                if (! $record->isShareTokenValid()) {
+                if (! $record->hasShareToken()) {
                     $record->generateShareToken();
                 }
 

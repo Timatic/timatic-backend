@@ -19,14 +19,10 @@ class DelegateController
     {
         $integration = Integration::where('share_token', $token)->firstOrFail();
 
-        if (! $integration->isShareTokenValid()) {
-            return view('bitbucket::delegate.show', ['integration' => $integration, 'workspaces' => [], 'expired' => true]);
-        }
-
         $config = $integration->config ?? [];
         $workspaces = [];
 
-        if (filled($config['access_token'] ?? null)) {
+        if (filled($config['access_token'] ?? null) && ! $this->isConfigured($integration)) {
             $integration = app(OAuthService::class)->refreshIfExpired($integration);
 
             $response = new Connector($integration->config ?? [])
@@ -35,15 +31,19 @@ class DelegateController
             $workspaces = $response->dto() ?? [];
         }
 
-        return view('bitbucket::delegate.show', ['integration' => $integration, 'workspaces' => $workspaces, 'expired' => false]);
+        return view('bitbucket::delegate.show', [
+            'integration' => $integration,
+            'workspaces' => $workspaces,
+            'configured' => $this->isConfigured($integration),
+        ]);
     }
 
     public function oauthRedirect(string $token): RedirectResponse
     {
         $integration = Integration::where('share_token', $token)->firstOrFail();
 
-        if (! $integration->isShareTokenValid()) {
-            return redirect()->route('bitbucket.delegate.show', $token)->with('error', 'link_expired');
+        if ($this->isConfigured($integration)) {
+            return redirect()->route('bitbucket.delegate.show', $token);
         }
 
         $integration->update([
@@ -57,8 +57,8 @@ class DelegateController
     {
         $integration = Integration::where('share_token', $token)->firstOrFail();
 
-        if (! $integration->isShareTokenValid()) {
-            return redirect()->route('bitbucket.delegate.show', $token)->with('error', 'link_expired');
+        if ($this->isConfigured($integration)) {
+            return redirect()->route('bitbucket.delegate.show', $token);
         }
 
         $request->validate(['workspace_slug' => 'required|string|max:255']);
@@ -92,5 +92,10 @@ class DelegateController
         }
 
         return redirect(route('bitbucket.delegate.show', $token).'?error=webhook_failed');
+    }
+
+    private function isConfigured(Integration $integration): bool
+    {
+        return filled(($integration->config ?? [])['webhook_uuid'] ?? null);
     }
 }

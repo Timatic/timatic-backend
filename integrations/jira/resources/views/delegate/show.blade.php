@@ -3,14 +3,7 @@
 @section('subtitle', 'Jira integratie')
 
 @section('content')
-    @php $config = $integration->config ?? []; @endphp
-
-    @if($expired || request('error') === 'link_expired')
-        <div class="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700">
-            Deze koppellink is verlopen. Vraag een nieuwe link aan bij uw Timatic consultant.
-        </div>
-
-    @elseif(request('connected') || (filled($config['access_token'] ?? null) && filled($config['cloud_id'] ?? null)))
+    @if($configured)
         <div class="rounded-lg bg-green-50 border border-green-200 p-4 text-sm text-green-700">
             Jira succesvol verbonden.
         </div>

@@ -34,7 +34,7 @@ class CallbackController
                     'config' => Arr::except($integration->config ?? [], ['delegate_return_token']),
                 ]);
 
-                return redirect(route('jira.delegate.show', $delegateToken).'?connected=1');
+                return redirect()->route('jira.delegate.show', $delegateToken);
             }
 
             return redirect(SettingsPage::getUrl(['record' => $integration->getKey()]))
