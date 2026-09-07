@@ -25,7 +25,8 @@ uses(TestCase::class, RefreshDatabase::class)
         'Integration',
         'Unit',
         '../integrations/nmbrs/tests',
-        '../integrations/exact-globe/tests'
+        '../integrations/exact-globe/tests',
+	    '../integrations/topdesk/tests'
     );
 
 /*
