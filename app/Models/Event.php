@@ -8,7 +8,9 @@ use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * @property ?int $id
@@ -28,8 +30,7 @@ use Illuminate\Support\Carbon;
  * @property ?Carbon $created_at
  * @property ?Carbon $updated_at
  * @property ?bool $is_internal
- * @property ?int $activity_id
- * @property ?Activity $activity
+ * @property Collection<int, Activity> $activities
  * @property ?EventType $eventType
  * @property ?Source $source
  * @property ?Budget $budget
@@ -47,7 +48,6 @@ class Event extends Model
         'ticket_id',
         'source_id',
         'external_id',
-        'activity_id',
         'ticket_number',
         'ticket_type',
         'title',
@@ -85,11 +85,11 @@ class Event extends Model
     }
 
     /**
-     * @return BelongsTo<Activity, $this>
+     * @return BelongsToMany<Activity, $this>
      */
-    public function activity(): BelongsTo
+    public function activities(): BelongsToMany
     {
-        return $this->belongsTo(Activity::class);
+        return $this->belongsToMany(Activity::class);
     }
 
     /**

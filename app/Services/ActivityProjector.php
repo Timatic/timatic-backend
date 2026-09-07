@@ -133,7 +133,9 @@ class ActivityProjector
             $partialActivity->started_at = Carbon::instance($segment->start());
             $partialActivity->ended_at = Carbon::instance($segment->end());
 
-            $events = $activity->events->whereBetween('ended_at', [$segment->start(), $segment->end()]);
+            $events = $activity->events->filter(
+                fn (Event $event) => $event->effectiveStart()->lt($segment->end()) && $event->ended_at->gt($segment->start())
+            );
             $partialActivity->setRelation('events', $events);
             $parts[] = $partialActivity;
         }

@@ -493,7 +493,9 @@ test('an entry period inside an activity splits it into two activities', functio
 
     expect($activities)->toHaveCount(2)
         ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:45'))
-        ->and($activities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 10:15'));
+        ->and($activities[0]->events)->not->toBeEmpty()
+        ->and($activities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 10:15'))
+        ->and($activities[1]->events)->not->toBeEmpty();
 });
 
 test('an activity fully inside entry periods is not created', function () {
@@ -563,10 +565,13 @@ test('a meeting spanning two commits is split into three activities around the c
         ->and($meetingActivities)->toHaveCount(3)
         ->and($meetingActivities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
         ->and($meetingActivities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:10'))
+        ->and($meetingActivities[0]->events->contains($meeting))->toBeTrue()
         ->and($meetingActivities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 10:25'))
         ->and($meetingActivities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 11:00'))
+        ->and($meetingActivities[1]->events->contains($meeting))->toBeTrue()
         ->and($meetingActivities[2]->started_at)->toEqual(Carbon::parse('2026-07-16 11:15'))
-        ->and($meetingActivities[2]->ended_at)->toEqual(Carbon::parse('2026-07-16 12:00'));
+        ->and($meetingActivities[2]->ended_at)->toEqual(Carbon::parse('2026-07-16 12:00'))
+        ->and($meetingActivities[2]->events->contains($meeting))->toBeTrue();
 });
 
 test('fast sequential point events of equal weight each get their own time slice', function () {
@@ -648,8 +653,10 @@ test('a high-weight event inside a low-weight event splits the low-weight into t
         ->and($meetingActivities)->toHaveCount(2)
         ->and($meetingActivities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 09:00'))
         ->and($meetingActivities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:30'))
+        ->and($meetingActivities[0]->events->contains($meeting))->toBeTrue()
         ->and($commitActivity->started_at)->toEqual(Carbon::parse('2026-07-16 09:30'))
         ->and($commitActivity->ended_at)->toEqual(Carbon::parse('2026-07-16 09:45'))
         ->and($meetingActivities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 09:45'))
-        ->and($meetingActivities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:00'));
+        ->and($meetingActivities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
+        ->and($meetingActivities[1]->events->contains($meeting))->toBeTrue();
 });

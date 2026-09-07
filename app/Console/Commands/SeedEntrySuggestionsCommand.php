@@ -94,7 +94,7 @@ class SeedEntrySuggestionsCommand extends Command
             })
             ->get();
 
-        $suggestionIds = Activity::whereIn('id', $events->pluck('activity_id')->filter())
+        $suggestionIds = Activity::whereHas('events', fn ($query) => $query->whereIn('events.id', $events->pluck('id')))
             ->whereNotNull('entry_suggestion_id')
             ->pluck('entry_suggestion_id');
 

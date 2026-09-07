@@ -86,7 +86,7 @@ class RebuildUserDay implements ShouldBeUnique, ShouldQueue
     {
         $activities->each(function (Activity $activity) {
             $activity->save();
-            $activity->events()->saveMany($activity->events);
+            $activity->events()->sync($activity->events->pluck('id'));
         });
 
         $suggestions->each(function (EntrySuggestion $suggestion) {

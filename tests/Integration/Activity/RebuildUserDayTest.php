@@ -33,7 +33,7 @@ test('rebuilding a day projects activities and suggestions from its events', fun
         ->and($activity->ended_at->toDateTimeString())->toBe('2026-07-16 09:30:00')
         ->and($activity->entry_suggestion_id)->toBe($suggestion->id)
         ->and($suggestion->date)->toBe('2026-07-16')
-        ->and($event->fresh()->activity_id)->toBe($activity->id);
+        ->and($event->fresh()->activities->pluck('id')->all())->toBe([$activity->id]);
 });
 
 test('rebuilding replaces the previous activities and force-deletes open suggestions of the day', function () {
