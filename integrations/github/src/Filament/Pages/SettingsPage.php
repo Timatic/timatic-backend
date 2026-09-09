@@ -7,7 +7,6 @@ use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Models\Integration;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Navigation\NavigationItem;
 use Filament\Notifications\Notification;
@@ -16,10 +15,9 @@ use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Schema;
-use Timatic\GitHub\Connector;
-use Timatic\GitHub\DataTransferObjects\GitHubInstallation;
+use Timatic\GitHub\Exceptions\GitHubException;
+use Timatic\GitHub\InstallationService;
 use Timatic\GitHub\OAuthService;
-use Timatic\GitHub\Requests\GetUserInstallationsRequest;
 
 /**
  * @property Schema $form
@@ -93,11 +91,11 @@ class SettingsPage extends Page
             ])->statePath('data');
         }
 
-        if (! $this->hasInstallation($config)) {
+        if (! $this->hasInstallations($config)) {
             return $form->schema([
-                Callout::make(__('github::github.settings.callout_choose_installation_title'))
+                Callout::make(__('github::github.settings.callout_no_installations_title'))
                     ->info()
-                    ->description(__('github::github.settings.callout_choose_installation_description')),
+                    ->description(__('github::github.settings.callout_no_installations_description')),
             ])->statePath('data');
         }
 
@@ -108,8 +106,7 @@ class SettingsPage extends Page
             Callout::make(__('github::github.settings.callout_connected_title'))
                 ->success()
                 ->description(__('github::github.settings.callout_connected_description', [
-                    'account' => $config['installation_account'] ?? '',
-                    'installation' => $config['installation_id'] ?? '',
+                    'accounts' => implode(', ', $this->installations($config)),
                     'routing' => $this->proxyRoutingLine($config),
                 ])),
         ])->statePath('data');
@@ -138,32 +135,26 @@ class SettingsPage extends Page
                 ->label(__('github::github.settings.action_install_app'))
                 ->url(app(OAuthService::class)->installUrl())
                 ->openUrlInNewTab()
-                ->visible($this->hasTokens($config) && ! $this->hasInstallation($config)),
+                ->visible($this->hasTokens($config)),
 
-            Action::make('choose_installation')
-                ->label(__('github::github.settings.action_choose_installation'))
-                ->schema([
-                    Select::make('installation_id')
-                        ->label(__('github::github.settings.installation_select_label'))
-                        ->options(fn () => $this->installationOptions())
-                        ->searchable()
-                        ->required(),
-                ])
-                ->action(function (array $data): void {
-                    $integration = $this->getIntegration();
-                    $installationId = (int) $data['installation_id'];
+            Action::make('refresh_installations')
+                ->label(__('github::github.settings.action_refresh_installations'))
+                ->action(function (): void {
+                    try {
+                        app(InstallationService::class)->refresh($this->getIntegration());
+                    } catch (GitHubException $e) {
+                        Notification::make()
+                            ->title(__('github::github.settings.notification_installations_failed', ['message' => $e->getMessage()]))
+                            ->danger()
+                            ->persistent()
+                            ->send();
 
-                    $integration->update([
-                        'config' => array_merge($integration->config ?? [], [
-                            'installation_id' => $installationId,
-                            'installation_account' => $this->installationOptions()[$installationId] ?? '',
-                        ]),
-                    ]);
+                        return;
+                    }
 
-                    session()->flash('github_success', __('github::github.settings.notification_installation_chosen'));
                     $this->redirect(static::getUrl(['record' => $this->getRecord()]));
                 })
-                ->visible($this->hasTokens($config) && ! $this->hasInstallation($config)),
+                ->visible($this->hasTokens($config)),
 
             Action::make('connect')
                 ->label(__('github::github.settings.action_connect'))
@@ -177,35 +168,15 @@ class SettingsPage extends Page
                     $this->getIntegration()->update(['name' => $data['name']]);
                     Notification::make()->title(__('github::github.common.notification_name_changed'))->success()->send();
                 })
-                ->visible($this->hasInstallation($config)),
+                ->visible($this->hasInstallations($config)),
         ];
     }
 
-    /** @return array<int, string> */
-    private function installationOptions(): array
+    /** @param array<string, mixed> $config
+     * @return array<int, string> */
+    private function installations(array $config): array
     {
-        $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
-        $response = Connector::forUser($integration->config['access_token'] ?? '')
-            ->send(new GetUserInstallationsRequest);
-
-        if ($response->failed()) {
-            Notification::make()
-                ->title(__('github::github.settings.notification_installations_failed', ['status' => $response->status()]))
-                ->danger()
-                ->persistent()
-                ->send();
-
-            return [];
-        }
-
-        /** @var array<int, GitHubInstallation> $installations */
-        $installations = $response->dto();
-
-        return collect($installations)
-            ->mapWithKeys(fn (GitHubInstallation $installation) => [
-                $installation->id => $installation->accountLogin.' ('.$installation->accountType.')',
-            ])
-            ->all();
+        return app(InstallationService::class)->stored($config);
     }
 
     /**
@@ -215,11 +186,14 @@ class SettingsPage extends Page
      */
     private function proxyRoutingLine(array $config): string
     {
-        return implode(':', [
-            $config['installation_id'] ?? '',
-            config('timatic.tenant_slug'),
-            $this->getRecord()->getKey(),
-        ]);
+        return collect($this->installations($config))
+            ->keys()
+            ->map(fn (int $installationId) => implode(':', [
+                $installationId,
+                config('timatic.tenant_slug'),
+                $this->getRecord()->getKey(),
+            ]))
+            ->implode(',');
     }
 
     private function isConfigured(): bool
@@ -237,9 +211,9 @@ class SettingsPage extends Page
     }
 
     /** @param array<string, mixed> $config */
-    private function hasInstallation(array $config): bool
+    private function hasInstallations(array $config): bool
     {
-        return $this->hasTokens($config) && filled($config['installation_id'] ?? null);
+        return $this->hasTokens($config) && $this->installations($config) !== [];
     }
 
     private function getIntegration(): Integration

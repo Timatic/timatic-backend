@@ -27,17 +27,29 @@ GITHUB_PRIVATE_KEY=
 GITHUB_WEBHOOK_SECRET=
 ```
 
+## Installations
+
+Connecting adopts **every installation the connecting user can reach** (`GET /user/installations`) — there is
+nothing to pick. "Refresh installations" on the settings page re-reads that list after the app is installed
+on another organisation; the delegate page refreshes it on every visit.
+
+The list is stored in `Integration.config`, so repositories and issues keep syncing when the user token
+lapses. Only discovering new installations needs a valid user token.
+
+Every organisation the connecting user can see is adopted, including their personal account. Those
+repositories appear as unmapped rows until a customer is linked, and produce no events while unmapped.
+
 ## Webhook routing
 
 A GitHub App has a single webhook URL, so deliveries for every tenant arrive at the auth proxy. The proxy is
-stateless and routes on the payload's `installation.id` using a hand-maintained map. After connecting an
-installation, add its entry to `GITHUB_INSTALLATIONS` in the proxy env and deploy it:
+stateless and routes on the payload's `installation.id` using a hand-maintained map, so **each adopted
+installation needs its own entry** in `GITHUB_INSTALLATIONS`:
 
 ```
-GITHUB_INSTALLATIONS={installation_id}:{tenant}:{integration_id}
+GITHUB_INSTALLATIONS={installation_id}:{tenant}:{integration_id},{installation_id}:{tenant}:{integration_id}
 ```
 
-The settings page shows the exact line to add.
+The settings page prints the complete comma-joined value to paste.
 
 ## Tokens
 
@@ -83,6 +95,9 @@ access is gone.
   known login sees none.
 - With a search term, `/search/issues` scoped to the mapped repositories. A term shaped like
   `owner/repo#123` is looked up directly.
+
+Searches run once per installation, since an installation token only covers its own repositories. A key for
+an unmapped repository resolves through the installation whose account owns it.
 
 Pull requests are filtered out, since GitHub's issue endpoints return them as issues.
 
