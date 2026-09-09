@@ -73,3 +73,19 @@ produces no events until their first push.
 Note: `repository` with action `created` rarely arrives. Unless the app is installed on "All repositories",
 no installation covers a brand-new repository yet, so GitHub sends nothing. `deleted` behaves the same once
 access is gone.
+
+## Issues as tickets
+
+`TicketProvider` offers GitHub issues in the time entry form, keyed as `owner/repo#123`:
+
+- With a customer selected, open issues from that customer's mapped repositories.
+- Without a customer, open issues the user is involved in (`involves:{github_login}`), so a user without a
+  known login sees none.
+- With a search term, `/search/issues` scoped to the mapped repositories. A term shaped like
+  `owner/repo#123` is looked up directly.
+
+Pull requests are filtered out, since GitHub's issue endpoints return them as issues.
+
+Two limits worth knowing: at most 20 `repo:` qualifiers are sent (GitHub caps the search query length), so
+searches cover the 20 most recently updated mappings; and GitHub exposes no email address for issue
+commenters, so ticket actions carry the login as display name and no email.
