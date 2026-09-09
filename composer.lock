@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7f4edd503ccc3309e1351e80f952b416",
+    "content-hash": "fc8c4e790f786165b8777098b62e8ed8",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -11018,6 +11018,37 @@
                 }
             },
             "description": "Exact Globe export integration for Timatic",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "timatic/github-integration",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "integrations/github",
+                "reference": "1a6aa2f7685cd7063622711ab243ddc8589fd940"
+            },
+            "require": {
+                "firebase/php-jwt": "^7.0",
+                "php": "^8.4",
+                "saloonphp/saloon": "^4.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Timatic\\GitHub\\ServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Timatic\\GitHub\\": "src/"
+                }
+            },
+            "description": "GitHub repository integration for Timatic",
             "transport-options": {
                 "relative": true
             }
