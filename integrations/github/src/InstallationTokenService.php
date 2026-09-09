@@ -4,6 +4,7 @@ namespace Timatic\GitHub;
 
 use Firebase\JWT\JWT;
 use Illuminate\Support\Facades\Cache;
+use Throwable;
 use Timatic\GitHub\DataTransferObjects\GitHubInstallationToken;
 use Timatic\GitHub\Exceptions\GitHubException;
 use Timatic\GitHub\Requests\CreateInstallationTokenRequest;
@@ -29,11 +30,15 @@ class InstallationTokenService
             throw new GitHubException('GitHub app id is not configured.');
         }
 
-        return JWT::encode([
-            'iat' => now()->subMinute()->timestamp,
-            'exp' => now()->addMinutes(9)->timestamp,
-            'iss' => $appId,
-        ], $this->privateKey(), 'RS256');
+        try {
+            return JWT::encode([
+                'iat' => now()->subMinute()->timestamp,
+                'exp' => now()->addMinutes(9)->timestamp,
+                'iss' => $appId,
+            ], $this->privateKey(), 'RS256');
+        } catch (Throwable $e) {
+            throw new GitHubException('Signing the GitHub app jwt failed: '.$e->getMessage());
+        }
     }
 
     private function mintToken(int $installationId): string

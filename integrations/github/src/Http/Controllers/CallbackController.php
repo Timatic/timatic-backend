@@ -5,15 +5,19 @@ namespace Timatic\GitHub\Http\Controllers;
 use App\Filament\Resources\Integrations\IntegrationResource;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Throwable;
+use Timatic\GitHub\Filament\Pages\SettingsPage;
 use Timatic\GitHub\OAuthService;
 
 class CallbackController
 {
     public function __invoke(Request $request, OAuthService $oauth): RedirectResponse
     {
+        $integrationId = $this->extractIntegrationId($request->string('state'));
+
         if ($request->has('error')) {
-            return redirect(IntegrationResource::getUrl('index'))
+            return $this->redirectToSettings($integrationId)
                 ->with('github_error', 'GitHub verbinding geweigerd: '.$request->string('error_description'));
         }
 
@@ -23,11 +27,45 @@ class CallbackController
                 $request->string('state'),
             );
 
-            return redirect(IntegrationResource::getUrl('index'))
-                ->with('github_success', 'GitHub verbinding succesvol voor '.$integration->name.'.');
+            $delegateToken = $integration->config['delegate_return_token'] ?? null;
+
+            if ($delegateToken !== null) {
+                $integration->update([
+                    'config' => Arr::except($integration->config ?? [], ['delegate_return_token']),
+                ]);
+
+                return redirect(route('github.delegate.show', $delegateToken).'?connected=1');
+            }
+
+            return redirect(SettingsPage::getUrl(['record' => $integration->getKey()]))
+                ->with('github_success', 'GitHub verbinding succesvol.');
         } catch (Throwable $e) {
-            return redirect(IntegrationResource::getUrl('index'))
+            return $this->redirectToSettings($integrationId)
                 ->with('github_error', 'Verbinding mislukt: '.$e->getMessage());
         }
+    }
+
+    private function extractIntegrationId(string $state): ?int
+    {
+        $parts = explode('.', $state);
+
+        if (count($parts) < 2) {
+            return null;
+        }
+
+        $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), associative: true);
+
+        return isset($payload['integration_id']) && is_numeric($payload['integration_id'])
+            ? (int) $payload['integration_id']
+            : null;
+    }
+
+    private function redirectToSettings(?int $integrationId): RedirectResponse
+    {
+        if ($integrationId !== null) {
+            return redirect(SettingsPage::getUrl(['record' => $integrationId]));
+        }
+
+        return redirect(IntegrationResource::getUrl('index'));
     }
 }
