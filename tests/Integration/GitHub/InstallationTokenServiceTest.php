@@ -84,3 +84,10 @@ it('fails when minting the installation token is rejected', function () {
 
     app(InstallationTokenService::class)->token(4242);
 })->throws(GitHubException::class, 'Minting an installation token for installation 4242 failed with status 401.');
+
+it('fails when the private key is not a usable pem', function () {
+    config()->set('github.app_id', '123456');
+    config()->set('github.private_key', 'not-a-pem');
+
+    app(InstallationTokenService::class)->appJwt();
+})->throws(GitHubException::class, 'Signing the GitHub app jwt failed');
