@@ -19,7 +19,7 @@ it('resolves a bare issue reference in a commit message against the delivering r
     EventFacade::fake();
     Cache::put('github.installation_token.4242', 'ghs_installation_token');
     User::factory()->create(['email' => 'dev@example.com']);
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installation_id' => 4242]]);
+    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
     $mapping = RepositoryMapping::create([
         'integration_id' => $integration->id,
         'installation_id' => 4242,
@@ -59,7 +59,7 @@ it('resolves a fully qualified issue key in a branch name', function () {
     EventFacade::fake();
     Cache::put('github.installation_token.4242', 'ghs_installation_token');
     User::factory()->create(['github_login' => 'octocat']);
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installation_id' => 4242]]);
+    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
     RepositoryMapping::create([
         'integration_id' => $integration->id,
         'installation_id' => 4242,

@@ -4,28 +4,24 @@ namespace Timatic\GitHub\Http\Controllers;
 
 use App\Models\Integration;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\View\View;
-use Timatic\GitHub\Connector;
-use Timatic\GitHub\DataTransferObjects\GitHubInstallation;
+use Timatic\GitHub\Exceptions\GitHubException;
+use Timatic\GitHub\InstallationService;
 use Timatic\GitHub\OAuthService;
-use Timatic\GitHub\Requests\GetUserInstallationsRequest;
 
 class DelegateController
 {
     public function show(string $token): View
     {
         $integration = Integration::where('share_token', $token)->firstOrFail();
-        $config = $integration->config ?? [];
-        $installations = [];
 
-        if (filled($config['access_token'] ?? null) && ! $this->isConfigured($integration)) {
-            $installations = $this->fetchInstallations($integration);
+        if (filled(($integration->config ?? [])['access_token'] ?? null)) {
+            $integration = $this->refreshInstallations($integration);
         }
 
         return view('github::delegate.show', [
             'integration' => $integration,
-            'installations' => $installations,
+            'accounts' => app(InstallationService::class)->stored($integration->config ?? []),
             'installUrl' => app(OAuthService::class)->installUrl(),
             'configured' => $this->isConfigured($integration),
         ]);
@@ -46,46 +42,23 @@ class DelegateController
         return redirect(app(OAuthService::class)->buildAuthorizationUrl($integration));
     }
 
-    public function chooseInstallation(Request $request, string $token): RedirectResponse
+    /**
+     * The delegate has nothing to choose: every installation they can reach is adopted,
+     * and the list is refreshed on each visit so a fresh install shows up.
+     */
+    private function refreshInstallations(Integration $integration): Integration
     {
-        $integration = Integration::where('share_token', $token)->firstOrFail();
-
-        if ($this->isConfigured($integration)) {
-            return redirect()->route('github.delegate.show', $token);
+        try {
+            app(InstallationService::class)->refresh($integration);
+        } catch (GitHubException $e) {
+            return $integration;
         }
 
-        $request->validate(['installation_id' => 'required|integer|min:1']);
-
-        $installationId = $request->integer('installation_id');
-        $installation = collect($this->fetchInstallations($integration))
-            ->first(fn (GitHubInstallation $installation) => $installation->id === $installationId);
-
-        if ($installation === null) {
-            return redirect(route('github.delegate.show', $token).'?error=installation_invalid');
-        }
-
-        $integration->update([
-            'config' => array_merge($integration->config ?? [], [
-                'installation_id' => $installation->id,
-                'installation_account' => $installation->accountLogin,
-            ]),
-        ]);
-
-        return redirect(route('github.delegate.show', $token).'?installation_selected=1');
-    }
-
-    /** @return array<int, GitHubInstallation> */
-    private function fetchInstallations(Integration $integration): array
-    {
-        $integration = app(OAuthService::class)->refreshIfExpired($integration);
-        $response = Connector::forUser($integration->config['access_token'] ?? '')
-            ->send(new GetUserInstallationsRequest);
-
-        return $response->failed() ? [] : $response->dto();
+        return $integration->refresh();
     }
 
     private function isConfigured(Integration $integration): bool
     {
-        return filled(($integration->config ?? [])['installation_id'] ?? null);
+        return app(InstallationService::class)->stored($integration->config ?? []) !== [];
     }
 }

@@ -8,6 +8,7 @@ use Saloon\Http\Faking\MockResponse;
 use Timatic\GitHub\Exceptions\GitHubException;
 use Timatic\GitHub\OAuthService;
 use Timatic\GitHub\Requests\GetAuthenticatedUserRequest;
+use Timatic\GitHub\Requests\GetUserInstallationsRequest;
 
 uses(RefreshDatabase::class);
 
@@ -43,6 +44,10 @@ it('stores the tokens and the connecting github login', function () {
     ])]);
     MockClient::global([
         GetAuthenticatedUserRequest::class => MockResponse::make(['id' => 99, 'login' => 'octocat']),
+        GetUserInstallationsRequest::class => MockResponse::make([
+            'total_count' => 1,
+            'installations' => [['id' => 4242, 'account' => ['login' => 'acme', 'type' => 'Organization']]],
+        ]),
     ]);
 
     $integration = app(OAuthService::class)->handleCallback('the-code', $query['state']);
@@ -52,6 +57,7 @@ it('stores the tokens and the connecting github login', function () {
         ->and($integration->config['expires_at'])->toBe(now()->addSeconds(28740)->timestamp)
         ->and($integration->config['github_login'])->toBe('octocat')
         ->and($integration->config['github_user_id'])->toBe(99)
+        ->and($integration->config['installations'])->toBe([['id' => 4242, 'account' => 'acme']])
         ->and($integration->config)->not->toHaveKey('oauth_nonce');
 });
 
@@ -63,6 +69,10 @@ it('stores a non-expiring token without an expiry', function () {
     Http::fake(['github.com/login/oauth/access_token' => Http::response(['access_token' => 'ghu_user_token'])]);
     MockClient::global([
         GetAuthenticatedUserRequest::class => MockResponse::make(['id' => 99, 'login' => 'octocat']),
+        GetUserInstallationsRequest::class => MockResponse::make([
+            'total_count' => 1,
+            'installations' => [['id' => 4242, 'account' => ['login' => 'acme', 'type' => 'Organization']]],
+        ]),
     ]);
 
     $integration = app(OAuthService::class)->handleCallback('the-code', $query['state']);
@@ -130,7 +140,7 @@ it('disconnects when the refresh token is rejected', function () {
         'access_token' => 'ghu_old',
         'refresh_token' => 'ghr_old',
         'expires_at' => now()->subMinute()->timestamp,
-        'installation_id' => 4242,
+        'installations' => [['id' => 4242, 'account' => 'acme']],
     ]]);
     Http::fake(['github.com/login/oauth/access_token' => Http::response(['error' => 'bad_refresh_token'])]);
 
@@ -144,8 +154,7 @@ it('clears every oauth key on disconnect', function () {
         'access_token' => 'ghu_user_token',
         'refresh_token' => 'ghr_refresh_token',
         'expires_at' => now()->addHour()->timestamp,
-        'installation_id' => 4242,
-        'installation_account' => 'acme',
+        'installations' => [['id' => 4242, 'account' => 'acme']],
         'github_login' => 'octocat',
         'github_user_id' => 99,
     ]]);

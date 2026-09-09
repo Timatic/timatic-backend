@@ -59,7 +59,7 @@ it('lists open issues of the repositories mapped to the customer', function () {
         ]),
     ]);
 
-    $tickets = TicketProvider::fromConfig(['integration_id' => $integration->id, 'installation_id' => 4242])
+    $tickets = TicketProvider::fromConfig(['integration_id' => $integration->id, 'installations' => [['id' => 4242, 'account' => 'acme']]])
         ->searchTickets($customer);
 
     expect($tickets)->toHaveCount(1)
@@ -82,7 +82,7 @@ it('searches issues within the mapped repositories', function () {
         SearchIssuesRequest::class => MockResponse::make(['total_count' => 0, 'items' => []]),
     ]);
 
-    TicketProvider::fromConfig(['integration_id' => $integration->id, 'installation_id' => 4242])
+    TicketProvider::fromConfig(['integration_id' => $integration->id, 'installations' => [['id' => 4242, 'account' => 'acme']]])
         ->searchTickets(null, 'safari');
 
     $mockClient->assertSent(function ($request) {
@@ -105,7 +105,7 @@ it('searches issues the user is involved in when no customer is given', function
         SearchIssuesRequest::class => MockResponse::make(['total_count' => 0, 'items' => []]),
     ]);
 
-    TicketProvider::fromConfig(['integration_id' => $integration->id, 'installation_id' => 4242])
+    TicketProvider::fromConfig(['integration_id' => $integration->id, 'installations' => [['id' => 4242, 'account' => 'acme']]])
         ->searchTickets(null, null, $user);
 
     $mockClient->assertSent(function ($request) {
@@ -141,7 +141,7 @@ it('returns the ticket for a repository issue key with its mapping', function ()
         ]),
     ]);
 
-    $ticket = TicketProvider::fromConfig(['integration_id' => $integration->id, 'installation_id' => 4242])
+    $ticket = TicketProvider::fromConfig(['integration_id' => $integration->id, 'installations' => [['id' => 4242, 'account' => 'acme']]])
         ->fetchTicketByKey('acme/api#42');
 
     expect($ticket->number)->toBe('acme/api#42')
@@ -159,7 +159,7 @@ it('returns nothing for an issue key GitHub does not know', function () {
         GetIssueRequest::class => MockResponse::make(['message' => 'Not Found'], 404),
     ]);
 
-    $ticket = TicketProvider::fromConfig(['integration_id' => $integration->id, 'installation_id' => 4242])
+    $ticket = TicketProvider::fromConfig(['integration_id' => $integration->id, 'installations' => [['id' => 4242, 'account' => 'acme']]])
         ->fetchTicketByKey('acme/api#404');
 
     expect($ticket)->toBeNull();
@@ -180,7 +180,7 @@ it('returns nothing for a key that points at a pull request', function () {
         ]),
     ]);
 
-    $ticket = TicketProvider::fromConfig(['integration_id' => $integration->id, 'installation_id' => 4242])
+    $ticket = TicketProvider::fromConfig(['integration_id' => $integration->id, 'installations' => [['id' => 4242, 'account' => 'acme']]])
         ->fetchTicketByKey('acme/api#43');
 
     expect($ticket)->toBeNull();
@@ -205,7 +205,7 @@ it('returns the comments of an issue as chronological actions', function () {
         ]),
     ]);
 
-    $ticket = TicketProvider::fromConfig(['integration_id' => $integration->id, 'installation_id' => 4242])
+    $ticket = TicketProvider::fromConfig(['integration_id' => $integration->id, 'installations' => [['id' => 4242, 'account' => 'acme']]])
         ->fetchTicketDetails('acme/api#42');
 
     expect($ticket->actions->pluck('text')->all())->toBe(['Reproduced', 'Fixed in 1.2'])
@@ -226,4 +226,36 @@ it('matches a repository issue key in text but not a bare issue number', functio
     expect(preg_match('/\b('.TicketProvider::ticketKeyPattern().')\b/i', 'fix login acme/api#42', $matches))->toBe(1)
         ->and($matches[1])->toBe('acme/api#42')
         ->and(preg_match('/\b('.TicketProvider::ticketKeyPattern().')\b/i', 'fix login #42'))->toBe(0);
+});
+
+it('searches each installation with its own repositories', function () {
+    Cache::put('github.installation_token.4242', 'ghs_acme_token');
+    Cache::put('github.installation_token.5353', 'ghs_labs_token');
+    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    RepositoryMapping::create([
+        'integration_id' => $integration->id,
+        'installation_id' => 4242,
+        'owner_login' => 'acme',
+        'repository_name' => 'api',
+        'repository_full_name' => 'acme/api',
+    ]);
+    RepositoryMapping::create([
+        'integration_id' => $integration->id,
+        'installation_id' => 5353,
+        'owner_login' => 'acme-labs',
+        'repository_name' => 'site',
+        'repository_full_name' => 'acme-labs/site',
+    ]);
+    $mockClient = MockClient::global([
+        SearchIssuesRequest::class => MockResponse::make(['total_count' => 0, 'items' => []]),
+    ]);
+
+    TicketProvider::fromConfig([
+        'integration_id' => $integration->id,
+        'installations' => [['id' => 4242, 'account' => 'acme'], ['id' => 5353, 'account' => 'acme-labs']],
+    ])->searchTickets(null, 'safari');
+
+    $mockClient->assertSentCount(2);
+    $mockClient->assertSent(fn ($request) => $request->query()->get('q') === 'is:issue safari repo:acme/api');
+    $mockClient->assertSent(fn ($request) => $request->query()->get('q') === 'is:issue safari repo:acme-labs/site');
 });
