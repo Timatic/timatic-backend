@@ -8,7 +8,6 @@ use Filament\Facades\Filament;
 use Livewire\Livewire;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
-use Spatie\Permission\Models\Permission;
 use Tests\Concerns\LoginUser;
 use Timatic\GitHub\Filament\Pages\RepositoryMappingPage;
 use Timatic\GitHub\Models\RepositoryMapping;
@@ -24,7 +23,6 @@ afterEach(function () {
 it('creates a mapping for every repository of the installation', function () {
     config()->set('github.app_id', '123456');
     config()->set('github.private_key', 'private-key');
-    Permission::findOrCreate('integrations.read', 'web');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
     $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installation_id' => 4242]]);
@@ -52,7 +50,6 @@ it('creates a mapping for every repository of the installation', function () {
 it('archives a mapping whose repository is no longer accessible', function () {
     config()->set('github.app_id', '123456');
     config()->set('github.private_key', 'private-key');
-    Permission::findOrCreate('integrations.read', 'web');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
     $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installation_id' => 4242]]);
@@ -81,7 +78,6 @@ it('archives a mapping whose repository is no longer accessible', function () {
 it('warns instead of failing when GitHub rejects the repository request', function () {
     config()->set('github.app_id', '123456');
     config()->set('github.private_key', 'private-key');
-    Permission::findOrCreate('integrations.read', 'web');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
     $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installation_id' => 4242]]);
@@ -99,7 +95,6 @@ it('warns instead of failing when GitHub rejects the repository request', functi
 it('links selected repositories to a customer and budget', function () {
     config()->set('github.app_id', '123456');
     config()->set('github.private_key', 'private-key');
-    Permission::findOrCreate('integrations.read', 'web');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
     $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installation_id' => 4242]]);

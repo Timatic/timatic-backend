@@ -5,7 +5,6 @@ use Filament\Facades\Filament;
 use Livewire\Livewire;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
-use Spatie\Permission\Models\Permission;
 use Tests\Concerns\LoginUser;
 use Timatic\GitHub\Filament\Pages\SettingsPage;
 use Timatic\GitHub\Requests\GetUserInstallationsRequest;
@@ -19,7 +18,6 @@ afterEach(function () {
 it('shows the not configured callout when the app credentials are missing', function () {
     config()->set('github.client_id', null);
     config()->set('github.app_id', null);
-    Permission::findOrCreate('integrations.read', 'web');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
     $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
@@ -34,7 +32,6 @@ it('offers the connect action when no user token is stored', function () {
     config()->set('github.client_secret', 'client-secret');
     config()->set('github.app_id', '123456');
     config()->set('github.private_key', 'private-key');
-    Permission::findOrCreate('integrations.read', 'web');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
     $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
@@ -51,7 +48,6 @@ it('stores the chosen installation', function () {
     config()->set('github.client_secret', 'client-secret');
     config()->set('github.app_id', '123456');
     config()->set('github.private_key', 'private-key');
-    Permission::findOrCreate('integrations.read', 'web');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
     $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => [
@@ -79,7 +75,6 @@ it('shows the proxy routing line once an installation is linked', function () {
     config()->set('github.app_id', '123456');
     config()->set('github.private_key', 'private-key');
     config()->set('timatic.tenant_slug', 'klant1');
-    Permission::findOrCreate('integrations.read', 'web');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
     $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => [
@@ -99,7 +94,6 @@ it('clears the connection on disconnect', function () {
     config()->set('github.client_secret', 'client-secret');
     config()->set('github.app_id', '123456');
     config()->set('github.private_key', 'private-key');
-    Permission::findOrCreate('integrations.read', 'web');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
     $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => [
