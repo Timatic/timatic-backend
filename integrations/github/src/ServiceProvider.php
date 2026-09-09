@@ -3,6 +3,7 @@
 namespace Timatic\GitHub;
 
 use App\Integrations\IntegrationTypeRegistry;
+use App\Integrations\TicketProviderRegistry;
 use App\Models\Integration;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Timatic\GitHub\Filament\Pages\RepositoryMappingPage;
@@ -26,8 +27,10 @@ class ServiceProvider extends BaseServiceProvider
         });
     }
 
-    public function boot(): void
+    public function boot(TicketProviderRegistry $ticketProviders): void
     {
+        $ticketProviders->register('github', TicketProvider::class);
+
         $this->mergeConfigFrom(__DIR__.'/../config/github.php', 'github');
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'github');
