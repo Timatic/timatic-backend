@@ -50,3 +50,26 @@ Because of that split this package does not use Saloon's `AuthorizationCodeGrant
 `.claude/docs/integration-oauth.md` prescribes): the trait models a single user-token flow, while nearly every
 request here authenticates as the app installation. `OAuthService` handles the user flow and
 `InstallationTokenService` mints installation tokens from an RS256 app JWT.
+
+## Events
+
+| GitHub delivery | Timatic event type |
+|---|---|
+| `push` (per commit) | `commit_pushed`, plus `rebase` for replayed commits on a forced push |
+| `pull_request` opened / reopened | `pr_opened` |
+| `pull_request` closed, merged | `pr_merged` |
+| `pull_request` closed, not merged | `pr_declined` |
+| `pull_request_review` submitted | `pr_approved`, `pr_changes_requested` or `pr_commented` |
+| `pull_request_review_comment` created | `pr_commented` |
+| `issue_comment` created on a pull request | `pr_commented` |
+| `issue_comment` created on an issue | `issue_commented` |
+| `create` branch / tag | `branch_created` / `tag_created` |
+| `repository` created, deleted, archived, unarchived, publicized, privatized, edited, renamed, transferred | `repository_{action}` |
+
+Commit events match the Timatic user by commit author email and learn `users.github_login` from
+`commits[].author.username`. Every other delivery matches on `sender.login`, so a user without a known login
+produces no events until their first push.
+
+Note: `repository` with action `created` rarely arrives. Unless the app is installed on "All repositories",
+no installation covers a brand-new repository yet, so GitHub sends nothing. `deleted` behaves the same once
+access is gone.

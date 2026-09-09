@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Timatic\GitHub\Http\Controllers\CallbackController;
 use Timatic\GitHub\Http\Controllers\DelegateController;
 use Timatic\GitHub\Http\Controllers\RedirectController;
+use Timatic\GitHub\Http\Controllers\WebhookController;
 
 Route::middleware(['web', 'auth'])->group(function () {
     Route::get('integrations/{integration}/github/redirect', RedirectController::class)
@@ -13,6 +14,9 @@ Route::middleware(['web', 'auth'])->group(function () {
 Route::middleware('web')->group(function () {
     Route::get('integrations/github/callback', CallbackController::class)
         ->name('github.oauth.callback');
+
+    Route::post('integrations/github/webhook/{integration}', WebhookController::class)
+        ->name('github.webhook');
 
     Route::get('integrations/github/connect/{token}', [DelegateController::class, 'show'])
         ->name('github.delegate.show');
