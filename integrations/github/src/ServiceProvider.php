@@ -20,9 +20,9 @@ class ServiceProvider extends BaseServiceProvider
                 'github.repositories' => RepositoryMappingPage::class,
                 'github.settings' => SettingsPage::class,
             ])->landingPage(function (Integration $integration): string {
-                $config = $integration->config ?? [];
+                $installations = app(InstallationService::class)->stored($integration->config ?? []);
 
-                return filled($config['installation_id'] ?? null) ? RepositoryMappingPage::class : SettingsPage::class;
+                return $installations === [] ? SettingsPage::class : RepositoryMappingPage::class;
             });
         });
     }

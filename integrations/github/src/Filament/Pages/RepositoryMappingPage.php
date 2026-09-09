@@ -26,6 +26,7 @@ use Timatic\GitHub\Connector;
 use Timatic\GitHub\DataTransferObjects\GitHubRepository;
 use Timatic\GitHub\DataTransferObjects\GitHubRepositoryPage;
 use Timatic\GitHub\Exceptions\GitHubException;
+use Timatic\GitHub\InstallationService;
 use Timatic\GitHub\Models\RepositoryMapping;
 use Timatic\GitHub\Requests\GetInstallationRepositoriesRequest;
 
@@ -47,7 +48,7 @@ class RepositoryMappingPage extends Page implements HasTable
     {
         $this->record = $this->resolveRecord($record);
 
-        if ($this->hasInstallation()) {
+        if ($this->hasInstallations()) {
             $this->syncRepositoriesFromGitHub();
         }
     }
@@ -73,7 +74,7 @@ class RepositoryMappingPage extends Page implements HasTable
 
     public function table(Table $table): Table
     {
-        if (! $this->hasInstallation()) {
+        if (! $this->hasInstallations()) {
             return $table
                 ->query(RepositoryMapping::query()->whereNull('id'))
                 ->columns([])
@@ -178,44 +179,57 @@ class RepositoryMappingPage extends Page implements HasTable
         ];
     }
 
-    private function hasInstallation(): bool
+    private function hasInstallations(): bool
     {
-        return filled(($this->getIntegration()->config ?? [])['installation_id'] ?? null);
+        return $this->installationIds() !== [];
+    }
+
+    /** @return array<int, int> */
+    private function installationIds(): array
+    {
+        return array_keys(app(InstallationService::class)->stored($this->getIntegration()->config ?? []));
     }
 
     private function syncRepositoriesFromGitHub(): void
     {
         $integration = $this->getIntegration();
-        $installationId = (int) ($integration->config['installation_id'] ?? 0);
+        $syncedFullNames = [];
+        $syncedInstallationIds = [];
 
-        try {
-            $repositories = $this->fetchRepositories($installationId);
-        } catch (GitHubException $e) {
-            $this->notifyConnectionUnavailable();
+        foreach ($this->installationIds() as $installationId) {
+            try {
+                $repositories = $this->fetchRepositories($installationId);
+            } catch (GitHubException $e) {
+                $this->notifyConnectionUnavailable();
 
-            return;
-        }
-
-        foreach ($repositories as $repository) {
-            if ($repository->fullName === '') {
                 continue;
             }
 
-            RepositoryMapping::updateOrCreate(
-                [
-                    'integration_id' => $integration->id,
-                    'repository_full_name' => $repository->fullName,
-                ],
-                [
-                    'installation_id' => $installationId,
-                    'owner_login' => $repository->ownerLogin,
-                    'repository_name' => $repository->name,
-                    'is_archived' => $repository->isArchived,
-                ]
-            );
+            foreach ($repositories as $repository) {
+                if ($repository->fullName === '') {
+                    continue;
+                }
+
+                RepositoryMapping::updateOrCreate(
+                    [
+                        'integration_id' => $integration->id,
+                        'repository_full_name' => $repository->fullName,
+                    ],
+                    [
+                        'installation_id' => $installationId,
+                        'owner_login' => $repository->ownerLogin,
+                        'repository_name' => $repository->name,
+                        'is_archived' => $repository->isArchived,
+                    ]
+                );
+
+                $syncedFullNames[] = $repository->fullName;
+            }
+
+            $syncedInstallationIds[] = $installationId;
         }
 
-        $this->archiveRepositoriesNoLongerAccessible($integration, $repositories);
+        $this->archiveRepositoriesNoLongerAccessible($integration, $syncedInstallationIds, $syncedFullNames);
     }
 
     /**
@@ -245,12 +259,19 @@ class RepositoryMappingPage extends Page implements HasTable
         return $repositories;
     }
 
-    /** @param array<int, GitHubRepository> $repositories */
-    private function archiveRepositoriesNoLongerAccessible(Integration $integration, array $repositories): void
+    /**
+     * Only installations that answered are swept, so a failing installation does not
+     * archive the repositories it still owns.
+     *
+     * @param  array<int, int>  $syncedInstallationIds
+     * @param  array<int, string>  $syncedFullNames
+     */
+    private function archiveRepositoriesNoLongerAccessible(Integration $integration, array $syncedInstallationIds, array $syncedFullNames): void
     {
         RepositoryMapping::query()
             ->where('integration_id', $integration->id)
-            ->whereNotIn('repository_full_name', array_map(fn (GitHubRepository $repository) => $repository->fullName, $repositories))
+            ->whereIn('installation_id', $syncedInstallationIds)
+            ->whereNotIn('repository_full_name', $syncedFullNames)
             ->update(['is_archived' => true]);
     }
 

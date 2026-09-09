@@ -22,6 +22,4 @@ Route::middleware('web')->group(function () {
         ->name('github.delegate.show');
     Route::get('integrations/github/connect/{token}/oauth-redirect', [DelegateController::class, 'oauthRedirect'])
         ->name('github.delegate.oauth-redirect');
-    Route::post('integrations/github/connect/{token}/choose-installation', [DelegateController::class, 'chooseInstallation'])
-        ->name('github.delegate.choose-installation');
 });

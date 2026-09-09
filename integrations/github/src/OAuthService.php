@@ -60,7 +60,7 @@ class OAuthService
             ),
         ]);
 
-        return $this->storeConnectingUser($integration->refresh());
+        return $this->adoptInstallations($this->storeConnectingUser($integration->refresh()));
     }
 
     public function refreshIfExpired(Integration $integration): Integration
@@ -93,8 +93,7 @@ class OAuthService
                 'refresh_token',
                 'expires_at',
                 'oauth_nonce',
-                'installation_id',
-                'installation_account',
+                'installations',
                 'delegate_return_token',
                 'github_login',
                 'github_user_id',
@@ -174,6 +173,21 @@ class OAuthService
             'refresh_token' => $tokens['refresh_token'] ?? ($config['refresh_token'] ?? null),
             'expires_at' => $expiresIn === null ? null : now()->addSeconds((int) $expiresIn - 60)->timestamp,
         ];
+    }
+
+    /**
+     * A failed lookup leaves the list empty: the settings page can refresh it, and
+     * the connection itself is already usable.
+     */
+    private function adoptInstallations(Integration $integration): Integration
+    {
+        try {
+            app(InstallationService::class)->refresh($integration);
+        } catch (GitHubException $e) {
+            return $integration;
+        }
+
+        return $integration->refresh();
     }
 
     private function storeConnectingUser(Integration $integration): Integration
