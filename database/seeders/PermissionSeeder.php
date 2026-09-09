@@ -51,6 +51,14 @@ class PermissionSeeder extends Seeder
         'tracked-domains.create',
         'tracked-domains.delete',
         'admin_panel.access',
+        'integrations.read',
+        'integrations.create',
+        'integrations.update',
+        'integrations.delete',
+        'integrations.restore',
+        'integrations.force-delete',
+        'integrations.replicate',
+        'integrations.reorder',
     ];
 
     public function run(): void
