@@ -44,7 +44,7 @@ final class TicketProvider implements TicketProviderInterface
     /** @return Collection<int, Ticket> */
     public function searchTickets(?Customer $customer, ?string $search = null, ?User $user = null): Collection
     {
-        if ($this->installationId() === null) {
+        if ($this->installations() === []) {
             return new Collection;
         }
 
@@ -85,9 +85,14 @@ final class TicketProvider implements TicketProviderInterface
         }
 
         [$owner, $repository, $number] = $this->splitKey($key);
+        $installationId = $this->installationIdFor($owner.'/'.$repository, $owner);
+
+        if ($installationId === null) {
+            return null;
+        }
 
         /** @var array<int, GitHubIssueComment> $comments */
-        $comments = $this->connector()
+        $comments = Connector::forInstallation($installationId)
             ->send(new GetIssueCommentsRequest($owner, $repository, $number))
             ->dto();
 
@@ -102,7 +107,7 @@ final class TicketProvider implements TicketProviderInterface
     {
         return $repositories
             ->flatMap(function (RepositoryMapping $mapping): array {
-                $response = $this->connector()
+                $response = Connector::forInstallation($mapping->installation_id)
                     ->send(new GetIssuesRequest($mapping->owner_login, $mapping->repository_name));
 
                 return $response->failed() ? [] : $response->dto();
@@ -116,7 +121,10 @@ final class TicketProvider implements TicketProviderInterface
      */
     private function searchIssues(string $search, Collection $repositories): Collection
     {
-        return $this->runSearch('is:issue '.$search.' '.$this->repositoryQualifiers($repositories));
+        return $this->runSearchPerInstallation(
+            $repositories,
+            fn (Collection $group) => 'is:issue '.$search.' '.$this->repositoryQualifiers($group),
+        );
     }
 
     /**
@@ -129,17 +137,31 @@ final class TicketProvider implements TicketProviderInterface
             return new Collection;
         }
 
-        return $this->runSearch(
-            'is:issue is:open involves:'.$user->github_login.' '.$this->repositoryQualifiers($repositories)
+        return $this->runSearchPerInstallation(
+            $repositories,
+            fn (Collection $group) => 'is:issue is:open involves:'.$user->github_login.' '.$this->repositoryQualifiers($group),
         );
     }
 
-    /** @return Collection<int, Ticket> */
-    private function runSearch(string $query): Collection
+    /**
+     * A search runs per installation: one token only covers the repositories of
+     * the installation it was minted for.
+     *
+     * @param  Collection<int, RepositoryMapping>  $repositories
+     * @param  callable(Collection<int, RepositoryMapping>): string  $query
+     * @return Collection<int, Ticket>
+     */
+    private function runSearchPerInstallation(Collection $repositories, callable $query): Collection
     {
-        $response = $this->connector()->send(new SearchIssuesRequest($query));
+        return $repositories
+            ->groupBy('installation_id')
+            ->flatMap(function (Collection $group, int|string $installationId) use ($query): Collection {
+                $response = Connector::forInstallation((int) $installationId)
+                    ->send(new SearchIssuesRequest($query($group)));
 
-        return $response->failed() ? new Collection : $this->mapToTickets(new Collection($response->dto()));
+                return $response->failed() ? new Collection : new Collection($response->dto());
+            })
+            ->pipe(fn (Collection $issues) => $this->mapToTickets($issues));
     }
 
     /** @param Collection<int, RepositoryMapping> $repositories */
@@ -164,17 +186,19 @@ final class TicketProvider implements TicketProviderInterface
 
     private function fetchIssue(string $key): ?GitHubIssue
     {
-        if ($this->installationId() === null) {
-            return null;
-        }
-
         [$owner, $repository, $number] = $this->splitKey($key);
 
         if ($owner === '' || $repository === '' || $number === 0) {
             return null;
         }
 
-        $response = $this->connector()->send(new GetIssueRequest($owner, $repository, $number));
+        $installationId = $this->installationIdFor($owner.'/'.$repository, $owner);
+
+        if ($installationId === null) {
+            return null;
+        }
+
+        $response = Connector::forInstallation($installationId)->send(new GetIssueRequest($owner, $repository, $number));
 
         if ($response->failed()) {
             return null;
@@ -250,15 +274,34 @@ final class TicketProvider implements TicketProviderInterface
         return [$owner, $repository, (int) $number];
     }
 
-    private function installationId(): ?int
+    /**
+     * A mapped repository names its own installation; for an unmapped one the
+     * installation whose account owns the repository is used.
+     */
+    private function installationIdFor(string $repositoryFullName, string $owner): ?int
     {
-        $installationId = $this->config['installation_id'] ?? null;
+        $installationId = RepositoryMapping::query()
+            ->where('integration_id', $this->config['integration_id'] ?? 0)
+            ->where('repository_full_name', $repositoryFullName)
+            ->active()
+            ->value('installation_id');
 
-        return is_numeric($installationId) ? (int) $installationId : null;
+        if ($installationId !== null) {
+            return (int) $installationId;
+        }
+
+        foreach ($this->installations() as $id => $account) {
+            if (strcasecmp($account, $owner) === 0) {
+                return $id;
+            }
+        }
+
+        return null;
     }
 
-    private function connector(): Connector
+    /** @return array<int, string> */
+    private function installations(): array
     {
-        return Connector::forInstallation((int) $this->installationId());
+        return app(InstallationService::class)->stored($this->config);
     }
 }

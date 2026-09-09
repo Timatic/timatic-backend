@@ -8,6 +8,7 @@ use Saloon\Http\Faking\MockResponse;
 use Timatic\GitHub\Filament\Pages\SettingsPage;
 use Timatic\GitHub\OAuthService;
 use Timatic\GitHub\Requests\GetAuthenticatedUserRequest;
+use Timatic\GitHub\Requests\GetUserInstallationsRequest;
 
 afterEach(function () {
     MockClient::destroyGlobal();
@@ -22,6 +23,10 @@ it('returns an admin to the settings page after connecting', function () {
     Http::fake(['github.com/login/oauth/access_token' => Http::response(['access_token' => 'ghu_user_token'])]);
     MockClient::global([
         GetAuthenticatedUserRequest::class => MockResponse::make(['id' => 99, 'login' => 'octocat']),
+        GetUserInstallationsRequest::class => MockResponse::make([
+            'total_count' => 1,
+            'installations' => [['id' => 4242, 'account' => ['login' => 'acme', 'type' => 'Organization']]],
+        ]),
     ]);
 
     $this->get(route('github.oauth.callback', ['code' => 'the-code', 'state' => $query['state']]))
@@ -40,6 +45,10 @@ it('returns a delegate to the share link page after connecting', function () {
     Http::fake(['github.com/login/oauth/access_token' => Http::response(['access_token' => 'ghu_user_token'])]);
     MockClient::global([
         GetAuthenticatedUserRequest::class => MockResponse::make(['id' => 99, 'login' => 'octocat']),
+        GetUserInstallationsRequest::class => MockResponse::make([
+            'total_count' => 1,
+            'installations' => [['id' => 4242, 'account' => ['login' => 'acme', 'type' => 'Organization']]],
+        ]),
     ]);
 
     $this->get(route('github.oauth.callback', ['code' => 'the-code', 'state' => $query['state']]))

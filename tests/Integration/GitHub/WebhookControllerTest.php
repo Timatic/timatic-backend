@@ -8,7 +8,7 @@ use Timatic\GitHub\Models\RepositoryMapping;
 it('dispatches the delivery with the mapping of the delivering repository', function () {
     Bus::fake();
     config()->set('github.webhook_secret', 'webhook-secret');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installation_id' => 4242]]);
+    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
     $mapping = RepositoryMapping::create([
         'integration_id' => $integration->id,
         'installation_id' => 4242,
@@ -34,7 +34,7 @@ it('dispatches the delivery with the mapping of the delivering repository', func
 it('dispatches without a mapping when the repository is not linked', function () {
     Bus::fake();
     config()->set('github.webhook_secret', 'webhook-secret');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installation_id' => 4242]]);
+    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
     $body = json_encode(['repository' => ['full_name' => 'acme/unmapped']]);
 
     $this->call('POST', route('github.webhook', $integration), [], [], [], [
@@ -51,7 +51,7 @@ it('dispatches without a mapping when the repository is not linked', function ()
 it('ignores an archived mapping', function () {
     Bus::fake();
     config()->set('github.webhook_secret', 'webhook-secret');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installation_id' => 4242]]);
+    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
     RepositoryMapping::create([
         'integration_id' => $integration->id,
         'installation_id' => 4242,
