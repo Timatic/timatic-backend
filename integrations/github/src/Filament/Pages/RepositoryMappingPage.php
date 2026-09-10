@@ -109,22 +109,6 @@ class RepositoryMappingPage extends Page implements HasTable
                     ->label(__('github::github.repository_mapping.filter_archived'))
                     ->default(false),
             ])
-            ->actions([
-                Action::make('archive')
-                    ->label(__('github::github.repository_mapping.action_archive'))
-                    ->icon('heroicon-o-archive-box')
-                    ->color('warning')
-                    ->iconButton()
-                    ->requiresConfirmation()
-                    ->visible(fn (RepositoryMapping $record) => ! $record->is_archived)
-                    ->action(fn (RepositoryMapping $record) => $record->update(['is_archived' => true])),
-                Action::make('restore')
-                    ->label(__('github::github.repository_mapping.action_restore'))
-                    ->icon('heroicon-o-arrow-uturn-left')
-                    ->iconButton()
-                    ->visible(fn (RepositoryMapping $record) => $record->is_archived)
-                    ->action(fn (RepositoryMapping $record) => $record->update(['is_archived' => false])),
-            ])
             ->bulkActions([
                 BulkAction::make('assign')
                     ->label(__('github::github.common.assign_action'))
@@ -153,13 +137,6 @@ class RepositoryMappingPage extends Page implements HasTable
                             'budget_id' => $data['budget_id'] ?: null,
                         ]);
                     })
-                    ->deselectRecordsAfterCompletion(),
-                BulkAction::make('archive')
-                    ->label(__('github::github.repository_mapping.action_archive'))
-                    ->icon('heroicon-o-archive-box')
-                    ->color('warning')
-                    ->requiresConfirmation()
-                    ->action(fn (Collection $records) => $records->each->update(['is_archived' => true]))
                     ->deselectRecordsAfterCompletion(),
             ])
             ->heading(__('github::github.repository_mapping.table_heading'))
