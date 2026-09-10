@@ -48,8 +48,6 @@ return [
         'column_name' => 'Naam',
         'empty_heading' => 'Geen repositories gevonden',
         'empty_description' => 'Klik op "Vernieuwen" om repositories op te halen uit GitHub.',
-        'action_archive' => 'Archiveren',
-        'action_restore' => 'Herstellen',
         'filter_archived' => 'Gearchiveerd',
         'filter_unmapped' => 'Alleen niet gekoppeld',
     ],

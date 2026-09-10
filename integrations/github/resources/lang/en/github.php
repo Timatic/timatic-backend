@@ -48,8 +48,6 @@ return [
         'column_name' => 'Name',
         'empty_heading' => 'No repositories found',
         'empty_description' => 'Click "Refresh" to fetch repositories from GitHub.',
-        'action_archive' => 'Archive',
-        'action_restore' => 'Restore',
         'filter_archived' => 'Archived',
         'filter_unmapped' => 'Unmapped only',
     ],
