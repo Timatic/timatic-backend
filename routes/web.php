@@ -35,6 +35,7 @@ use App\Http\Controllers\OvertimeController;
 use App\Http\Controllers\ShowCurrentUserController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TicketController;
+use App\Http\Controllers\TrackedDomainController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\EncapsulateRequestBodyWithData;
 use App\Http\Middleware\ImpersonateUsers;
@@ -124,6 +125,8 @@ Route::middleware([
         ->name('time-spent-totals');
 
     Route::get('budget-time-spent-totals', GetBudgetTimeSpentTotalsController::class)->name('budget.time-spent-totals');
+
+    Route::apiResource('tracked-domains', TrackedDomainController::class)->except('show');
 
     Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
     Route::get('tickets/{key}', [TicketController::class, 'show'])->name('tickets.show');

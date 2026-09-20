@@ -41,6 +41,10 @@ class PermissionSeeder extends Seeder
         'users.create',
         'users.update',
         'users.delete',
+        'tracked-domains.read',
+        'tracked-domains.create',
+        'tracked-domains.update',
+        'tracked-domains.delete',
         'admin_panel.access',
     ];
 
