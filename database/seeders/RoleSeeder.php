@@ -61,6 +61,7 @@ class RoleSeeder extends Seeder
             'user',
             'entries.read',
             'entries.create',
+            'events.create',
             'entry-suggestions.read',
             'entry-suggestions.delete',
             'budgets.read',
