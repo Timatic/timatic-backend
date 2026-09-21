@@ -16,6 +16,7 @@ use Illuminate\Support\Str;
 /**
  * @property ?int $id
  * @property string $domain
+ * @property string $path
  * @property int $customer_id
  * @property ?int $budget_id
  * @property bool $is_internal
@@ -36,6 +37,7 @@ class TrackedDomain extends Model
 
     protected $fillable = [
         'domain',
+        'path',
         'customer_id',
         'budget_id',
         'is_internal',
@@ -47,6 +49,7 @@ class TrackedDomain extends Model
      * @var array<string, mixed>
      */
     protected $attributes = [
+        'path' => '',
         'is_internal' => false,
         'is_active' => true,
     ];
@@ -58,21 +61,35 @@ class TrackedDomain extends Model
      */
     public static function normalise(string $hostOrUrl): string
     {
-        $host = strtolower(trim($hostOrUrl));
+        $host = strtolower((string) parse_url(self::withScheme($hostOrUrl), PHP_URL_HOST));
 
-        if (str_contains($host, '://')) {
-            $host = (string) parse_url($host, PHP_URL_HOST);
-        }
-
-        $host = ltrim(Str::before(Str::before($host, '/'), ':'), '.');
+        $host = ltrim($host, '.');
 
         return Str::startsWith($host, 'www.') ? Str::after($host, 'www.') : $host;
     }
 
     /**
-     * The tracked domain that covers a host, or null when the host is not opted in. A mapping also
-     * covers its subdomains, and the most specific mapping wins: with both "acme.com" and
-     * "jira.acme.com" stored, "jira.acme.com" resolves to the latter.
+     * Reduces a url path to the form that is stored: a leading slash, no trailing slash and no
+     * query or fragment. An empty path means the mapping covers the whole host.
+     */
+    public static function normalisePath(string $pathOrUrl): string
+    {
+        $path = trim($pathOrUrl);
+
+        if (! Str::startsWith($path, '/')) {
+            $path = (string) parse_url(self::withScheme($path), PHP_URL_PATH);
+        }
+
+        $path = rtrim(Str::before(Str::before($path, '?'), '#'), '/');
+
+        return $path === '/' ? '' : $path;
+    }
+
+    /**
+     * The tracked domain that covers a url, or null when it is not opted in. A mapping covers its
+     * subdomains and everything below its path, and the most specific mapping wins: with both
+     * "acme.com" and "jira.acme.com/projects/TIM" stored, a url under that project resolves to the
+     * latter.
      */
     public static function matching(string $hostOrUrl): ?self
     {
@@ -82,11 +99,24 @@ class TrackedDomain extends Model
             return null;
         }
 
+        $path = self::normalisePath($hostOrUrl);
+
         return self::query()
             ->active()
             ->whereIn('domain', self::candidates($host))
-            ->orderByRaw('LENGTH(domain) DESC')
-            ->first();
+            ->orderByRaw('LENGTH(domain) DESC, LENGTH(path) DESC')
+            ->get()
+            ->first(fn (self $trackedDomain): bool => $trackedDomain->covers($path));
+    }
+
+    /** Whether this mapping's path covers the given path: an empty path covers the whole host. */
+    public function covers(string $path): bool
+    {
+        if ($this->path === '') {
+            return true;
+        }
+
+        return $path === $this->path || str_starts_with($path, $this->path.'/');
     }
 
     /**
@@ -120,6 +150,14 @@ class TrackedDomain extends Model
     protected function active(Builder $query): void
     {
         $query->where('is_active', true);
+    }
+
+    /** Lets parse_url do the work for bare hosts too, which it otherwise reads as a path. */
+    private static function withScheme(string $hostOrUrl): string
+    {
+        $value = trim($hostOrUrl);
+
+        return str_contains($value, '://') ? $value : 'https://'.$value;
     }
 
     /**

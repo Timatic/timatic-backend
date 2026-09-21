@@ -33,6 +33,87 @@ it('stores a tracked domain from a full url', function () {
     expect($response->json('data.attributes.isActive'))->toBeTrue();
 });
 
+it('stores the path of a url as a separate mapping', function () {
+    $this->loginUser(permissions: ['tracked-domains.create']);
+
+    $budget = Budget::factory()->create();
+
+    $this->postJson(route('tracked-domains.store'), [
+        'data' => [
+            'type' => 'tracked-domains',
+            'attributes' => [
+                'domain' => 'https://gitlab.acme.com/group-a/project/-/issues',
+                'path' => '/group-a',
+                'customerId' => $budget->customer_id,
+                'budgetId' => $budget->id,
+            ],
+        ],
+    ])->assertCreated();
+
+    /** @var TrackedDomain $trackedDomain */
+    $trackedDomain = TrackedDomain::query()->sole();
+
+    expect($trackedDomain->domain)->toEqual('gitlab.acme.com');
+    expect($trackedDomain->path)->toEqual('/group-a');
+});
+
+it('takes the path from the url when none is given', function () {
+    $this->loginUser(permissions: ['tracked-domains.create']);
+
+    $customer = Customer::factory()->create();
+
+    $this->postJson(route('tracked-domains.store'), [
+        'data' => [
+            'type' => 'tracked-domains',
+            'attributes' => [
+                'domain' => 'https://gitlab.acme.com/group-a/',
+                'customerId' => $customer->id,
+            ],
+        ],
+    ])->assertCreated();
+
+    expect(TrackedDomain::query()->sole()->path)->toEqual('/group-a');
+});
+
+it('allows the same domain with a different path', function () {
+    $this->loginUser(permissions: ['tracked-domains.create']);
+
+    $customer = Customer::factory()->create();
+
+    TrackedDomain::factory()->create(['domain' => 'gitlab.acme.com', 'path' => '/group-a']);
+
+    $this->postJson(route('tracked-domains.store'), [
+        'data' => [
+            'type' => 'tracked-domains',
+            'attributes' => [
+                'domain' => 'gitlab.acme.com',
+                'path' => '/group-b',
+                'customerId' => $customer->id,
+            ],
+        ],
+    ])->assertCreated();
+
+    expect(TrackedDomain::query()->count())->toEqual(2);
+});
+
+it('refuses the same domain and path twice', function () {
+    $this->loginUser(permissions: ['tracked-domains.create']);
+
+    $customer = Customer::factory()->create();
+
+    TrackedDomain::factory()->create(['domain' => 'gitlab.acme.com', 'path' => '/group-a']);
+
+    $this->postJson(route('tracked-domains.store'), [
+        'data' => [
+            'type' => 'tracked-domains',
+            'attributes' => [
+                'domain' => 'https://gitlab.acme.com/group-a',
+                'customerId' => $customer->id,
+            ],
+        ],
+    ])->assertJsonValidationErrors('data.attributes.domain');
+});
+
 it('refuses a budget that belongs to another customer', function () {
     $this->loginUser(permissions: ['tracked-domains.create']);
 

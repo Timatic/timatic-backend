@@ -20,6 +20,9 @@ class TrackedDomainForm
                 ->required()
                 ->helperText('Subdomains are covered too: acme.com also tracks app.acme.com.')
                 ->dehydrateStateUsing(fn (string $state): string => TrackedDomain::normalise($state)),
+            TextInput::make('path')
+                ->helperText('Optional. /projects/TIM only tracks that part of the domain, and wins over a mapping on the whole domain.')
+                ->dehydrateStateUsing(fn (?string $state): string => TrackedDomain::normalisePath((string) $state)),
             Select::make('customer_id')
                 ->label('Customer')
                 ->options(Customer::pluck('name', 'id'))

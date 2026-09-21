@@ -18,6 +18,7 @@ class TrackedDomainFactory extends Factory
     {
         return [
             'domain' => $this->faker->unique()->domainName(),
+            'path' => '',
             'customer_id' => Customer::factory(),
             'budget_id' => null,
             'is_internal' => false,

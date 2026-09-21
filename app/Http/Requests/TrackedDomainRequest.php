@@ -34,8 +34,11 @@ class TrackedDomainRequest extends FormRequest
                 'string',
                 'max:255',
                 'regex:/^[a-z0-9-]+(\.[a-z0-9-]+)+$/',
-                Rule::unique(TrackedDomain::class, 'domain')->ignore($this->route('tracked_domain')),
+                Rule::unique(TrackedDomain::class, 'domain')
+                    ->where('path', TrackedDomain::normalisePath((string) $this->input('data.attributes.path', '')))
+                    ->ignore($this->route('tracked_domain')),
             ],
+            'data.attributes.path' => ['nullable', 'string', 'max:255', 'regex:#^/[^?\#\s]*$#'],
             'data.attributes.customerId' => ['required', 'integer', 'exists:customers,id'],
             'data.attributes.budgetId' => ['nullable', 'integer', 'exists:budgets,id'],
             'data.attributes.isInternal' => ['boolean'],
@@ -69,6 +72,10 @@ class TrackedDomainRequest extends FormRequest
         ];
     }
 
+    /**
+     * A domain may be entered as a full url. Splitting it here keeps "paste the url you are looking
+     * at" working, and keeps the stored form canonical.
+     */
     protected function prepareForValidation(): void
     {
         $domain = $this->input('data.attributes.domain');
@@ -77,10 +84,16 @@ class TrackedDomainRequest extends FormRequest
             return;
         }
 
+        $path = $this->input('data.attributes.path');
+
+        $attributes = ['domain' => TrackedDomain::normalise($domain)];
+
+        $attributes['path'] = is_string($path) && $path !== ''
+            ? TrackedDomain::normalisePath($path)
+            : TrackedDomain::normalisePath($domain);
+
         $this->merge([
-            'data' => array_replace_recursive($this->input('data'), [
-                'attributes' => ['domain' => TrackedDomain::normalise($domain)],
-            ]),
+            'data' => array_replace_recursive($this->input('data'), ['attributes' => $attributes]),
         ]);
     }
 }

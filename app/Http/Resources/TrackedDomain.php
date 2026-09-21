@@ -14,6 +14,7 @@ class TrackedDomain extends JsonApiResource
     {
         return [
             'domain' => $this->domain,
+            'path' => $this->path,
             'customerId' => $this->customer_id,
             'budgetId' => $this->budget_id,
             'isInternal' => $this->is_internal,

@@ -30,3 +30,40 @@ it('ignores an inactive mapping', function () {
 
     expect(TrackedDomain::matching('acme.com'))->toBeNull();
 });
+
+it('normalises a url into a domain and a path', function () {
+    expect(TrackedDomain::normalise('https://WWW.Jira.Acme.com:8443/projects/TIM/board?x=1'))->toEqual('jira.acme.com');
+    expect(TrackedDomain::normalisePath('https://WWW.Jira.Acme.com:8443/projects/TIM/board?x=1'))->toEqual('/projects/TIM/board');
+});
+
+it('matches a mapping on a path', function () {
+    $trackedDomain = TrackedDomain::factory()->create(['domain' => 'gitlab.acme.com', 'path' => '/group-a']);
+
+    expect(TrackedDomain::matching('https://gitlab.acme.com/group-a/project/-/issues/3')?->id)->toEqual($trackedDomain->id);
+});
+
+it('does not match a url outside the mapped path', function () {
+    TrackedDomain::factory()->create(['domain' => 'gitlab.acme.com', 'path' => '/group-a']);
+
+    expect(TrackedDomain::matching('https://gitlab.acme.com/group-b/project'))->toBeNull();
+});
+
+it('does not match a path that merely starts with the mapped path', function () {
+    TrackedDomain::factory()->create(['domain' => 'gitlab.acme.com', 'path' => '/group-a']);
+
+    expect(TrackedDomain::matching('https://gitlab.acme.com/group-alpha'))->toBeNull();
+});
+
+it('prefers the mapping with the longest path', function () {
+    TrackedDomain::factory()->create(['domain' => 'gitlab.acme.com']);
+    $specific = TrackedDomain::factory()->create(['domain' => 'gitlab.acme.com', 'path' => '/group-a/project']);
+
+    expect(TrackedDomain::matching('https://gitlab.acme.com/group-a/project/-/issues/3')?->id)->toEqual($specific->id);
+});
+
+it('falls back to the mapping on the whole domain', function () {
+    $whole = TrackedDomain::factory()->create(['domain' => 'gitlab.acme.com']);
+    TrackedDomain::factory()->create(['domain' => 'gitlab.acme.com', 'path' => '/group-a']);
+
+    expect(TrackedDomain::matching('https://gitlab.acme.com/group-b')?->id)->toEqual($whole->id);
+});

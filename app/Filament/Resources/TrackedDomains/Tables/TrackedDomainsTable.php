@@ -15,7 +15,10 @@ class TrackedDomainsTable
     {
         return $table
             ->columns([
-                TextColumn::make('domain')->searchable()->sortable(),
+                TextColumn::make('domain')
+                    ->searchable()
+                    ->sortable()
+                    ->state(fn (TrackedDomain $record): string => $record->domain.$record->path),
                 TextColumn::make('customer.name')->searchable()->sortable(),
                 TextColumn::make('budget')
                     ->label('Budget')
