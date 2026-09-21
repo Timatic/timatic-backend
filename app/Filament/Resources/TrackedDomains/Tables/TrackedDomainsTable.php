@@ -25,6 +25,7 @@ class TrackedDomainsTable
                     ->state(fn (TrackedDomain $record): ?string => $record->budget?->getTitle()),
                 IconColumn::make('is_internal')->label('Internal')->boolean(),
                 IconColumn::make('is_active')->label('Active')->boolean(),
+                TextColumn::make('user.email')->label('Private to')->placeholder('Shared'),
                 TextColumn::make('createdBy.email')->label('Added by'),
             ])
             ->recordActions([

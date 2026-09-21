@@ -43,6 +43,7 @@ class TrackedDomainRequest extends FormRequest
             'data.attributes.budgetId' => ['nullable', 'integer', 'exists:budgets,id'],
             'data.attributes.isInternal' => ['boolean'],
             'data.attributes.isActive' => ['boolean'],
+            'data.attributes.isPrivate' => ['boolean'],
         ]);
     }
 

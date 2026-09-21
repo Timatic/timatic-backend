@@ -15,6 +15,7 @@ use Illuminate\Support\Str;
 
 /**
  * @property ?int $id
+ * @property ?int $user_id
  * @property string $domain
  * @property string $path
  * @property int $customer_id
@@ -27,8 +28,10 @@ use Illuminate\Support\Str;
  * @property ?Customer $customer
  * @property ?Budget $budget
  * @property ?User $createdBy
+ * @property ?User $user
  *
- * @method static TrackedDomain|Builder<TrackedDomain> active()
+ * @method static Builder<TrackedDomain> active()
+ * @method static Builder<TrackedDomain> visibleTo(?int $userId)
  */
 class TrackedDomain extends Model
 {
@@ -36,6 +39,7 @@ class TrackedDomain extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'domain',
         'path',
         'customer_id',
@@ -89,9 +93,9 @@ class TrackedDomain extends Model
      * The tracked domain that covers a url, or null when it is not opted in. A mapping covers its
      * subdomains and everything below its path, and the most specific mapping wins: with both
      * "acme.com" and "jira.acme.com/projects/TIM" stored, a url under that project resolves to the
-     * latter.
+     * latter. A user's own mapping beats a shared one on the same url.
      */
-    public static function matching(string $hostOrUrl): ?self
+    public static function matching(string $hostOrUrl, ?int $userId = null): ?self
     {
         $host = self::normalise($hostOrUrl);
 
@@ -103,8 +107,9 @@ class TrackedDomain extends Model
 
         return self::query()
             ->active()
+            ->visibleTo($userId)
             ->whereIn('domain', self::candidates($host))
-            ->orderByRaw('LENGTH(domain) DESC, LENGTH(path) DESC')
+            ->orderByRaw('user_id IS NULL, LENGTH(domain) DESC, LENGTH(path) DESC')
             ->get()
             ->first(fn (self $trackedDomain): bool => $trackedDomain->covers($path));
     }
@@ -117,6 +122,14 @@ class TrackedDomain extends Model
         }
 
         return $path === $this->path || str_starts_with($path, $this->path.'/');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     /**
@@ -150,6 +163,24 @@ class TrackedDomain extends Model
     protected function active(Builder $query): void
     {
         $query->where('is_active', true);
+    }
+
+    /**
+     * Shared mappings plus the ones this user keeps to themselves. Another user's private mappings
+     * are invisible: their local development domains are none of your business.
+     *
+     * @param  Builder<TrackedDomain>  $query
+     */
+    #[Scope]
+    protected function visibleTo(Builder $query, ?int $userId): void
+    {
+        $query->where(function (Builder $query) use ($userId) {
+            $query->whereNull('user_id');
+
+            if ($userId !== null) {
+                $query->orWhere('user_id', $userId);
+            }
+        });
     }
 
     /** Lets parse_url do the work for bare hosts too, which it otherwise reads as a path. */

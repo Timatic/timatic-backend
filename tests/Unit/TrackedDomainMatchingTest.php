@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\TrackedDomain;
+use App\Models\User;
 
 it('normalises a url to a bare host', function () {
     expect(TrackedDomain::normalise('https://WWW.Acme.com:8443/browse/TIM-1?x=1'))->toEqual('acme.com');
@@ -66,4 +67,23 @@ it('falls back to the mapping on the whole domain', function () {
     TrackedDomain::factory()->create(['domain' => 'gitlab.acme.com', 'path' => '/group-a']);
 
     expect(TrackedDomain::matching('https://gitlab.acme.com/group-b')?->id)->toEqual($whole->id);
+});
+
+it('prefers a user their own mapping over the shared one', function () {
+    $user = User::factory()->create();
+
+    TrackedDomain::factory()->create(['domain' => 'acme.com']);
+    $own = TrackedDomain::factory()->create(['domain' => 'acme.com', 'user_id' => $user->id]);
+
+    expect(TrackedDomain::matching('acme.com', $user->id)?->id)->toEqual($own->id);
+});
+
+it('does not match a private mapping of somebody else', function () {
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+
+    TrackedDomain::factory()->create(['domain' => 'timatic-backend.test', 'user_id' => $owner->id]);
+
+    expect(TrackedDomain::matching('timatic-backend.test', $other->id))->toBeNull();
+    expect(TrackedDomain::matching('timatic-backend.test', $owner->id))->not->toBeNull();
 });

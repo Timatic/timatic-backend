@@ -3,6 +3,7 @@
 use App\Models\Budget;
 use App\Models\Customer;
 use App\Models\TrackedDomain;
+use App\Models\User;
 use Tests\Concerns\LoginUser;
 
 uses(LoginUser::class);
@@ -188,4 +189,39 @@ it('removes a tracked domain', function () {
     $this->deleteJson(route('tracked-domains.destroy', $trackedDomain))->assertNoContent();
 
     expect(TrackedDomain::query()->count())->toEqual(0);
+});
+
+it('keeps a private mapping to its owner', function () {
+    $user = $this->loginUser(permissions: ['tracked-domains.create']);
+
+    $customer = Customer::factory()->create();
+
+    $this->postJson(route('tracked-domains.store'), [
+        'data' => [
+            'type' => 'tracked-domains',
+            'attributes' => [
+                'domain' => 'timatic-backend.test',
+                'customerId' => $customer->id,
+                'isPrivate' => true,
+            ],
+        ],
+    ])->assertCreated();
+
+    expect(TrackedDomain::query()->sole()->user_id)->toEqual($user->id);
+});
+
+it('lets its owner remove a private mapping without the delete permission', function () {
+    $user = $this->loginUser();
+
+    $trackedDomain = TrackedDomain::factory()->create(['user_id' => $user->id]);
+
+    $this->deleteJson(route('tracked-domains.destroy', $trackedDomain))->assertNoContent();
+});
+
+it('refuses to remove a private mapping of somebody else', function () {
+    $this->loginUser(permissions: ['tracked-domains.create']);
+
+    $trackedDomain = TrackedDomain::factory()->create(['user_id' => User::factory()->create()->id]);
+
+    $this->deleteJson(route('tracked-domains.destroy', $trackedDomain))->assertForbidden();
 });

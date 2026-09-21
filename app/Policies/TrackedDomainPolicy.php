@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Models\TrackedDomain;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Contracts\Auth\Access\Authorizable;
 
@@ -27,18 +28,26 @@ class TrackedDomainPolicy
         return $authUser->can('tracked-domains.create');
     }
 
+    /** Its owner always may: a private mapping is theirs alone. */
     public function update(Authorizable $authUser, TrackedDomain $trackedDomain): bool
     {
-        return $authUser->can('tracked-domains.update');
+        return $this->owns($authUser, $trackedDomain) || $authUser->can('tracked-domains.update');
     }
 
     public function delete(Authorizable $authUser, TrackedDomain $trackedDomain): bool
     {
-        return $authUser->can('tracked-domains.delete');
+        return $this->owns($authUser, $trackedDomain) || $authUser->can('tracked-domains.delete');
     }
 
     public function deleteAny(Authorizable $authUser): bool
     {
         return $authUser->can('tracked-domains.delete');
+    }
+
+    private function owns(Authorizable $authUser, TrackedDomain $trackedDomain): bool
+    {
+        return $trackedDomain->user_id !== null
+            && $authUser instanceof User
+            && $trackedDomain->user_id === $authUser->id;
     }
 }

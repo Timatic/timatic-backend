@@ -5,6 +5,7 @@ namespace App\Filament\Resources\TrackedDomains\Schemas;
 use App\Models\Budget;
 use App\Models\Customer;
 use App\Models\TrackedDomain;
+use App\Models\User;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -37,6 +38,11 @@ class TrackedDomainForm
                     ->get()
                     ->mapWithKeys(fn (Budget $budget): array => [$budget->id => $budget->getTitle()])
                     ->all())
+                ->searchable(),
+            Select::make('user_id')
+                ->label('Private to')
+                ->helperText('Leave empty to share the mapping with everyone. Used for local development domains, which differ per engineer.')
+                ->options(User::pluck('email', 'id'))
                 ->searchable(),
             Toggle::make('is_internal')->label('Internal'),
             Toggle::make('is_active')->label('Active')->default(true),

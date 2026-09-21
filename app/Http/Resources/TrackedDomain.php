@@ -19,6 +19,7 @@ class TrackedDomain extends JsonApiResource
             'budgetId' => $this->budget_id,
             'isInternal' => $this->is_internal,
             'isActive' => $this->is_active,
+            'isPrivate' => $this->user_id !== null,
             'createdByUserId' => $this->created_by_user_id,
             'createdAt' => $this->created_at,
             'updatedAt' => $this->updated_at,

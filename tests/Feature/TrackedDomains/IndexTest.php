@@ -3,6 +3,7 @@
 use App\Models\Budget;
 use App\Models\Customer;
 use App\Models\TrackedDomain;
+use App\Models\User;
 use Tests\Concerns\LoginUser;
 
 uses(LoginUser::class);
@@ -52,4 +53,26 @@ it('exposes the budget of a tracked domain', function () {
     $response = $this->getJson(route('tracked-domains.index'))->assertOk();
 
     expect($response->json('data.0.attributes.budgetId'))->toEqual($budget->id);
+});
+
+it('hides a private mapping of another user', function () {
+    $this->loginUser(permissions: ['tracked-domains.read']);
+
+    TrackedDomain::factory()->create(['domain' => 'shared.acme.com']);
+    TrackedDomain::factory()->create(['domain' => 'someone.test', 'user_id' => User::factory()->create()->id]);
+
+    $response = $this->getJson(route('tracked-domains.index'))->assertOk();
+
+    expect($response->json('data'))->toHaveCount(1);
+    expect($response->json('data.0.attributes.domain'))->toEqual('shared.acme.com');
+});
+
+it('shows a user their own private mapping', function () {
+    $user = $this->loginUser(permissions: ['tracked-domains.read']);
+
+    TrackedDomain::factory()->create(['domain' => 'timatic-backend.test', 'user_id' => $user->id]);
+
+    $response = $this->getJson(route('tracked-domains.index'))->assertOk();
+
+    expect($response->json('data.0.attributes.isPrivate'))->toBeTrue();
 });

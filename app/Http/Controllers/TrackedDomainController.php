@@ -14,6 +14,7 @@ use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Arr;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 use TiMacDonald\JsonApi\JsonApiResourceCollection;
@@ -30,9 +31,12 @@ class TrackedDomainController extends Controller implements HasMiddleware
         ];
     }
 
-    public function index(): JsonApiResourceCollection
+    /**
+     * @param  User|ApiToken  $user
+     */
+    public function index(#[CurrentUser] $user): JsonApiResourceCollection
     {
-        $trackedDomains = QueryBuilder::for(TrackedDomain::class)
+        $trackedDomains = QueryBuilder::for(TrackedDomain::query()->visibleTo($user instanceof User ? $user->id : null))
             ->allowedFilters([
                 AllowedFilter::exact('domain'),
                 AllowedFilter::exact('customerId', 'customer_id'),
@@ -52,9 +56,13 @@ class TrackedDomainController extends Controller implements HasMiddleware
      */
     public function store(TrackedDomainRequest $request, #[CurrentUser] $user): Resources\TrackedDomain
     {
+        $attributes = $request->validatedAttributes();
+        $userId = $user instanceof User ? $user->id : null;
+
         $trackedDomain = TrackedDomain::query()->create([
-            ...$request->validatedAttributes(),
-            'created_by_user_id' => $user instanceof User ? $user->id : null,
+            ...Arr::except($attributes, 'is_private'),
+            'user_id' => ($attributes['is_private'] ?? false) ? $userId : null,
+            'created_by_user_id' => $userId,
         ]);
 
         return new Resources\TrackedDomain($trackedDomain);
@@ -62,7 +70,7 @@ class TrackedDomainController extends Controller implements HasMiddleware
 
     public function update(TrackedDomainRequest $request, TrackedDomain $trackedDomain): Resources\TrackedDomain
     {
-        $trackedDomain->update($request->validatedAttributes());
+        $trackedDomain->update(Arr::except($request->validatedAttributes(), 'is_private'));
 
         return new Resources\TrackedDomain($trackedDomain);
     }
