@@ -74,5 +74,30 @@ it('shows a user their own private mapping', function () {
 
     $response = $this->getJson(route('tracked-domains.index'))->assertOk();
 
-    expect($response->json('data.0.attributes.isPrivate'))->toBeTrue();
+    expect($response->json('data.0.attributes.userId'))->toEqual($user->id);
+});
+
+it('filters the mappings shared with everyone', function () {
+    $user = $this->loginUser(permissions: ['tracked-domains.read']);
+
+    TrackedDomain::factory()->create(['domain' => 'shared.acme.com']);
+    TrackedDomain::factory()->create(['domain' => 'timatic-backend.test', 'user_id' => $user->id]);
+
+    $response = $this->getJson(route('tracked-domains.index', ['filter' => ['shared' => 'true']]))->assertOk();
+
+    expect($response->json('data'))->toHaveCount(1);
+    expect($response->json('data.0.attributes.domain'))->toEqual('shared.acme.com');
+    expect($response->json('data.0.attributes.userId'))->toBeNull();
+});
+
+it('filters the mappings of one user', function () {
+    $user = $this->loginUser(permissions: ['tracked-domains.read']);
+
+    TrackedDomain::factory()->create(['domain' => 'shared.acme.com']);
+    TrackedDomain::factory()->create(['domain' => 'timatic-backend.test', 'user_id' => $user->id]);
+
+    $response = $this->getJson(route('tracked-domains.index', ['filter' => ['userId' => $user->id]]))->assertOk();
+
+    expect($response->json('data'))->toHaveCount(1);
+    expect($response->json('data.0.attributes.domain'))->toEqual('timatic-backend.test');
 });

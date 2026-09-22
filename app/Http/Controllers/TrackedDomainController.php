@@ -14,7 +14,6 @@ use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
-use Illuminate\Support\Arr;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 use TiMacDonald\JsonApi\JsonApiResourceCollection;
@@ -36,11 +35,13 @@ class TrackedDomainController extends Controller implements HasMiddleware
      */
     public function index(#[CurrentUser] $user): JsonApiResourceCollection
     {
-        $trackedDomains = QueryBuilder::for(TrackedDomain::query()->visibleTo($user instanceof User ? $user->id : null))
+        $trackedDomains = QueryBuilder::for(TrackedDomain::query()->visibleTo($this->userId($user)))
             ->allowedFilters([
                 AllowedFilter::exact('domain'),
                 AllowedFilter::exact('customerId', 'customer_id'),
                 AllowedFilter::exact('isActive', 'is_active'),
+                AllowedFilter::exact('userId', 'user_id'),
+                AllowedFilter::scope('shared'),
             ])
             ->allowedIncludes([
                 'customer',
@@ -56,13 +57,9 @@ class TrackedDomainController extends Controller implements HasMiddleware
      */
     public function store(TrackedDomainRequest $request, #[CurrentUser] $user): Resources\TrackedDomain
     {
-        $attributes = $request->validatedAttributes();
-        $userId = $user instanceof User ? $user->id : null;
-
         $trackedDomain = TrackedDomain::query()->create([
-            ...Arr::except($attributes, 'is_private'),
-            'user_id' => ($attributes['is_private'] ?? false) ? $userId : null,
-            'created_by_user_id' => $userId,
+            ...$request->validatedAttributes(),
+            'created_by_user_id' => $this->userId($user),
         ]);
 
         return new Resources\TrackedDomain($trackedDomain);
@@ -70,7 +67,7 @@ class TrackedDomainController extends Controller implements HasMiddleware
 
     public function update(TrackedDomainRequest $request, TrackedDomain $trackedDomain): Resources\TrackedDomain
     {
-        $trackedDomain->update(Arr::except($request->validatedAttributes(), 'is_private'));
+        $trackedDomain->update($request->validatedAttributes());
 
         return new Resources\TrackedDomain($trackedDomain);
     }
@@ -80,5 +77,11 @@ class TrackedDomainController extends Controller implements HasMiddleware
         $trackedDomain->delete();
 
         return $responseFactory->noContent();
+    }
+
+    /** Null for an api token that belongs to nobody: it owns no mappings and creates none. */
+    private function userId(User|ApiToken $user): ?int
+    {
+        return $user instanceof User ? $user->id : null;
     }
 }

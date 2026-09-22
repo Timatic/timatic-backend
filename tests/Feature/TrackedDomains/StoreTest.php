@@ -17,6 +17,7 @@ it('stores a tracked domain from a full url', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
+                'userId' => $user->id,
                 'domain' => 'https://WWW.Jira.Acme.com/browse/TIM-1',
                 'customerId' => $budget->customer_id,
                 'budgetId' => $budget->id,
@@ -35,7 +36,7 @@ it('stores a tracked domain from a full url', function () {
 });
 
 it('stores the path of a url as a separate mapping', function () {
-    $this->loginUser(permissions: ['tracked-domains.create']);
+    $user = $this->loginUser(permissions: ['tracked-domains.create']);
 
     $budget = Budget::factory()->create();
 
@@ -43,6 +44,7 @@ it('stores the path of a url as a separate mapping', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
+                'userId' => $user->id,
                 'domain' => 'https://gitlab.acme.com/group-a/project/-/issues',
                 'path' => '/group-a',
                 'customerId' => $budget->customer_id,
@@ -59,7 +61,7 @@ it('stores the path of a url as a separate mapping', function () {
 });
 
 it('takes the path from the url when none is given', function () {
-    $this->loginUser(permissions: ['tracked-domains.create']);
+    $user = $this->loginUser(permissions: ['tracked-domains.create']);
 
     $customer = Customer::factory()->create();
 
@@ -67,6 +69,7 @@ it('takes the path from the url when none is given', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
+                'userId' => $user->id,
                 'domain' => 'https://gitlab.acme.com/group-a/',
                 'customerId' => $customer->id,
             ],
@@ -77,7 +80,7 @@ it('takes the path from the url when none is given', function () {
 });
 
 it('allows the same domain with a different path', function () {
-    $this->loginUser(permissions: ['tracked-domains.create']);
+    $user = $this->loginUser(permissions: ['tracked-domains.create']);
 
     $customer = Customer::factory()->create();
 
@@ -87,6 +90,7 @@ it('allows the same domain with a different path', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
+                'userId' => $user->id,
                 'domain' => 'gitlab.acme.com',
                 'path' => '/group-b',
                 'customerId' => $customer->id,
@@ -98,16 +102,17 @@ it('allows the same domain with a different path', function () {
 });
 
 it('refuses the same domain and path twice', function () {
-    $this->loginUser(permissions: ['tracked-domains.create']);
+    $user = $this->loginUser(permissions: ['tracked-domains.create']);
 
     $customer = Customer::factory()->create();
 
-    TrackedDomain::factory()->create(['domain' => 'gitlab.acme.com', 'path' => '/group-a']);
+    TrackedDomain::factory()->create(['domain' => 'gitlab.acme.com', 'path' => '/group-a', 'user_id' => $user->id]);
 
     $this->postJson(route('tracked-domains.store'), [
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
+                'userId' => $user->id,
                 'domain' => 'https://gitlab.acme.com/group-a',
                 'customerId' => $customer->id,
             ],
@@ -116,7 +121,7 @@ it('refuses the same domain and path twice', function () {
 });
 
 it('refuses a budget that belongs to another customer', function () {
-    $this->loginUser(permissions: ['tracked-domains.create']);
+    $user = $this->loginUser(permissions: ['tracked-domains.create']);
 
     $budget = Budget::factory()->create();
     $otherCustomer = Customer::factory()->create();
@@ -125,6 +130,7 @@ it('refuses a budget that belongs to another customer', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
+                'userId' => $user->id,
                 'domain' => 'jira.acme.com',
                 'customerId' => $otherCustomer->id,
                 'budgetId' => $budget->id,
@@ -134,15 +140,16 @@ it('refuses a budget that belongs to another customer', function () {
 });
 
 it('refuses a domain that is already tracked', function () {
-    $this->loginUser(permissions: ['tracked-domains.create']);
+    $user = $this->loginUser(permissions: ['tracked-domains.create']);
 
     $customer = Customer::factory()->create();
-    TrackedDomain::factory()->create(['domain' => 'jira.acme.com']);
+    TrackedDomain::factory()->create(['domain' => 'jira.acme.com', 'user_id' => $user->id]);
 
     $this->postJson(route('tracked-domains.store'), [
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
+                'userId' => $user->id,
                 'domain' => 'https://jira.acme.com',
                 'customerId' => $customer->id,
             ],
@@ -151,7 +158,7 @@ it('refuses a domain that is already tracked', function () {
 });
 
 it('refuses a user without the create permission', function () {
-    $this->loginUser();
+    $user = $this->loginUser();
 
     $customer = Customer::factory()->create();
 
@@ -159,6 +166,7 @@ it('refuses a user without the create permission', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
+                'userId' => $user->id,
                 'domain' => 'jira.acme.com',
                 'customerId' => $customer->id,
             ],
@@ -191,7 +199,7 @@ it('removes a tracked domain', function () {
     expect(TrackedDomain::query()->count())->toEqual(0);
 });
 
-it('keeps a private mapping to its owner', function () {
+it('keeps a mapping to the user who made it', function () {
     $user = $this->loginUser(permissions: ['tracked-domains.create']);
 
     $customer = Customer::factory()->create();
@@ -200,14 +208,106 @@ it('keeps a private mapping to its owner', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
+                'userId' => $user->id,
                 'domain' => 'timatic-backend.test',
                 'customerId' => $customer->id,
-                'isPrivate' => true,
             ],
         ],
     ])->assertCreated();
 
     expect(TrackedDomain::query()->sole()->user_id)->toEqual($user->id);
+});
+
+it('refuses a mapping without a user', function () {
+    $this->loginUser(permissions: ['tracked-domains.create']);
+
+    $customer = Customer::factory()->create();
+
+    $this->postJson(route('tracked-domains.store'), [
+        'data' => [
+            'type' => 'tracked-domains',
+            'attributes' => [
+                'domain' => 'jira.acme.com',
+                'customerId' => $customer->id,
+            ],
+        ],
+    ])->assertJsonValidationErrors('data.attributes.userId');
+});
+
+it('refuses a mapping for somebody else', function () {
+    $this->loginUser(permissions: ['tracked-domains.create']);
+
+    $customer = Customer::factory()->create();
+
+    $this->postJson(route('tracked-domains.store'), [
+        'data' => [
+            'type' => 'tracked-domains',
+            'attributes' => [
+                'userId' => User::factory()->create()->id,
+                'domain' => 'jira.acme.com',
+                'customerId' => $customer->id,
+            ],
+        ],
+    ])->assertJsonValidationErrors('data.attributes.userId');
+});
+
+it('accepts a shared mapping as a mapping of its own', function () {
+    $user = $this->loginUser(permissions: ['tracked-domains.create']);
+
+    $shared = TrackedDomain::factory()->create(['domain' => 'jira.acme.com']);
+
+    $response = $this->postJson(route('tracked-domains.store'), [
+        'data' => [
+            'type' => 'tracked-domains',
+            'attributes' => [
+                'userId' => $user->id,
+                'sourceId' => $shared->id,
+                'domain' => 'jira.acme.com',
+                'customerId' => $shared->customer_id,
+            ],
+        ],
+    ])->assertCreated();
+
+    expect($response->json('data.attributes.sourceId'))->toEqual($shared->id);
+    expect(TrackedDomain::query()->where('user_id', $user->id)->sole()->source_id)->toEqual($shared->id);
+});
+
+it('refuses to accept a mapping that belongs to somebody', function () {
+    $user = $this->loginUser(permissions: ['tracked-domains.create']);
+
+    $other = TrackedDomain::factory()->create(['domain' => 'jira.acme.com', 'user_id' => User::factory()->create()->id]);
+
+    $this->postJson(route('tracked-domains.store'), [
+        'data' => [
+            'type' => 'tracked-domains',
+            'attributes' => [
+                'userId' => $user->id,
+                'sourceId' => $other->id,
+                'domain' => 'jira.acme.com',
+                'customerId' => $other->customer_id,
+            ],
+        ],
+    ])->assertJsonValidationErrors('data.attributes.sourceId');
+});
+
+it('lets two users map the same domain', function () {
+    $user = $this->loginUser(permissions: ['tracked-domains.create']);
+
+    $customer = Customer::factory()->create();
+    TrackedDomain::factory()->create(['domain' => 'jira.acme.com', 'user_id' => User::factory()->create()->id]);
+
+    $this->postJson(route('tracked-domains.store'), [
+        'data' => [
+            'type' => 'tracked-domains',
+            'attributes' => [
+                'userId' => $user->id,
+                'domain' => 'jira.acme.com',
+                'customerId' => $customer->id,
+            ],
+        ],
+    ])->assertCreated();
+
+    expect(TrackedDomain::query()->count())->toEqual(2);
 });
 
 it('lets its owner remove a private mapping without the delete permission', function () {

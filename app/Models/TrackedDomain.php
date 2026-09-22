@@ -16,6 +16,7 @@ use Illuminate\Support\Str;
 /**
  * @property ?int $id
  * @property ?int $user_id
+ * @property ?int $source_id
  * @property string $domain
  * @property string $path
  * @property int $customer_id
@@ -29,8 +30,10 @@ use Illuminate\Support\Str;
  * @property ?Budget $budget
  * @property ?User $createdBy
  * @property ?User $user
+ * @property ?TrackedDomain $source
  *
  * @method static Builder<TrackedDomain> active()
+ * @method static Builder<TrackedDomain> shared(mixed $isShared = true)
  * @method static Builder<TrackedDomain> visibleTo(?int $userId)
  */
 class TrackedDomain extends Model
@@ -40,6 +43,7 @@ class TrackedDomain extends Model
 
     protected $fillable = [
         'user_id',
+        'source_id',
         'domain',
         'path',
         'customer_id',
@@ -133,6 +137,16 @@ class TrackedDomain extends Model
     }
 
     /**
+     * The shared mapping this one was accepted from.
+     *
+     * @return BelongsTo<TrackedDomain, $this>
+     */
+    public function source(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'source_id');
+    }
+
+    /**
      * @return BelongsTo<Customer, $this>
      */
     public function customer(): BelongsTo
@@ -163,6 +177,22 @@ class TrackedDomain extends Model
     protected function active(Builder $query): void
     {
         $query->where('is_active', true);
+    }
+
+    /**
+     * Mappings without an owner: the ones the web app shares with everyone, which the extension
+     * offers as a suggestion rather than tracking them.
+     *
+     * @param  Builder<TrackedDomain>  $query
+     */
+    #[Scope]
+    protected function shared(Builder $query, mixed $isShared = true): void
+    {
+        if (filter_var($isShared, FILTER_VALIDATE_BOOLEAN)) {
+            $query->whereNull('user_id');
+        } else {
+            $query->whereNotNull('user_id');
+        }
     }
 
     /**
