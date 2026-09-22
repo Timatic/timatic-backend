@@ -48,6 +48,10 @@ class SyncUserCalendarJob implements ShouldQueue
 
             $calendarEvent = CalendarEvent::fromApiResponse($item);
 
+            if ($calendarEvent->isPrivate()) {
+                continue;
+            }
+
             if (! $calendarEvent->startedAt->between($lookbackStartsAt, now())) {
                 continue;
             }

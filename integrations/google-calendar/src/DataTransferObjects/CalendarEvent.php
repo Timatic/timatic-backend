@@ -6,12 +6,15 @@ use Carbon\CarbonImmutable;
 
 readonly class CalendarEvent
 {
+    private const PRIVATE_VISIBILITIES = ['private', 'confidential'];
+
     public function __construct(
         public string $googleEventId,
         public string $title,
         public ?string $description,
         public CarbonImmutable $startedAt,
         public CarbonImmutable $endedAt,
+        public string $visibility = 'default',
     ) {}
 
     /** @param array<string, mixed> $item */
@@ -26,6 +29,12 @@ readonly class CalendarEvent
             description: isset($item['description']) ? strip_tags($item['description']) : null,
             startedAt: $startedAt,
             endedAt: $endedAt,
+            visibility: $item['visibility'] ?? 'default',
         );
+    }
+
+    public function isPrivate(): bool
+    {
+        return in_array($this->visibility, self::PRIVATE_VISIBILITIES, true);
     }
 }

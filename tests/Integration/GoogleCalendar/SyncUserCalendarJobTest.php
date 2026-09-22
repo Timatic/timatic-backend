@@ -72,3 +72,57 @@ it('does not create a duplicate event when an overlapping sync fetches the same 
 
     expect(Event::count())->toBe(1);
 });
+
+it('does not create an event for a calendar event marked as private', function () {
+    $user = User::factory()->create([
+        'oauth_access_token' => 'test-access-token',
+        'oauth_refresh_token' => 'test-refresh-token',
+        'oauth_token_expires_at' => now()->addHour()->timestamp,
+    ]);
+
+    MockClient::global([
+        ListEventsRequest::class => MockResponse::make([
+            'items' => [
+                [
+                    'id' => 'google-event-1',
+                    'status' => 'confirmed',
+                    'summary' => 'Tandarts',
+                    'visibility' => 'private',
+                    'start' => ['dateTime' => now()->subMinutes(5)->toRfc3339String()],
+                    'end' => ['dateTime' => now()->toRfc3339String()],
+                ],
+            ],
+        ]),
+    ]);
+
+    new SyncUserCalendarJob($user)->handle(app(OAuthService::class), app(TicketService::class));
+
+    expect(Event::count())->toBe(0);
+});
+
+it('does not create an event for a calendar event marked as confidential', function () {
+    $user = User::factory()->create([
+        'oauth_access_token' => 'test-access-token',
+        'oauth_refresh_token' => 'test-refresh-token',
+        'oauth_token_expires_at' => now()->addHour()->timestamp,
+    ]);
+
+    MockClient::global([
+        ListEventsRequest::class => MockResponse::make([
+            'items' => [
+                [
+                    'id' => 'google-event-1',
+                    'status' => 'confirmed',
+                    'summary' => 'Beoordelingsgesprek',
+                    'visibility' => 'confidential',
+                    'start' => ['dateTime' => now()->subMinutes(5)->toRfc3339String()],
+                    'end' => ['dateTime' => now()->toRfc3339String()],
+                ],
+            ],
+        ]),
+    ]);
+
+    new SyncUserCalendarJob($user)->handle(app(OAuthService::class), app(TicketService::class));
+
+    expect(Event::count())->toBe(0);
+});
