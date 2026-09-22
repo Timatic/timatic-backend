@@ -5,7 +5,9 @@ namespace App\Models;
 use App\Events\CreatingActivity;
 use Carbon\Carbon;
 use Database\Factories\ActivityFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -38,6 +40,10 @@ class Activity extends Model
     /** @use HasFactory<ActivityFactory> */
     use HasFactory;
 
+    use MassPrunable;
+
+    public const RETENTION_DAYS = 30;
+
     protected $fillable = [
         'started_at',
         'ended_at',
@@ -63,6 +69,14 @@ class Activity extends Model
             'id' => 'integer',
             'is_internal' => 'bool',
         ];
+    }
+
+    /**
+     * @return Builder<Activity>
+     */
+    public function prunable(): Builder
+    {
+        return $this->newQuery()->where('created_at', '<', now()->subDays(self::RETENTION_DAYS));
     }
 
     /**

@@ -5,7 +5,9 @@ namespace App\Models;
 use App\Events\EventCreated;
 use Carbon\CarbonInterface;
 use Database\Factories\EventFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -39,6 +41,10 @@ class Event extends Model
 {
     /** @use HasFactory<EventFactory> */
     use HasFactory;
+
+    use MassPrunable;
+
+    public const RETENTION_DAYS = 30;
 
     private const ESTIMATED_DURATION_MINUTES = 15;
 
@@ -74,6 +80,14 @@ class Event extends Model
             'id' => 'integer',
             'is_internal' => 'boolean',
         ];
+    }
+
+    /**
+     * @return Builder<Event>
+     */
+    public function prunable(): Builder
+    {
+        return $this->newQuery()->where('created_at', '<', now()->subDays(self::RETENTION_DAYS));
     }
 
     /**

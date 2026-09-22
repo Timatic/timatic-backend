@@ -9,3 +9,7 @@ Schedule::command('suggestions:remind')
 Schedule::command('budget:balance-notification')
     ->monthly()->at('08:00')
     ->onOneServer();
+
+Schedule::command('model:prune')
+    ->daily()->at('03:00')
+    ->onOneServer();
