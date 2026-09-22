@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\ExtensionIds;
+
 return [
 
     'paths' => ['*'],
@@ -8,7 +10,7 @@ return [
         env('APP_FRONTEND_URL'),
         ...array_map(
             fn (string $extensionId): string => 'chrome-extension://'.$extensionId,
-            config('extension.ids', []),
+            ExtensionIds::parse((string) env('EXTENSION_IDS', '')),
         ),
     ])),
 
