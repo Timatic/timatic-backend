@@ -126,3 +126,30 @@ it('does not create an event for a calendar event marked as confidential', funct
 
     expect(Event::count())->toBe(0);
 });
+
+it('does not store the description of a calendar event', function () {
+    $user = User::factory()->create([
+        'oauth_access_token' => 'test-access-token',
+        'oauth_refresh_token' => 'test-refresh-token',
+        'oauth_token_expires_at' => now()->addHour()->timestamp,
+    ]);
+
+    MockClient::global([
+        ListEventsRequest::class => MockResponse::make([
+            'items' => [
+                [
+                    'id' => 'google-event-1',
+                    'status' => 'confirmed',
+                    'summary' => 'Standup',
+                    'description' => 'Bespreken: salaris van Jan en het conflict met de buren',
+                    'start' => ['dateTime' => now()->subMinutes(5)->toRfc3339String()],
+                    'end' => ['dateTime' => now()->toRfc3339String()],
+                ],
+            ],
+        ]),
+    ]);
+
+    new SyncUserCalendarJob($user)->handle(app(OAuthService::class), app(TicketService::class));
+
+    expect(Event::sole()->description)->toBeNull();
+});

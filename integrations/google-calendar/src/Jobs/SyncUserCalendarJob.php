@@ -65,9 +65,6 @@ class SyncUserCalendarJob implements ShouldQueue
                 'user_id' => $user->id,
                 'event_type_id' => ServiceProvider::EVENT_TYPE_CALENDAR_EVENT_STARTED,
                 'title' => mb_substr($calendarEvent->title, 0, 255),
-                'description' => $calendarEvent->description !== null
-                    ? mb_substr($calendarEvent->description, 0, 65535)
-                    : null,
                 'ticket_id' => $ticket?->id,
                 'ticket_number' => $ticket?->number,
                 'ticket_type' => $ticket?->type,
