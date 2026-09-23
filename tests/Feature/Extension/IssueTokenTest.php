@@ -3,6 +3,8 @@
 use App\Models\ApiToken;
 use App\Models\User;
 use App\Services\ExtensionAuthorizationService;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
+use Illuminate\Support\Facades\Route;
 
 beforeEach(function () {
     config(['extension.ids' => ['abcdefghijklmnopabcdefghijklmnop']]);
@@ -80,4 +82,11 @@ it('refuses an expired code', function () {
         'redirect_uri' => $this->redirectUri,
         'device_name' => 'Chrome op Mac',
     ])->assertStatus(410);
+});
+
+it('exempts the token endpoints from csrf verification', function () {
+    $excluded = fn (string $name): array => Route::getRoutes()->getByName($name)->excludedMiddleware();
+
+    expect($excluded('extension.token.store'))->toContain(ValidateCsrfToken::class);
+    expect($excluded('extension.token.destroy'))->toContain(ValidateCsrfToken::class);
 });

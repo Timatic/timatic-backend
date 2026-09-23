@@ -36,9 +36,9 @@ class AuthorizeController extends Controller
     }
 
     /**
-     * Approving hands out a single use code. Csrf verification is disabled application wide, so the
-     * form posts to a signed url instead: without that, any site could mint a token for a user that
-     * happens to be logged in.
+     * Approving hands out a single use code. The form posts to a signed url on top of the csrf
+     * token: without the signature, the approved parameters could be swapped for another
+     * extension's redirect uri after the consent screen was rendered.
      */
     #[ExcludeRouteFromDocs]
     public function approve(ExtensionAuthorizeRequest $request, #[CurrentUser] User $user): RedirectResponse

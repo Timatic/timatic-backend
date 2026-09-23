@@ -19,6 +19,8 @@
     </p>
 
     <form method="POST" action="{{ $approveUrl }}" class="mt-6">
+        @csrf
+
         <x-consent.button>
             {{ __('consent.extension.approve_action') }}
         </x-consent.button>

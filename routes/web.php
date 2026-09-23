@@ -70,10 +70,12 @@ Route::middleware('auth:web')->group(function () {
 
 Route::post('extension/token', IssueTokenController::class)
     ->middleware('throttle:10,1')
+    ->withoutMiddleware(ValidateCsrfToken::class)
     ->name('extension.token.store');
 
 Route::delete('extension/token', RevokeTokenController::class)
     ->middleware(['api', 'auth:api'])
+    ->withoutMiddleware(ValidateCsrfToken::class)
     ->name('extension.token.destroy');
 
 Route::middleware([
