@@ -15,6 +15,7 @@ class EventTypeFactory extends Factory
     {
         return [
             'id' => $this->faker->text(8),
+            'name' => $this->faker->words(2, true),
             'weight' => 1,
         ];
     }

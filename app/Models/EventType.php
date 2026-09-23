@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property ?string $id
+ * @property ?string $name
  * @property ?int $weight
  * @property Collection<int, Event> $events
  */

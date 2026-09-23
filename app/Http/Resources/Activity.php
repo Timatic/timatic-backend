@@ -33,5 +33,6 @@ class Activity extends JsonApiResource
      */
     public array $relationships = [
         'events' => Event::class,
+        'eventType' => EventType::class,
     ];
 }
