@@ -27,6 +27,6 @@ class OvertimesManagementMail extends Mailable
     {
         return $this->view('nmbrs::emails.overtimes_management')
             ->subject('Overzicht van alle overuren van '.$this->previousMonth->month.'-'.$this->previousMonth->year)
-            ->from('noreply@intermax.nl');
+            ->from('noreply@tiamtic.app');
     }
 }

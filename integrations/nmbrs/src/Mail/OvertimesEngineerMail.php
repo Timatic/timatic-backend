@@ -24,6 +24,6 @@ class OvertimesEngineerMail extends Mailable
     {
         return $this->view('nmbrs::emails.overtimes_engineer')
             ->subject('Jouw persoonlijke overuren van '.$this->previousMonth->month.'-'.$this->previousMonth->year)
-            ->from('noreply@intermax.nl');
+            ->from('noreply@timatic.app');
     }
 }
