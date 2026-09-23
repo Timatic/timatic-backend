@@ -14,4 +14,9 @@ return [
         'approve' => 'Koppelen',
         'deny' => 'Annuleren',
     ],
+
+    'error' => [
+        'subtitle' => 'Dit koppelverzoek klopt niet',
+        'intro' => 'De applicatie die je hierheen stuurde vroeg iets wat Timatic niet kan toestaan. Er is niets gedeeld. Ga terug naar de applicatie en probeer het opnieuw.',
+    ],
 ];

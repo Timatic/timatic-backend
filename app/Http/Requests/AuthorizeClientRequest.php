@@ -8,6 +8,7 @@ use App\DataTransferObjects\ApiClient;
 use App\Services\ApiClientRegistry;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Rule;
 
 class AuthorizeClientRequest extends FormRequest
@@ -31,6 +32,17 @@ class AuthorizeClientRequest extends FormRequest
         ];
     }
 
+    /**
+     * A rejected request is a dead end: the caller registered the wrong parameters, so redirecting
+     * back would send the browser round the login loop again. It gets a page of its own instead.
+     */
+    protected function failedValidation(Validator $validator): void
+    {
+        throw new HttpResponseException(
+            response()->view('oauth.error', status: 400)
+        );
+    }
+
     public function client(): ApiClient
     {
         return $this->clients()->findOrFail((string) $this->validated('client_id'));
@@ -49,15 +61,6 @@ class AuthorizeClientRequest extends FormRequest
     public function codeChallenge(): string
     {
         return (string) $this->validated('code_challenge');
-    }
-
-    /**
-     * The default redirects back to the previous url, which can drop the auth window on a page from
-     * an earlier request instead of telling the client what went wrong.
-     */
-    protected function failedValidation(Validator $validator): never
-    {
-        abort(400);
     }
 
     private function clients(): ApiClientRegistry
