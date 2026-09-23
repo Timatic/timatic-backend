@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Extension;
+namespace App\Http\Controllers\Auth\Token;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ExtensionAuthorizeRequest;
+use App\Http\Requests\AuthorizeClientRequest;
 use App\Models\User;
-use App\Services\ExtensionAuthorizationService;
+use App\Services\AuthorizationCodeService;
 use Dedoc\Scramble\Attributes\ExcludeRouteFromDocs;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
@@ -16,17 +16,18 @@ use Illuminate\View\View;
 
 class AuthorizeController extends Controller
 {
-    public function __construct(private readonly ExtensionAuthorizationService $authorizations) {}
+    public function __construct(private readonly AuthorizationCodeService $authorizationCodes) {}
 
     /**
      * The consent screen. Reached through the regular web session, so an unauthenticated user is
      * sent through the existing Socialite login first and lands back here afterwards.
      */
     #[ExcludeRouteFromDocs]
-    public function show(ExtensionAuthorizeRequest $request, #[CurrentUser] User $user): View
+    public function show(AuthorizeClientRequest $request, #[CurrentUser] User $user): View
     {
-        return view('extension.authorize', [
+        return view('oauth.authorize', [
             'user' => $user,
+            'client' => $request->client(),
             'approveUrl' => $this->approveUrl($request),
             'denyUrl' => $request->redirectUri().'?'.http_build_query([
                 'error' => 'access_denied',
@@ -36,14 +37,18 @@ class AuthorizeController extends Controller
     }
 
     /**
-     * Approving hands out a single use code. The form posts to a signed url on top of the csrf
-     * token: without the signature, the approved parameters could be swapped for another
-     * extension's redirect uri after the consent screen was rendered.
+     * Approving hands out a single use code. The form carries a csrf token; the signed url is
+     * defence in depth, so the approved parameters cannot be swapped for another client's.
      */
     #[ExcludeRouteFromDocs]
-    public function approve(ExtensionAuthorizeRequest $request, #[CurrentUser] User $user): RedirectResponse
+    public function approve(AuthorizeClientRequest $request, #[CurrentUser] User $user): RedirectResponse
     {
-        $code = $this->authorizations->issueCode($user, $request->codeChallenge(), $request->redirectUri());
+        $code = $this->authorizationCodes->issueCode(
+            $request->client(),
+            $user,
+            $request->codeChallenge(),
+            $request->redirectUri(),
+        );
 
         return redirect()->away($request->redirectUri().'?'.http_build_query([
             'code' => $code,
@@ -51,11 +56,11 @@ class AuthorizeController extends Controller
         ]));
     }
 
-    private function approveUrl(ExtensionAuthorizeRequest $request): string
+    private function approveUrl(AuthorizeClientRequest $request): string
     {
         return URL::temporarySignedRoute(
-            'extension.authorize.approve',
-            now()->addMinutes((int) config('extension.consent_lifetime_minutes')),
+            'oauth.authorize.approve',
+            now()->addMinutes((int) config('api_clients.consent_lifetime_minutes')),
             $request->validated(),
         );
     }
