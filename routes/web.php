@@ -12,6 +12,7 @@
 */
 
 use App\Http\Controllers\Auth\HandleCallbackController;
+use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\RedirectController;
 use App\Http\Controllers\Auth\Token\AuthorizeController;
 use App\Http\Controllers\ExportEmailController;
@@ -34,6 +35,7 @@ Route::get('/docs', function () {
 
 Route::get('auth/redirect', RedirectController::class)->name('auth.redirect');
 Route::get('auth/callback', HandleCallbackController::class)->name('auth.callback');
+Route::get('auth/logout', LogoutController::class)->name('auth.logout');
 
 Route::middleware('auth:web')->group(function () {
     Route::get('oauth/authorize', [AuthorizeController::class, 'show'])->name('oauth.authorize.show');
