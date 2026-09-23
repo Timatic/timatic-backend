@@ -61,6 +61,7 @@ class RoleSeeder extends Seeder
             'user',
             'entries.read',
             'entries.create',
+            'events.create',
             'entry-suggestions.read',
             'entry-suggestions.delete',
             'budgets.read',
@@ -69,6 +70,8 @@ class RoleSeeder extends Seeder
             'customers.read',
             'teams.read',
             'users.read',
+            'tracked-domains.read',
+            'tracked-domains.create',
         ]);
     }
 

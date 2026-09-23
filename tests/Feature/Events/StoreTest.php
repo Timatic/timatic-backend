@@ -7,6 +7,7 @@ use App\Models\Source;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
@@ -136,3 +137,80 @@ function eventRequestBody(array $attributes): array
         ],
     ];
 }
+
+it('refuses an event that ends in the future', function () {
+    $this->loginUser(permissions: ['events.create']);
+
+    Event::fake();
+
+    $source = Source::factory()->create();
+
+    $eventType = EventType::factory()->create();
+
+    /** @var User $user */
+    $user = User::factory()->create();
+
+    $this->postJson(route('events.store'), [
+        'data' => [
+            'type' => 'events',
+            'attributes' => [
+                'sourceId' => $source->id,
+                'eventTypeId' => $eventType->id,
+                'userId' => $user->id,
+                'endedAt' => Carbon::now()->addHour()->toIso8601String(),
+            ],
+        ],
+    ])->assertJsonValidationErrorFor('data.attributes.endedAt');
+});
+
+it('refuses an event that ends before it starts', function () {
+    $this->loginUser(permissions: ['events.create']);
+
+    Event::fake();
+
+    $source = Source::factory()->create();
+
+    $eventType = EventType::factory()->create();
+
+    /** @var User $user */
+    $user = User::factory()->create();
+
+    $this->postJson(route('events.store'), [
+        'data' => [
+            'type' => 'events',
+            'attributes' => [
+                'sourceId' => $source->id,
+                'eventTypeId' => $eventType->id,
+                'userId' => $user->id,
+                'startedAt' => Carbon::now()->subHour()->toIso8601String(),
+                'endedAt' => Carbon::now()->subHours(2)->toIso8601String(),
+            ],
+        ],
+    ])->assertJsonValidationErrorFor('data.attributes.endedAt');
+});
+
+it('refuses an event that spans more than a day', function () {
+    $this->loginUser(permissions: ['events.create']);
+
+    Event::fake();
+
+    $source = Source::factory()->create();
+
+    $eventType = EventType::factory()->create();
+
+    /** @var User $user */
+    $user = User::factory()->create();
+
+    $this->postJson(route('events.store'), [
+        'data' => [
+            'type' => 'events',
+            'attributes' => [
+                'sourceId' => $source->id,
+                'eventTypeId' => $eventType->id,
+                'userId' => $user->id,
+                'startedAt' => Carbon::now()->subHours(30)->toIso8601String(),
+                'endedAt' => Carbon::now()->subMinutes(5)->toIso8601String(),
+            ],
+        ],
+    ])->assertJsonValidationErrorFor('data.attributes.endedAt');
+});

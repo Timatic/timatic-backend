@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Database\Factories\CustomerFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -20,6 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property ?Carbon $updated_at
  * @property ?Carbon $deleted_at
  * @property ?User $accountManager
+ * @property Collection<int, TrackedDomain> $trackedDomains
  */
 class Customer extends Model
 {
@@ -42,6 +45,14 @@ class Customer extends Model
     public function accountManager(): BelongsTo
     {
         return $this->belongsTo(User::class, 'account_manager_user_id');
+    }
+
+    /**
+     * @return HasMany<TrackedDomain, $this>
+     */
+    public function trackedDomains(): HasMany
+    {
+        return $this->hasMany(TrackedDomain::class);
     }
 
     protected function casts(): array

@@ -101,9 +101,14 @@ class AppServiceProvider extends ServiceProvider
                 return null;
             }
 
-            return ApiToken::notExpired()
+            /** @var ApiToken $token */
+            $token = ApiToken::notExpired()
                 ->where('key', hash('sha512', $key))
                 ->firstOr(fn () => abort(401));
+
+            $token->touchLastUsed();
+
+            return $token->user ?? $token;
         });
 
         Event::listen(function (SocialiteWasCalled $event) {

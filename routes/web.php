@@ -23,6 +23,9 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\ExportEmailController;
 use App\Http\Controllers\ExportFormatController;
 use App\Http\Controllers\Exports\GetBudgetEntriesExportController;
+use App\Http\Controllers\Extension\AuthorizeController;
+use App\Http\Controllers\Extension\IssueTokenController;
+use App\Http\Controllers\Extension\RevokeTokenController;
 use App\Http\Controllers\GetBudgetPeriodsController;
 use App\Http\Controllers\GetBudgetTimeSpentTotalsController;
 use App\Http\Controllers\GetDailyProgressController;
@@ -32,6 +35,7 @@ use App\Http\Controllers\OvertimeController;
 use App\Http\Controllers\ShowCurrentUserController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TicketController;
+use App\Http\Controllers\TrackedDomainController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\EncapsulateRequestBodyWithData;
 use App\Http\Middleware\ImpersonateUsers;
@@ -55,6 +59,24 @@ Route::get('/docs', function () {
 
 Route::get('auth/redirect', RedirectController::class)->name('auth.redirect');
 Route::get('auth/callback', HandleCallbackController::class)->name('auth.callback');
+
+Route::middleware('auth:web')->group(function () {
+    Route::get('extension/authorize', [AuthorizeController::class, 'show'])->name('extension.authorize.show');
+
+    Route::post('extension/authorize', [AuthorizeController::class, 'approve'])
+        ->middleware('signed')
+        ->name('extension.authorize.approve');
+});
+
+Route::post('extension/token', IssueTokenController::class)
+    ->middleware('throttle:10,1')
+    ->withoutMiddleware(ValidateCsrfToken::class)
+    ->name('extension.token.store');
+
+Route::delete('extension/token', RevokeTokenController::class)
+    ->middleware(['api', 'auth:api'])
+    ->withoutMiddleware(ValidateCsrfToken::class)
+    ->name('extension.token.destroy');
 
 Route::middleware([
     'api',
@@ -105,6 +127,8 @@ Route::middleware([
         ->name('time-spent-totals');
 
     Route::get('budget-time-spent-totals', GetBudgetTimeSpentTotalsController::class)->name('budget.time-spent-totals');
+
+    Route::apiResource('tracked-domains', TrackedDomainController::class)->only(['index', 'store', 'destroy']);
 
     Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
     Route::get('tickets/{key}', [TicketController::class, 'show'])->name('tickets.show');
