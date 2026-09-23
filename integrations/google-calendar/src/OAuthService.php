@@ -4,8 +4,8 @@ namespace Timatic\GoogleCalendar;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use RuntimeException;
+use Timatic\GoogleCalendar\Requests\RefreshTokenRequest;
 
 class OAuthService
 {
@@ -39,12 +39,9 @@ class OAuthService
 
     private function refreshTokens(User $user): User
     {
-        $response = Http::post('https://oauth2.googleapis.com/token', [
-            'grant_type' => 'refresh_token',
-            'client_id' => config('google_calendar.client_id'),
-            'client_secret' => config('google_calendar.client_secret'),
-            'refresh_token' => $user->oauth_refresh_token,
-        ]);
+        $response = new OAuthConnector()->send(
+            new RefreshTokenRequest((string) $user->oauth_refresh_token)
+        );
 
         if ($response->status() === 400) {
             $user->update([
@@ -60,12 +57,12 @@ class OAuthService
             throw new RuntimeException('Google token refresh failed.');
         }
 
-        $tokens = $response->json();
+        $tokens = $response->dto();
 
         $user->update(array_filter([
-            'oauth_access_token' => $tokens['access_token'],
-            'oauth_refresh_token' => $tokens['refresh_token'] ?? $user->oauth_refresh_token,
-            'oauth_token_expires_at' => now()->addSeconds($tokens['expires_in'] - 60)->timestamp,
+            'oauth_access_token' => $tokens->accessToken,
+            'oauth_refresh_token' => $tokens->refreshToken ?? $user->oauth_refresh_token,
+            'oauth_token_expires_at' => now()->addSeconds($tokens->expiresIn - 60)->timestamp,
         ]));
 
         return $user->refresh();
