@@ -22,7 +22,6 @@ use Illuminate\Support\Str;
  * @property int $customer_id
  * @property ?int $budget_id
  * @property bool $is_internal
- * @property bool $is_active
  * @property ?int $created_by_user_id
  * @property ?Carbon $created_at
  * @property ?Carbon $updated_at
@@ -32,7 +31,6 @@ use Illuminate\Support\Str;
  * @property ?User $user
  * @property ?TrackedDomain $source
  *
- * @method static Builder<TrackedDomain> active()
  * @method static Builder<TrackedDomain> shared(mixed $isShared = true)
  * @method static Builder<TrackedDomain> visibleTo(?int $userId)
  */
@@ -49,7 +47,6 @@ class TrackedDomain extends Model
         'customer_id',
         'budget_id',
         'is_internal',
-        'is_active',
         'created_by_user_id',
     ];
 
@@ -59,7 +56,6 @@ class TrackedDomain extends Model
     protected $attributes = [
         'path' => '',
         'is_internal' => false,
-        'is_active' => true,
     ];
 
     /**
@@ -110,7 +106,6 @@ class TrackedDomain extends Model
         $path = self::normalisePath($hostOrUrl);
 
         return self::query()
-            ->active()
             ->visibleTo($userId)
             ->whereIn('domain', self::candidates($host))
             ->orderByRaw('user_id IS NULL, LENGTH(domain) DESC, LENGTH(path) DESC')
@@ -168,15 +163,6 @@ class TrackedDomain extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
-    }
-
-    /**
-     * @param  Builder<TrackedDomain>  $query
-     */
-    #[Scope]
-    protected function active(Builder $query): void
-    {
-        $query->where('is_active', true);
     }
 
     /**
@@ -242,7 +228,6 @@ class TrackedDomain extends Model
     {
         return [
             'is_internal' => 'boolean',
-            'is_active' => 'boolean',
         ];
     }
 }

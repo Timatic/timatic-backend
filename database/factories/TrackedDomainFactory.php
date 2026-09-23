@@ -22,7 +22,6 @@ class TrackedDomainFactory extends Factory
             'customer_id' => Customer::factory(),
             'budget_id' => null,
             'is_internal' => false,
-            'is_active' => true,
         ];
     }
 }

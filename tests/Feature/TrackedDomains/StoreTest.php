@@ -32,7 +32,6 @@ it('stores a tracked domain', function () {
     expect($trackedDomain->customer_id)->toEqual($budget->customer_id);
     expect($trackedDomain->budget_id)->toEqual($budget->id);
     expect($trackedDomain->created_by_user_id)->toEqual($user->id);
-    expect($response->json('data.attributes.isActive'))->toBeTrue();
 });
 
 it('stores a path as a mapping of its own', function () {

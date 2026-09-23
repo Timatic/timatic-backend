@@ -26,12 +26,6 @@ it('prefers the most specific mapping', function () {
     expect(TrackedDomain::matching('jira.acme.com')?->id)->toEqual($specific->id);
 });
 
-it('ignores an inactive mapping', function () {
-    TrackedDomain::factory()->create(['domain' => 'acme.com', 'is_active' => false]);
-
-    expect(TrackedDomain::matching('acme.com'))->toBeNull();
-});
-
 it('normalises a url into a domain and a path', function () {
     expect(TrackedDomain::normalise('https://WWW.Jira.Acme.com:8443/projects/TIM/board?x=1'))->toEqual('jira.acme.com');
     expect(TrackedDomain::normalisePath('https://WWW.Jira.Acme.com:8443/projects/TIM/board?x=1'))->toEqual('/projects/TIM/board');

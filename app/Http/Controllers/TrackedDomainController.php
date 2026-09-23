@@ -38,7 +38,6 @@ class TrackedDomainController extends Controller implements HasMiddleware
             ->allowedFilters([
                 AllowedFilter::exact('domain'),
                 AllowedFilter::exact('customerId', 'customer_id'),
-                AllowedFilter::exact('isActive', 'is_active'),
                 AllowedFilter::exact('userId', 'user_id'),
                 AllowedFilter::scope('shared'),
             ])

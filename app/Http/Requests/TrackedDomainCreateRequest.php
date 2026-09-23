@@ -44,7 +44,6 @@ class TrackedDomainCreateRequest extends FormRequest
             'data.attributes.customerId' => ['required', 'integer', 'exists:customers,id'],
             'data.attributes.budgetId' => ['nullable', 'integer', 'exists:budgets,id'],
             'data.attributes.isInternal' => ['boolean'],
-            'data.attributes.isActive' => ['boolean'],
             // A mapping made over the api belongs to the user who made it: tracking somebody else's
             // time is not something a client gets to ask for. Shared mappings are made in the web app,
             // so a token that belongs to nobody gets an empty list and may create no mapping at all.

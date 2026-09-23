@@ -53,7 +53,6 @@ class TrackedDomainsRelationManager extends RelationManager
                 ->options(fn (): array => $this->budgetOptions())
                 ->searchable(),
             Toggle::make('is_internal')->label('Internal'),
-            Toggle::make('is_active')->label('Active')->default(true),
         ]);
     }
 
@@ -73,7 +72,6 @@ class TrackedDomainsRelationManager extends RelationManager
                     ->label('Budget')
                     ->state(fn (TrackedDomain $record): ?string => $record->budget?->getTitle()),
                 IconColumn::make('is_internal')->label('Internal')->boolean(),
-                IconColumn::make('is_active')->label('Active')->boolean(),
                 TextColumn::make('createdBy.email')->label('Added by'),
             ])
             ->headerActions([
