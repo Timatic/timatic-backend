@@ -5,7 +5,7 @@
 @section('content')
     <h1 class="text-lg font-semibold text-gray-900">{{ __('consent.extension.subtitle') }}</h1>
 
-    <x-consent.intro class="mt-2 mb-0">
+    <x-consent.intro class="mt-2">
         {{ __('consent.extension.intro', ['name' => $user->full_name, 'email' => $user->email]) }}
     </x-consent.intro>
 
