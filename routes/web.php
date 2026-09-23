@@ -13,6 +13,9 @@
 
 use App\Http\Controllers\Auth\HandleCallbackController;
 use App\Http\Controllers\Auth\RedirectController;
+use App\Http\Controllers\Auth\Token\AuthorizeController;
+use App\Http\Controllers\Auth\Token\IssueTokenController;
+use App\Http\Controllers\Auth\Token\RevokeTokenController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\BudgetTypeController;
 use App\Http\Controllers\CorrectionController;
@@ -23,9 +26,6 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\ExportEmailController;
 use App\Http\Controllers\ExportFormatController;
 use App\Http\Controllers\Exports\GetBudgetEntriesExportController;
-use App\Http\Controllers\Extension\AuthorizeController;
-use App\Http\Controllers\Extension\IssueTokenController;
-use App\Http\Controllers\Extension\RevokeTokenController;
 use App\Http\Controllers\GetBudgetPeriodsController;
 use App\Http\Controllers\GetBudgetTimeSpentTotalsController;
 use App\Http\Controllers\GetDailyProgressController;
@@ -61,22 +61,22 @@ Route::get('auth/redirect', RedirectController::class)->name('auth.redirect');
 Route::get('auth/callback', HandleCallbackController::class)->name('auth.callback');
 
 Route::middleware('auth:web')->group(function () {
-    Route::get('extension/authorize', [AuthorizeController::class, 'show'])->name('extension.authorize.show');
+    Route::get('oauth/authorize', [AuthorizeController::class, 'show'])->name('oauth.authorize.show');
 
-    Route::post('extension/authorize', [AuthorizeController::class, 'approve'])
+    Route::post('oauth/authorize', [AuthorizeController::class, 'approve'])
         ->middleware('signed')
-        ->name('extension.authorize.approve');
+        ->name('oauth.authorize.approve');
 });
 
-Route::post('extension/token', IssueTokenController::class)
+Route::post('oauth/token', IssueTokenController::class)
     ->middleware('throttle:10,1')
     ->withoutMiddleware(ValidateCsrfToken::class)
-    ->name('extension.token.store');
+    ->name('oauth.token.store');
 
-Route::delete('extension/token', RevokeTokenController::class)
+Route::delete('oauth/token', RevokeTokenController::class)
     ->middleware(['api', 'auth:api'])
     ->withoutMiddleware(ValidateCsrfToken::class)
-    ->name('extension.token.destroy');
+    ->name('oauth.token.destroy');
 
 Route::middleware([
     'api',
