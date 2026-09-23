@@ -5,6 +5,13 @@ use Illuminate\Support\Facades\Event;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\GoogleProvider;
 
+beforeEach(function () {
+    config([
+        'auth.socialite_driver' => 'google',
+        'services.google.client_id' => 'a-client-id',
+    ]);
+});
+
 it('dispatches the SocialiteRedirecting event', function () {
     Event::fake([SocialiteRedirecting::class]);
 
