@@ -43,6 +43,8 @@ class EventRequest extends FormRequest
      */
     public function rules(): array
     {
+        $latestAcceptableTime = Carbon::now()->addMinutes(self::CLOCK_SKEW_TOLERANCE_MINUTES)->toDateTimeString();
+
         return $this->addPatchOptionalValidation([
             'data.type' => ['required', 'in:events'],
             'data.attributes.sourceId' => ['required', 'string', 'exists:'.Source::class.',id'],
@@ -65,62 +67,39 @@ class EventRequest extends FormRequest
             'data.attributes.customerId' => ['integer', 'exists:customers,id'],
             'data.attributes.customerExternalId' => ['string'],
             'data.attributes.eventTypeId' => ['required', 'string'],
-            'data.attributes.startedAt' => $this->startedAtRules(),
-            'data.attributes.endedAt' => $this->endedAtRules(),
+            'data.attributes.startedAt' => [
+                'bail',
+                'required_without:data.attributes.endedAt',
+                'date',
+                'before_or_equal:'.$latestAcceptableTime,
+            ],
+            'data.attributes.endedAt' => [
+                'bail',
+                'required_without:data.attributes.startedAt',
+                'date',
+                'before_or_equal:'.$latestAcceptableTime,
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    $startedAt = $this->input('data.attributes.startedAt');
+
+                    if (! is_string($startedAt) || ! is_string($value)) {
+                        return;
+                    }
+
+                    $startedAt = Carbon::parse($startedAt);
+                    $endedAt = Carbon::parse($value);
+
+                    if ($endedAt->isBefore($startedAt)) {
+                        $fail('An event may not end before it started.');
+
+                        return;
+                    }
+
+                    if ($startedAt->diffInHours($endedAt) > self::MAX_DURATION_HOURS) {
+                        $fail('An event may not span more than '.self::MAX_DURATION_HOURS.' hours.');
+                    }
+                },
+            ],
             'data.attributes.isInternal' => ['boolean'],
         ]);
-    }
-
-    /**
-     * @return array<int, mixed>
-     */
-    private function startedAtRules(): array
-    {
-        return [
-            'bail',
-            'required_without:data.attributes.endedAt',
-            'date',
-            'before_or_equal:'.$this->latestAcceptableTime(),
-        ];
-    }
-
-    /**
-     * @return array<int, mixed>
-     */
-    private function endedAtRules(): array
-    {
-        $rules = [
-            'bail',
-            'required_without:data.attributes.startedAt',
-            'date',
-            'before_or_equal:'.$this->latestAcceptableTime(),
-        ];
-
-        if ($this->input('data.attributes.startedAt') !== null) {
-            $rules[] = 'after_or_equal:data.attributes.startedAt';
-            $rules[] = $this->withinMaxDuration();
-        }
-
-        return $rules;
-    }
-
-    private function latestAcceptableTime(): string
-    {
-        return Carbon::now()->addMinutes(self::CLOCK_SKEW_TOLERANCE_MINUTES)->toDateTimeString();
-    }
-
-    private function withinMaxDuration(): Closure
-    {
-        return function (string $attribute, mixed $value, Closure $fail): void {
-            $startedAt = $this->input('data.attributes.startedAt');
-
-            if (! is_string($startedAt) || ! is_string($value)) {
-                return;
-            }
-
-            if (Carbon::parse($startedAt)->diffInHours(Carbon::parse($value)) > self::MAX_DURATION_HOURS) {
-                $fail('An event may not span more than '.self::MAX_DURATION_HOURS.' hours.');
-            }
-        };
     }
 }
