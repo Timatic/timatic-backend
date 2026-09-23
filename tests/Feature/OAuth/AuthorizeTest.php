@@ -131,3 +131,24 @@ it('refuses to approve without a valid signature', function () {
         'code_challenge_method' => 'S256',
     ]))->assertForbidden();
 });
+
+it('skips the consent screen for a first party client', function () {
+    $this->actingAs(User::factory()->create());
+
+    $response = $this->get(route('oauth.authorize.show', [
+        'client_id' => 'web',
+        'redirect_uri' => 'https://app.timatic.test/auth/callback',
+        'state' => 'state-123',
+        'code_challenge' => $this->codeChallenge,
+        'code_challenge_method' => 'S256',
+    ]));
+
+    $location = $response->headers->get('Location');
+
+    expect($location)->toStartWith('https://app.timatic.test/auth/callback?');
+
+    parse_str(parse_url((string) $location, PHP_URL_QUERY) ?: '', $query);
+
+    expect($query['state'])->toEqual('state-123');
+    expect($query['code'])->toHaveLength(64);
+});

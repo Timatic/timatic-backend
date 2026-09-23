@@ -11,6 +11,7 @@
 |
 */
 
+use App\Http\Controllers\Auth\ShowProviderController;
 use App\Http\Controllers\Auth\Token\IssueTokenController;
 use App\Http\Controllers\Auth\Token\RevokeTokenController;
 use App\Http\Controllers\BudgetController;
@@ -37,6 +38,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Middleware\EncapsulateRequestBodyWithData;
 use App\Http\Middleware\ImpersonateUsers;
 use Illuminate\Support\Facades\Route;
+
+Route::get('auth/provider', ShowProviderController::class)->name('auth.provider');
 
 Route::post('oauth/token', IssueTokenController::class)
     ->middleware('throttle:10,1')

@@ -14,6 +14,7 @@ class ApiClient
         public readonly string $label,
         public readonly array $redirectUris,
         public readonly int $tokenLifetimeDays,
+        public readonly bool $autoApprove,
     ) {}
 
     public function allowsRedirectUri(string $redirectUri): bool

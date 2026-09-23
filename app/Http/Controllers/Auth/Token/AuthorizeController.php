@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Auth\Token;
 
+use App\DataTransferObjects\ApiClient;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AuthorizeClientRequest;
 use App\Models\User;
@@ -20,14 +21,22 @@ class AuthorizeController extends Controller
 
     /**
      * The consent screen. Reached through the regular web session, so an unauthenticated user is
-     * sent through the existing Socialite login first and lands back here afterwards.
+     * sent through the existing Socialite login first and lands back here afterwards. A first party
+     * client skips the screen: asking a user to consent to Timatic on behalf of Timatic is noise,
+     * and the code still only travels to that client's registered redirect uri.
      */
     #[ExcludeRouteFromDocs]
-    public function show(AuthorizeClientRequest $request, #[CurrentUser] User $user): View
+    public function show(AuthorizeClientRequest $request, #[CurrentUser] User $user): View|RedirectResponse
     {
+        $client = $request->client();
+
+        if ($client->autoApprove) {
+            return $this->redirectWithCode($client, $request, $user);
+        }
+
         return view('oauth.authorize', [
             'user' => $user,
-            'client' => $request->client(),
+            'client' => $client,
             'approveUrl' => $this->approveUrl($request),
             'denyUrl' => $request->redirectUri().'?'.http_build_query([
                 'error' => 'access_denied',
@@ -43,8 +52,13 @@ class AuthorizeController extends Controller
     #[ExcludeRouteFromDocs]
     public function approve(AuthorizeClientRequest $request, #[CurrentUser] User $user): RedirectResponse
     {
+        return $this->redirectWithCode($request->client(), $request, $user);
+    }
+
+    private function redirectWithCode(ApiClient $client, AuthorizeClientRequest $request, User $user): RedirectResponse
+    {
         $code = $this->authorizationCodes->issueCode(
-            $request->client(),
+            $client,
             $user,
             $request->codeChallenge(),
             $request->redirectUri(),
