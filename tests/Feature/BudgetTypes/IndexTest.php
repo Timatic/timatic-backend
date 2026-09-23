@@ -33,7 +33,7 @@ it('can accept requests with api tokens', function () {
 
     $token->givePermissionTo(['budget-types.read']);
 
-    Auth::setUser($token);
+    Auth::guard('api')->setUser($token);
 
     BudgetType::factory()->create();
 
