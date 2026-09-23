@@ -13,7 +13,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
-class TrackedDomainRequest extends FormRequest
+class TrackedDomainCreateRequest extends FormRequest
 {
     use OptionalPatchParameters;
     use ValidatedAttributes;
@@ -37,12 +37,13 @@ class TrackedDomainRequest extends FormRequest
                 'string',
                 'max:255',
                 'regex:/^[a-z0-9-]+(\.[a-z0-9-]+)+$/',
+                'not_regex:/^www\./',
                 Rule::unique(TrackedDomain::class, 'domain')
-                    ->where('path', TrackedDomain::normalisePath((string) $this->input('data.attributes.path', '')))
+                    ->where('path', (string) $this->input('data.attributes.path', ''))
                     ->where('user_id', $ownUserId)
                     ->ignore($this->route('tracked_domain')),
             ],
-            'data.attributes.path' => ['nullable', 'string', 'max:255', 'regex:#^/[^?\#\s]*$#'],
+            'data.attributes.path' => ['string', 'max:255', 'regex:#^(/[^?\#\s]*[^/?\#\s])?$#'],
             'data.attributes.customerId' => ['required', 'integer', 'exists:customers,id'],
             'data.attributes.budgetId' => ['nullable', 'integer', 'exists:budgets,id'],
             'data.attributes.isInternal' => ['boolean'],
@@ -92,31 +93,6 @@ class TrackedDomainRequest extends FormRequest
                 }
             },
         ];
-    }
-
-    /**
-     * A domain may be entered as a full url. Splitting it here keeps "paste the url you are looking
-     * at" working, and keeps the stored form canonical.
-     */
-    protected function prepareForValidation(): void
-    {
-        $domain = $this->input('data.attributes.domain');
-
-        if (! is_string($domain)) {
-            return;
-        }
-
-        $path = $this->input('data.attributes.path');
-
-        $attributes = ['domain' => TrackedDomain::normalise($domain)];
-
-        $attributes['path'] = is_string($path) && $path !== ''
-            ? TrackedDomain::normalisePath($path)
-            : TrackedDomain::normalisePath($domain);
-
-        $this->merge([
-            'data' => array_replace_recursive($this->input('data'), ['attributes' => $attributes]),
-        ]);
     }
 
     /** The authenticated user, or null for a token that belongs to no one. */

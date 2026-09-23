@@ -8,7 +8,7 @@ use Tests\Concerns\LoginUser;
 
 uses(LoginUser::class);
 
-it('stores a tracked domain from a full url', function () {
+it('stores a tracked domain', function () {
     $user = $this->loginUser(permissions: ['tracked-domains.create']);
 
     $budget = Budget::factory()->create();
@@ -18,7 +18,7 @@ it('stores a tracked domain from a full url', function () {
             'type' => 'tracked-domains',
             'attributes' => [
                 'userId' => $user->id,
-                'domain' => 'https://WWW.Jira.Acme.com/browse/TIM-1',
+                'domain' => 'jira.acme.com',
                 'customerId' => $budget->customer_id,
                 'budgetId' => $budget->id,
             ],
@@ -35,7 +35,7 @@ it('stores a tracked domain from a full url', function () {
     expect($response->json('data.attributes.isActive'))->toBeTrue();
 });
 
-it('stores the path of a url as a separate mapping', function () {
+it('stores a path as a mapping of its own', function () {
     $user = $this->loginUser(permissions: ['tracked-domains.create']);
 
     $budget = Budget::factory()->create();
@@ -45,7 +45,7 @@ it('stores the path of a url as a separate mapping', function () {
             'type' => 'tracked-domains',
             'attributes' => [
                 'userId' => $user->id,
-                'domain' => 'https://gitlab.acme.com/group-a/project/-/issues',
+                'domain' => 'gitlab.acme.com',
                 'path' => '/group-a',
                 'customerId' => $budget->customer_id,
                 'budgetId' => $budget->id,
@@ -60,7 +60,7 @@ it('stores the path of a url as a separate mapping', function () {
     expect($trackedDomain->path)->toEqual('/group-a');
 });
 
-it('takes the path from the url when none is given', function () {
+it('refuses a domain that is not a bare host', function () {
     $user = $this->loginUser(permissions: ['tracked-domains.create']);
 
     $customer = Customer::factory()->create();
@@ -70,13 +70,46 @@ it('takes the path from the url when none is given', function () {
             'type' => 'tracked-domains',
             'attributes' => [
                 'userId' => $user->id,
-                'domain' => 'https://gitlab.acme.com/group-a/',
+                'domain' => 'https://Gitlab.Acme.com/group-a',
                 'customerId' => $customer->id,
             ],
         ],
-    ])->assertCreated();
+    ])->assertJsonValidationErrors('data.attributes.domain');
+});
 
-    expect(TrackedDomain::query()->sole()->path)->toEqual('/group-a');
+it('refuses a www prefix', function () {
+    $user = $this->loginUser(permissions: ['tracked-domains.create']);
+
+    $customer = Customer::factory()->create();
+
+    $this->postJson(route('tracked-domains.store'), [
+        'data' => [
+            'type' => 'tracked-domains',
+            'attributes' => [
+                'userId' => $user->id,
+                'domain' => 'www.acme.com',
+                'customerId' => $customer->id,
+            ],
+        ],
+    ])->assertJsonValidationErrors('data.attributes.domain');
+});
+
+it('refuses a path that is not canonical', function () {
+    $user = $this->loginUser(permissions: ['tracked-domains.create']);
+
+    $customer = Customer::factory()->create();
+
+    $this->postJson(route('tracked-domains.store'), [
+        'data' => [
+            'type' => 'tracked-domains',
+            'attributes' => [
+                'userId' => $user->id,
+                'domain' => 'gitlab.acme.com',
+                'path' => '/group-a/',
+                'customerId' => $customer->id,
+            ],
+        ],
+    ])->assertJsonValidationErrors('data.attributes.path');
 });
 
 it('allows the same domain with a different path', function () {
@@ -113,7 +146,8 @@ it('refuses the same domain and path twice', function () {
             'type' => 'tracked-domains',
             'attributes' => [
                 'userId' => $user->id,
-                'domain' => 'https://gitlab.acme.com/group-a',
+                'domain' => 'gitlab.acme.com',
+                'path' => '/group-a',
                 'customerId' => $customer->id,
             ],
         ],
@@ -150,7 +184,7 @@ it('refuses a domain that is already tracked', function () {
             'type' => 'tracked-domains',
             'attributes' => [
                 'userId' => $user->id,
-                'domain' => 'https://jira.acme.com',
+                'domain' => 'jira.acme.com',
                 'customerId' => $customer->id,
             ],
         ],

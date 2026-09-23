@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\TrackedDomainRequest;
+use App\Http\Requests\TrackedDomainCreateRequest;
 use App\Http\Resources;
 use App\Models\ApiToken;
 use App\Models\TrackedDomain;
@@ -55,7 +55,7 @@ class TrackedDomainController extends Controller implements HasMiddleware
     /**
      * @param  User|ApiToken  $user
      */
-    public function store(TrackedDomainRequest $request, #[CurrentUser] $user): Resources\TrackedDomain
+    public function store(TrackedDomainCreateRequest $request, #[CurrentUser] $user): Resources\TrackedDomain
     {
         $trackedDomain = TrackedDomain::query()->create([
             ...$request->validatedAttributes(),
@@ -65,7 +65,7 @@ class TrackedDomainController extends Controller implements HasMiddleware
         return new Resources\TrackedDomain($trackedDomain);
     }
 
-    public function update(TrackedDomainRequest $request, TrackedDomain $trackedDomain): Resources\TrackedDomain
+    public function update(TrackedDomainCreateRequest $request, TrackedDomain $trackedDomain): Resources\TrackedDomain
     {
         $trackedDomain->update($request->validatedAttributes());
 
