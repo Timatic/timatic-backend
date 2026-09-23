@@ -29,6 +29,23 @@ requests as same-site and sends the cookie. `SESSION_SAME_SITE=none` would addit
 any origin's form post ride along on the session, which `tests/Feature/SessionCookieTest.php`
 guards against.
 
+### Authentication
+
+A deployment runs exactly one identity provider. Set `SOCIALITE_DRIVER` to `azure`, `google` or
+`auth0` and fill that provider's credentials in `.env`; `GET auth/provider` answers 503 until it can,
+so a misconfigured deployment fails on the login screen rather than at the provider.
+
+Browser callers authenticate with a bearer token, not the session. `config/api_clients.php` registers
+who may ask for one, which redirect uris their codes may travel to and how long their tokens live:
+
+| Client | Redirect uris from | Lifetime |
+|---|---|---|
+| `web` | `APP_FRONTEND_URL` + `/auth/callback` | `WEB_TOKEN_LIFETIME_DAYS` (30) |
+| `extension` | `EXTENSION_IDS` | `EXTENSION_TOKEN_LIFETIME_DAYS` (90) |
+
+The web session remains in use by the Filament admin panel, the integration consent pages and the
+`oauth/authorize` consent screen.
+
 ### Dummy data
 
 To (re)seed dummy data at any time:
