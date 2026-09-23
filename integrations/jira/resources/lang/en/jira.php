@@ -52,4 +52,11 @@ return [
         'filter_archived' => 'Archived',
         'filter_unmapped' => 'Unmapped only',
     ],
+
+    'consent' => [
+        'subtitle' => 'Jira integration',
+        'connected' => 'Jira connected successfully.',
+        'connect_intro' => 'Click the button below to connect Jira to Timatic. You will be redirected to Jira to grant permission.',
+        'connect_action' => 'Connect to Jira',
+    ],
 ];

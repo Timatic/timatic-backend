@@ -5,36 +5,41 @@ namespace Timatic\Bitbucket\Http\Controllers;
 use App\Models\Integration;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Timatic\Bitbucket\Connector;
 use Timatic\Bitbucket\DataTransferObjects\BitbucketWebhook;
+use Timatic\Bitbucket\DataTransferObjects\BitbucketWorkspace;
 use Timatic\Bitbucket\OAuthService;
 use Timatic\Bitbucket\Requests\GetWorkspacesRequest;
 use Timatic\Bitbucket\Requests\RegisterWorkspaceWebhookRequest;
 
 class DelegateController
 {
-    public function show(string $token): View
+    public function show(Request $request, string $token): View
     {
         $integration = Integration::where('share_token', $token)->firstOrFail();
 
-        $config = $integration->config ?? [];
-        $workspaces = [];
-
-        if (filled($config['access_token'] ?? null) && ! $this->isConfigured($integration)) {
-            $integration = app(OAuthService::class)->refreshIfExpired($integration);
-
-            $response = new Connector($integration->config ?? [])
-                ->send(new GetWorkspacesRequest);
-
-            $workspaces = $response->dto() ?? [];
+        if ($this->isConfigured($integration)) {
+            return view('bitbucket::consent.webhook-installed', [
+                'justInstalled' => $request->has('webhook_installed'),
+            ]);
         }
 
-        return view('bitbucket::delegate.show', [
+        if ($this->isConnected($integration)) {
+            $integration = app(OAuthService::class)->refreshIfExpired($integration);
+
+            return view('bitbucket::consent.select-workspace', [
+                'integration' => $integration,
+                'workspaces' => $this->workspaces($integration),
+                'justConnected' => $request->has('connected'),
+                'webhookFailed' => $request->query('error') === 'webhook_failed',
+            ]);
+        }
+
+        return view('bitbucket::consent.connect', [
             'integration' => $integration,
-            'workspaces' => $workspaces,
-            'configured' => $this->isConfigured($integration),
         ]);
     }
 
@@ -97,5 +102,24 @@ class DelegateController
     private function isConfigured(Integration $integration): bool
     {
         return filled(($integration->config ?? [])['webhook_uuid'] ?? null);
+    }
+
+    private function isConnected(Integration $integration): bool
+    {
+        return filled(($integration->config ?? [])['access_token'] ?? null);
+    }
+
+    /**
+     * @return Collection<int, BitbucketWorkspace>
+     */
+    private function workspaces(Integration $integration): Collection
+    {
+        $response = new Connector($integration->config ?? [])
+            ->send(new GetWorkspacesRequest);
+
+        /** @var array<int, BitbucketWorkspace> $workspaces */
+        $workspaces = $response->dto() ?? [];
+
+        return collect($workspaces);
     }
 }

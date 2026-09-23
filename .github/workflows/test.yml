@@ -52,5 +52,14 @@ jobs:
       - name: Generate application key
         run: php artisan key:generate
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Build assets
+        run: npm ci && npm run build
+
       - name: Test
         run: composer test
