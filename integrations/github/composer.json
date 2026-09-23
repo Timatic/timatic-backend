@@ -1,0 +1,25 @@
+{
+    "name": "timatic/github-integration",
+    "description": "GitHub repository integration for Timatic",
+    "type": "library",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.4",
+        "firebase/php-jwt": "^7.0",
+        "saloonphp/saloon": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Timatic\\GitHub\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Timatic\\GitHub\\ServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

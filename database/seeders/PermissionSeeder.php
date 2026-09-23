@@ -42,6 +42,14 @@ class PermissionSeeder extends Seeder
         'users.update',
         'users.delete',
         'admin_panel.access',
+        'integrations.read',
+        'integrations.create',
+        'integrations.update',
+        'integrations.delete',
+        'integrations.restore',
+        'integrations.force-delete',
+        'integrations.replicate',
+        'integrations.reorder',
     ];
 
     public function run(): void
