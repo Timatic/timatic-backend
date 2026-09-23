@@ -14,23 +14,36 @@ use Laravel\Socialite\Two\AbstractProvider;
 
 class RedirectController
 {
+    /**
+     * Sends the browser straight to the identity provider. A deployment whose provider has no
+     * credentials fails here with an answer of its own, rather than inside Socialite where the
+     * error would read as the provider's.
+     */
     #[ExcludeRouteFromDocs]
     public function __invoke(): RedirectResponse
     {
+        $driver = (string) config('auth.socialite_driver');
+
+        abort_if(
+            blank(config("services.{$driver}.client_id")),
+            503,
+            'This Timatic has no identity provider configured.',
+        );
+
         $event = new SocialiteRedirecting;
 
         event($event);
 
-        /** @var AbstractProvider $driver */
-        $driver = Socialite::driver(config('auth.socialite_driver'));
-        $driver->with(['access_type' => 'offline', 'prompt' => 'consent']);
+        /** @var AbstractProvider $provider */
+        $provider = Socialite::driver($driver);
+        $provider->with(['access_type' => 'offline', 'prompt' => 'consent']);
 
         if ($event->getScopes() !== []) {
-            $driver->scopes($event->getScopes());
+            $provider->scopes($event->getScopes());
         }
 
         return Response::redirectTo(
-            $driver->redirect()->getTargetUrl()
+            $provider->redirect()->getTargetUrl()
         )->with(['auth_original_url' => URL::previous()]);
     }
 }
