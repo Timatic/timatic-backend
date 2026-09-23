@@ -2,6 +2,7 @@
 
 @source '../views/layouts/consent.blade.php';
 @source '../views/components/consent/**/*.blade.php';
+@source '../views/extension/**/*.blade.php';
 @source '../../integrations/*/resources/views/consent/**/*.blade.php';
 
 @theme {
