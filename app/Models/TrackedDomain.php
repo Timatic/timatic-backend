@@ -87,40 +87,6 @@ class TrackedDomain extends Model
     }
 
     /**
-     * The tracked domain that covers a url, or null when it is not opted in. A mapping covers its
-     * subdomains and everything below its path, and the most specific mapping wins: with both
-     * "acme.com" and "jira.acme.com/projects/TIM" stored, a url under that project resolves to the
-     * latter. A user's own mapping beats a shared one on the same url.
-     */
-    public static function matching(string $hostOrUrl, ?int $userId = null): ?self
-    {
-        $host = self::normalise($hostOrUrl);
-
-        if ($host === '') {
-            return null;
-        }
-
-        $path = self::normalisePath($hostOrUrl);
-
-        return self::query()
-            ->visibleTo($userId)
-            ->whereIn('domain', self::candidates($host))
-            ->orderByRaw('user_id IS NULL, LENGTH(domain) DESC, LENGTH(path) DESC')
-            ->get()
-            ->first(fn (self $trackedDomain): bool => $trackedDomain->covers($path));
-    }
-
-    /** Whether this mapping's path covers the given path: an empty path covers the whole host. */
-    public function covers(string $path): bool
-    {
-        if ($this->path === '') {
-            return true;
-        }
-
-        return $path === $this->path || str_starts_with($path, $this->path.'/');
-    }
-
-    /**
      * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
@@ -194,23 +160,6 @@ class TrackedDomain extends Model
         $value = trim($hostOrUrl);
 
         return str_contains($value, '://') ? $value : 'https://'.$value;
-    }
-
-    /**
-     * The host itself plus every parent domain, so that a mapping on a parent covers subdomains.
-     *
-     * @return array<int, string>
-     */
-    private static function candidates(string $host): array
-    {
-        $labels = explode('.', $host);
-        $candidates = [];
-
-        for ($index = 0; $index < count($labels) - 1; $index++) {
-            $candidates[] = implode('.', array_slice($labels, $index));
-        }
-
-        return $candidates === [] ? [$host] : $candidates;
     }
 
     protected function casts(): array
