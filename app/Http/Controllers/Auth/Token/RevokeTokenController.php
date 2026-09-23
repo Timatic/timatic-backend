@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Extension;
+namespace App\Http\Controllers\Auth\Token;
 
 use App\Http\Controllers\Controller;
 use App\Models\ApiToken;
