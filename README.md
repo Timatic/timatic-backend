@@ -20,6 +20,15 @@ herd link api.app.timatic --secure
 
 `timatic:install` runs migrations, creates the first admin user, and optionally generates an API token and seeds dummy data.
 
+### Session cookie
+
+Every environment must set `SESSION_SAME_SITE=lax` and keep `SESSION_SECURE_COOKIE=true`.
+The frontend and the API share one registrable domain (`app.timatic.test` and
+`api.app.timatic.test` both resolve to `timatic.test`), so the browser still classifies API
+requests as same-site and sends the cookie. `SESSION_SAME_SITE=none` would additionally let
+any origin's form post ride along on the session, which `tests/Feature/SessionCookieTest.php`
+guards against.
+
 ### Dummy data
 
 To (re)seed dummy data at any time:
