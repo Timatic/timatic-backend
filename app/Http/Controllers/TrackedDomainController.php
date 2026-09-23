@@ -50,15 +50,9 @@ class TrackedDomainController extends Controller implements HasMiddleware
         return Resources\TrackedDomain::collection($trackedDomains);
     }
 
-    /**
-     * @param  User|ApiToken  $user
-     */
-    public function store(TrackedDomainCreateRequest $request, #[CurrentUser] $user): Resources\TrackedDomain
+    public function store(TrackedDomainCreateRequest $request): Resources\TrackedDomain
     {
-        $trackedDomain = TrackedDomain::query()->create([
-            ...$request->validatedAttributes(),
-            'created_by_user_id' => $this->userId($user),
-        ]);
+        $trackedDomain = TrackedDomain::query()->create($request->validatedAttributes());
 
         return new Resources\TrackedDomain($trackedDomain);
     }

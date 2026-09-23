@@ -20,7 +20,6 @@ class TrackedDomain extends JsonApiResource
             'isInternal' => $this->is_internal,
             'userId' => $this->user_id,
             'sourceId' => $this->source_id,
-            'createdByUserId' => $this->created_by_user_id,
             'createdAt' => $this->created_at,
             'updatedAt' => $this->updated_at,
         ];

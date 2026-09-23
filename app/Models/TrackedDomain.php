@@ -22,12 +22,10 @@ use Illuminate\Support\Str;
  * @property int $customer_id
  * @property ?int $budget_id
  * @property bool $is_internal
- * @property ?int $created_by_user_id
  * @property ?Carbon $created_at
  * @property ?Carbon $updated_at
  * @property ?Customer $customer
  * @property ?Budget $budget
- * @property ?User $createdBy
  * @property ?User $user
  * @property ?TrackedDomain $source
  *
@@ -47,7 +45,6 @@ class TrackedDomain extends Model
         'customer_id',
         'budget_id',
         'is_internal',
-        'created_by_user_id',
     ];
 
     /**
@@ -155,14 +152,6 @@ class TrackedDomain extends Model
     public function budget(): BelongsTo
     {
         return $this->belongsTo(Budget::class);
-    }
-
-    /**
-     * @return BelongsTo<User, $this>
-     */
-    public function createdBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
     /**

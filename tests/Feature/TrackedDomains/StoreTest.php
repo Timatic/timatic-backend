@@ -31,7 +31,6 @@ it('stores a tracked domain', function () {
     expect($trackedDomain->domain)->toEqual('jira.acme.com');
     expect($trackedDomain->customer_id)->toEqual($budget->customer_id);
     expect($trackedDomain->budget_id)->toEqual($budget->id);
-    expect($trackedDomain->created_by_user_id)->toEqual($user->id);
 });
 
 it('stores a path as a mapping of its own', function () {

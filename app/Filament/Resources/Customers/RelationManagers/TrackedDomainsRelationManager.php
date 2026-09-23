@@ -71,7 +71,6 @@ class TrackedDomainsRelationManager extends RelationManager
                     ->label('Budget')
                     ->state(fn (TrackedDomain $record): ?string => $record->budget?->getTitle()),
                 IconColumn::make('is_internal')->label('Internal')->boolean(),
-                TextColumn::make('createdBy.email')->label('Added by'),
             ])
             ->headerActions([
                 CreateAction::make(),
