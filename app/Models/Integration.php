@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Database\Factories\IntegrationFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -12,6 +14,9 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Integration extends Model
 {
+    /** @use HasFactory<IntegrationFactory> */
+    use HasFactory;
+
     protected $fillable = ['name', 'type', 'config', 'share_token'];
 
     protected $casts = [
