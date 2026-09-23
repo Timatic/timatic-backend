@@ -31,7 +31,7 @@ class ApiClientRegistry
      */
     public function all(): Collection
     {
-        /** @var array<string, array{label: string, redirect_uris: list<string>, token_lifetime_days: int}> $clients */
+        /** @var array<string, array{label: string, redirect_uris: list<string>, token_lifetime_days: int, auto_approve: bool}> $clients */
         $clients = config('api_clients.clients', []);
 
         return (new Collection($clients))->map(fn (array $client, string $id): ApiClient => new ApiClient(
@@ -39,6 +39,7 @@ class ApiClientRegistry
             label: $client['label'],
             redirectUris: $client['redirect_uris'],
             tokenLifetimeDays: $client['token_lifetime_days'],
+            autoApprove: $client['auto_approve'],
         ));
     }
 
