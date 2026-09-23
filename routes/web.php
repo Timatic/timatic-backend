@@ -37,6 +37,7 @@ use App\Http\Middleware\EncapsulateRequestBodyWithData;
 use App\Http\Middleware\ImpersonateUsers;
 use Dedoc\Scramble\Generator;
 use Dedoc\Scramble\Scramble;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/download-export/{fileName}', [ExportEmailController::class, 'download'])->name('download.export');
@@ -60,7 +61,7 @@ Route::middleware([
     'auth:api,web',
     EncapsulateRequestBodyWithData::class,
     ImpersonateUsers::class,
-])->group(function () {
+])->withoutMiddleware(ValidateCsrfToken::class)->group(function () {
     Route::get('me', ShowCurrentUserController::class)->name('me');
 
     Route::get('daily-progress', GetDailyProgressController::class)->name('daily-progress');

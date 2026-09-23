@@ -23,8 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         );
     })
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->redirectGuestsTo(fn () => route('auth.redirect'))
-            ->validateCsrfTokens(except: ['*']);
+        $middleware->redirectGuestsTo(fn () => route('auth.redirect'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
         Integration::handles($exceptions);

@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 use Timatic\Bitbucket\Http\Controllers\CallbackController;
 use Timatic\Bitbucket\Http\Controllers\DelegateController;
@@ -16,6 +17,7 @@ Route::middleware('web')->group(function () {
         ->name('bitbucket.oauth.callback');
 
     Route::post('integrations/bitbucket/webhook/{integration}', WebhookController::class)
+        ->withoutMiddleware(ValidateCsrfToken::class)
         ->name('bitbucket.webhook');
 
     Route::get('integrations/bitbucket/connect/{token}', [DelegateController::class, 'show'])
