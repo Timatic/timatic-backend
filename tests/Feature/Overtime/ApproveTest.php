@@ -68,7 +68,7 @@ test('an api token can not approve overtime', function () {
 
     $token->givePermissionTo(['user', 'overtimes.approve']);
 
-    Auth::setUser($token);
+    Auth::guard('api')->setUser($token);
 
     Event::fake();
 
