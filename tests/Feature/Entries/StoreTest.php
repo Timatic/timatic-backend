@@ -312,7 +312,7 @@ it('stores an entry created by an api token', function () {
 
     $token->givePermissionTo(['user', 'entries.create_for_others']);
 
-    Auth::setUser($token);
+    Auth::guard('api')->setUser($token);
 
     $response = $this->postJson('entries', [
         'data' => [
