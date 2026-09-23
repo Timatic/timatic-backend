@@ -1,0 +1,10 @@
+@import 'tailwindcss' source(none);
+
+@source '../views/layouts/consent.blade.php';
+@source '../views/components/consent/**/*.blade.php';
+@source '../../integrations/*/resources/views/consent/**/*.blade.php';
+
+@theme {
+    --color-primary: #5bb46f;
+    --color-primary-hover: #9ed8a9;
+}

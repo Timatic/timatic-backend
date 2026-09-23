@@ -60,4 +60,20 @@ return [
         'filter_archived' => 'Gearchiveerd',
         'filter_unmapped' => 'Alleen niet gekoppeld',
     ],
+
+    'consent' => [
+        'subtitle' => 'Bitbucket integratie',
+        'connected' => 'Bitbucket is verbonden en de webhook is geïnstalleerd.',
+        'connected_select_workspace' => 'Bitbucket succesvol verbonden. Selecteer nu een workspace om de webhook te installeren.',
+        'webhook_installed' => 'Webhook succesvol geïnstalleerd. De integratie is volledig geconfigureerd.',
+        'webhook_failed' => 'Webhook installatie mislukt. Probeer het opnieuw.',
+        'connect_intro' => 'Klik op de knop hieronder om Bitbucket te verbinden met Timatic voor :tenant. U wordt doorgestuurd naar Bitbucket om toestemming te verlenen.',
+        'connect_action' => 'Verbinden met Bitbucket',
+        'workspace_label' => 'Workspace',
+        'workspace_slug_label' => 'Workspace slug',
+        'workspace_slug_placeholder' => 'bijv. mijn-organisatie',
+        'not_administrator' => 'geen beheerder',
+        'administrator_hint' => 'Workspaces met "(geen beheerder)" zijn uitgeschakeld omdat u daar geen beheerdersrechten heeft. Alleen beheerders kunnen de webhook installeren.',
+        'install_webhook_action' => 'Webhook installeren',
+    ],
 ];

@@ -13,9 +13,12 @@ class DelegateController
     {
         $integration = Integration::where('share_token', $token)->firstOrFail();
 
-        return view('jira::delegate.show', [
+        if ($this->isConfigured($integration)) {
+            return view('jira::consent.connected');
+        }
+
+        return view('jira::consent.connect', [
             'integration' => $integration,
-            'configured' => $this->isConfigured($integration),
         ]);
     }
 

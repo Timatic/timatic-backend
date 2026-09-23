@@ -58,4 +58,20 @@ return [
         'filter_archived' => 'Archived',
         'filter_unmapped' => 'Unmapped only',
     ],
+
+    'consent' => [
+        'subtitle' => 'Bitbucket integration',
+        'connected' => 'Bitbucket is connected and the webhook is installed.',
+        'connected_select_workspace' => 'Bitbucket connected successfully. Now select a workspace to install the webhook.',
+        'webhook_installed' => 'Webhook installed successfully. The integration is fully configured.',
+        'webhook_failed' => 'Installing the webhook failed. Please try again.',
+        'connect_intro' => 'Click the button below to connect Bitbucket to Timatic for :tenant. You will be redirected to Bitbucket to grant permission.',
+        'connect_action' => 'Connect to Bitbucket',
+        'workspace_label' => 'Workspace',
+        'workspace_slug_label' => 'Workspace slug',
+        'workspace_slug_placeholder' => 'e.g. my-organisation',
+        'not_administrator' => 'not an administrator',
+        'administrator_hint' => 'Workspaces marked "(not an administrator)" are disabled because you do not have administrator rights there. Only administrators can install the webhook.',
+        'install_webhook_action' => 'Install webhook',
+    ],
 ];

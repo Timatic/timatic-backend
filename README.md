@@ -9,10 +9,14 @@ The [Business Rules documentation](./docs/business-rules.md) will help you under
 ```bash
 cp .env.example .env
 composer install
+npm install
+npm run build
 php artisan key:generate
 php artisan timatic:install
 herd link api.app.timatic --secure
 ```
+
+`npm run build` compiles the Filament admin theme and the stylesheet for the integration consent pages. Deployments must run it too, otherwise those pages render unstyled.
 
 `timatic:install` runs migrations, creates the first admin user, and optionally generates an API token and seeds dummy data.
 

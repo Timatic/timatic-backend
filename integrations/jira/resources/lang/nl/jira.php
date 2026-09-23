@@ -54,4 +54,11 @@ return [
         'filter_archived' => 'Gearchiveerd',
         'filter_unmapped' => 'Alleen niet gekoppeld',
     ],
+
+    'consent' => [
+        'subtitle' => 'Jira integratie',
+        'connected' => 'Jira succesvol verbonden.',
+        'connect_intro' => 'Klik op de knop hieronder om Jira te verbinden met Timatic. U wordt doorgestuurd naar Jira om toestemming te verlenen.',
+        'connect_action' => 'Verbinden met Jira',
+    ],
 ];
