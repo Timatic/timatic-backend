@@ -14,4 +14,9 @@ return [
         'approve' => 'Connect',
         'deny' => 'Cancel',
     ],
+
+    'error' => [
+        'subtitle' => 'This connection request is not valid',
+        'intro' => 'The application that sent you here asked for something Timatic cannot grant. Nothing has been shared. Return to the application and start again.',
+    ],
 ];

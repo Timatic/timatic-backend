@@ -36,7 +36,7 @@ it('refuses an unknown client', function () {
         'state' => 'state-123',
         'code_challenge' => $this->codeChallenge,
         'code_challenge_method' => 'S256',
-    ]))->assertSessionHasErrors('client_id');
+    ]))->assertStatus(400)->assertSee(__('consent.error.subtitle'));
 });
 
 it('refuses a redirect uri that belongs to another client', function () {
@@ -48,7 +48,7 @@ it('refuses a redirect uri that belongs to another client', function () {
         'state' => 'state-123',
         'code_challenge' => $this->codeChallenge,
         'code_challenge_method' => 'S256',
-    ]))->assertSessionHasErrors('redirect_uri');
+    ]))->assertStatus(400)->assertSee(__('consent.error.subtitle'));
 });
 
 it('refuses a redirect uri that is not allowlisted', function () {
@@ -60,7 +60,7 @@ it('refuses a redirect uri that is not allowlisted', function () {
         'state' => 'state-123',
         'code_challenge' => $this->codeChallenge,
         'code_challenge_method' => 'S256',
-    ]))->assertSessionHasErrors('redirect_uri');
+    ]))->assertStatus(400)->assertSee(__('consent.error.subtitle'));
 });
 
 it('shows the consent screen to a logged in user', function () {
