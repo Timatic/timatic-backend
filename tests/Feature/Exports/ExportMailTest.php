@@ -13,7 +13,7 @@ it('sends an email with export file', function () {
     Budget::query()->delete();
 
     $user = User::factory()->create();
-    $this->actingAs($user);
+    $this->actingAs($user, 'api');
     Storage::fake();
 
     Mail::fake();

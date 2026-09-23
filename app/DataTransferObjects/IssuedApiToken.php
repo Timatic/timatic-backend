@@ -6,7 +6,7 @@ namespace App\DataTransferObjects;
 
 use App\Models\ApiToken;
 
-class IssuedExtensionToken
+class IssuedApiToken
 {
     public function __construct(
         public readonly ApiToken $apiToken,

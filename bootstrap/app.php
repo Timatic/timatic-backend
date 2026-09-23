@@ -3,13 +3,14 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use Sentry\Laravel\Integration;
-use Symfony\Component\HttpFoundation\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withProviders()
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
         health: '/health',
         apiPrefix: ''
     )
@@ -27,4 +28,13 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions) {
         Integration::handles($exceptions);
+
+        /*
+         * Api routes have no session to flash errors into and nowhere to redirect a browser back
+         * to, so they answer every failure as json even when the caller sends no Accept header.
+         */
+        $exceptions->shouldRenderJsonWhen(
+            fn (Request $request) => $request->expectsJson()
+                || in_array('api', $request->route()?->gatherMiddleware() ?? [], true)
+        );
     })->create();

@@ -5,6 +5,13 @@ use Illuminate\Support\Facades\Event;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\GoogleProvider;
 
+beforeEach(function () {
+    config([
+        'auth.socialite_driver' => 'google',
+        'services.google.client_id' => 'a-client-id',
+    ]);
+});
+
 it('dispatches the SocialiteRedirecting event', function () {
     Event::fake([SocialiteRedirecting::class]);
 
@@ -57,4 +64,13 @@ it('does not call scopes when no listener adds any', function () {
     Socialite::shouldReceive('driver')->andReturn($mock);
 
     $this->get(route('auth.redirect'));
+});
+
+it('refuses to start a login flow for a provider that has no credentials', function () {
+    config([
+        'auth.socialite_driver' => 'google',
+        'services.google.client_id' => null,
+    ]);
+
+    $this->get(route('auth.redirect'))->assertStatus(503);
 });

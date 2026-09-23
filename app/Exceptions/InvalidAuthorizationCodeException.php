@@ -29,6 +29,11 @@ class InvalidAuthorizationCodeException extends Exception
         return new self('The redirect uri does not match the one used to request the code.', 400);
     }
 
+    public static function clientMismatch(): self
+    {
+        return new self('The authorization code was issued to a different client.', 400);
+    }
+
     public function render(): JsonResponse
     {
         return response()->json([
