@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
-use App\Services\ExtensionAuthorizationService;
+use App\DataTransferObjects\ApiClient;
+use App\Services\ApiClientRegistry;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class ExtensionAuthorizeRequest extends FormRequest
+class AuthorizeClientRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -21,11 +22,17 @@ class ExtensionAuthorizeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'redirect_uri' => ['required', 'string', Rule::in(app(ExtensionAuthorizationService::class)->allowedRedirectUris())],
+            'client_id' => ['required', 'string', Rule::in($this->clients()->ids())],
+            'redirect_uri' => ['required', 'string', Rule::in($this->clients()->redirectUrisFor($this->string('client_id')->toString()))],
             'state' => ['required', 'string', 'max:255'],
             'code_challenge' => ['required', 'string', 'regex:/^[A-Za-z0-9\-_]{43}$/'],
             'code_challenge_method' => ['required', 'in:S256'],
         ];
+    }
+
+    public function client(): ApiClient
+    {
+        return $this->clients()->findOrFail((string) $this->validated('client_id'));
     }
 
     public function redirectUri(): string
@@ -41,5 +48,10 @@ class ExtensionAuthorizeRequest extends FormRequest
     public function codeChallenge(): string
     {
         return (string) $this->validated('code_challenge');
+    }
+
+    private function clients(): ApiClientRegistry
+    {
+        return app(ApiClientRegistry::class);
     }
 }

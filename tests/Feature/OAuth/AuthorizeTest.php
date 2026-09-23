@@ -7,7 +7,10 @@ use Tests\Concerns\LoginUser;
 uses(LoginUser::class);
 
 beforeEach(function () {
-    config(['extension.ids' => ['abcdefghijklmnopabcdefghijklmnop']]);
+    config([
+        'api_clients.clients.extension.redirect_uris' => ['https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/'],
+        'api_clients.clients.web.redirect_uris' => ['https://app.timatic.test/auth/callback'],
+    ]);
 
     $this->redirectUri = 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/';
     $this->codeVerifier = str_repeat('a', 64);
@@ -15,7 +18,8 @@ beforeEach(function () {
 });
 
 it('sends a guest to the login flow', function () {
-    $this->get(route('extension.authorize.show', [
+    $this->get(route('oauth.authorize.show', [
+        'client_id' => 'extension',
         'redirect_uri' => $this->redirectUri,
         'state' => 'state-123',
         'code_challenge' => $this->codeChallenge,
@@ -23,10 +27,35 @@ it('sends a guest to the login flow', function () {
     ]))->assertRedirect(route('auth.redirect'));
 });
 
+it('refuses an unknown client', function () {
+    $this->actingAs(User::factory()->create());
+
+    $this->get(route('oauth.authorize.show', [
+        'client_id' => 'not-a-client',
+        'redirect_uri' => $this->redirectUri,
+        'state' => 'state-123',
+        'code_challenge' => $this->codeChallenge,
+        'code_challenge_method' => 'S256',
+    ]))->assertSessionHasErrors('client_id');
+});
+
+it('refuses a redirect uri that belongs to another client', function () {
+    $this->actingAs(User::factory()->create());
+
+    $this->get(route('oauth.authorize.show', [
+        'client_id' => 'web',
+        'redirect_uri' => $this->redirectUri,
+        'state' => 'state-123',
+        'code_challenge' => $this->codeChallenge,
+        'code_challenge_method' => 'S256',
+    ]))->assertSessionHasErrors('redirect_uri');
+});
+
 it('refuses a redirect uri that is not allowlisted', function () {
     $this->actingAs(User::factory()->create());
 
-    $this->get(route('extension.authorize.show', [
+    $this->get(route('oauth.authorize.show', [
+        'client_id' => 'extension',
         'redirect_uri' => 'https://evil.example.com/',
         'state' => 'state-123',
         'code_challenge' => $this->codeChallenge,
@@ -39,7 +68,8 @@ it('shows the consent screen to a logged in user', function () {
 
     $this->actingAs($user);
 
-    $this->get(route('extension.authorize.show', [
+    $this->get(route('oauth.authorize.show', [
+        'client_id' => 'extension',
         'redirect_uri' => $this->redirectUri,
         'state' => 'state-123',
         'code_challenge' => $this->codeChallenge,
@@ -47,13 +77,15 @@ it('shows the consent screen to a logged in user', function () {
     ]))
         ->assertOk()
         ->assertSee('Tomas van Rijsse')
-        ->assertSee('extension/authorize?', false);
+        ->assertSee('Browser extension')
+        ->assertSee('oauth/authorize?', false);
 });
 
-it('redirects to the extension with a code when approved', function () {
+it('redirects to the client with a code when approved', function () {
     $this->actingAs(User::factory()->create());
 
-    $approveUrl = URL::temporarySignedRoute('extension.authorize.approve', now()->addMinutes(5), [
+    $approveUrl = URL::temporarySignedRoute('oauth.authorize.approve', now()->addMinutes(5), [
+        'client_id' => 'extension',
         'redirect_uri' => $this->redirectUri,
         'state' => 'state-123',
         'code_challenge' => $this->codeChallenge,
@@ -72,10 +104,27 @@ it('redirects to the extension with a code when approved', function () {
     expect($query['code'])->toHaveLength(64);
 });
 
+it('refuses to approve without a csrf token', function () {
+    $this->app['env'] = 'local';
+
+    $this->actingAs(User::factory()->create());
+
+    $approveUrl = URL::temporarySignedRoute('oauth.authorize.approve', now()->addMinutes(5), [
+        'client_id' => 'extension',
+        'redirect_uri' => $this->redirectUri,
+        'state' => 'state-123',
+        'code_challenge' => $this->codeChallenge,
+        'code_challenge_method' => 'S256',
+    ]);
+
+    $this->post($approveUrl)->assertStatus(419);
+});
+
 it('refuses to approve without a valid signature', function () {
     $this->actingAs(User::factory()->create());
 
-    $this->post(route('extension.authorize.approve', [
+    $this->post(route('oauth.authorize.approve', [
+        'client_id' => 'extension',
         'redirect_uri' => $this->redirectUri,
         'state' => 'state-123',
         'code_challenge' => $this->codeChallenge,
