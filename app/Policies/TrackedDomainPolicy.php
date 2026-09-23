@@ -28,12 +28,6 @@ class TrackedDomainPolicy
         return $authUser->can('tracked-domains.create');
     }
 
-    /** Its owner always may: a private mapping is theirs alone. */
-    public function update(Authorizable $authUser, TrackedDomain $trackedDomain): bool
-    {
-        return $this->owns($authUser, $trackedDomain) || $authUser->can('tracked-domains.update');
-    }
-
     public function delete(Authorizable $authUser, TrackedDomain $trackedDomain): bool
     {
         return $this->owns($authUser, $trackedDomain) || $authUser->can('tracked-domains.delete');

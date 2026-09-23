@@ -72,7 +72,6 @@ class RoleSeeder extends Seeder
             'users.read',
             'tracked-domains.read',
             'tracked-domains.create',
-            'tracked-domains.update',
         ]);
     }
 
