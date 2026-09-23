@@ -27,3 +27,4 @@ secret.yml
 /.claude/settings.local.json
 dump.rdb
 public/build
+/plans
