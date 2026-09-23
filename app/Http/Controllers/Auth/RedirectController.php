@@ -34,9 +34,14 @@ class RedirectController
 
         event($event);
 
+        /*
+         * Offline access asks for the refresh token the calendar sync runs on. Consent is not
+         * forced: Google returns a refresh token on a first authorization by itself, and
+         * disconnecting revokes the grant, so a reconnect counts as a first authorization again.
+         */
         /** @var AbstractProvider $provider */
         $provider = Socialite::driver($driver);
-        $provider->with(['access_type' => 'offline', 'prompt' => 'consent']);
+        $provider->with(['access_type' => 'offline']);
 
         if ($event->getScopes() !== []) {
             $provider->scopes($event->getScopes());
