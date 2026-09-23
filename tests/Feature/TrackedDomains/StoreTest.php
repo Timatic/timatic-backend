@@ -208,21 +208,6 @@ it('refuses a user without the create permission', function () {
     ])->assertForbidden();
 });
 
-it('pauses a tracked domain', function () {
-    $this->loginUser(permissions: ['tracked-domains.update']);
-
-    $trackedDomain = TrackedDomain::factory()->create(['domain' => 'jira.acme.com']);
-
-    $this->patchJson(route('tracked-domains.update', $trackedDomain), [
-        'data' => [
-            'type' => 'tracked-domains',
-            'attributes' => ['isActive' => false],
-        ],
-    ])->assertOk();
-
-    expect($trackedDomain->refresh()->is_active)->toBeFalse();
-});
-
 it('removes a tracked domain', function () {
     $this->loginUser(permissions: ['tracked-domains.delete']);
 

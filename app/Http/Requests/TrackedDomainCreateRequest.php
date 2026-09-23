@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
-use App\Http\Requests\Traits\OptionalPatchParameters;
 use App\Http\Requests\Traits\ValidatedAttributes;
 use App\Models\Budget;
 use App\Models\TrackedDomain;
@@ -15,7 +14,6 @@ use Illuminate\Validation\Validator;
 
 class TrackedDomainCreateRequest extends FormRequest
 {
-    use OptionalPatchParameters;
     use ValidatedAttributes;
 
     public function authorize(): bool
@@ -30,7 +28,7 @@ class TrackedDomainCreateRequest extends FormRequest
     {
         $ownUserId = $this->ownUserId();
 
-        return $this->addPatchOptionalValidation([
+        return [
             'data.type' => ['required', 'in:tracked-domains'],
             'data.attributes.domain' => [
                 'required',
@@ -40,8 +38,7 @@ class TrackedDomainCreateRequest extends FormRequest
                 'not_regex:/^www\./',
                 Rule::unique(TrackedDomain::class, 'domain')
                     ->where('path', (string) $this->input('data.attributes.path', ''))
-                    ->where('user_id', $ownUserId)
-                    ->ignore($this->route('tracked_domain')),
+                    ->where('user_id', $ownUserId),
             ],
             'data.attributes.path' => ['string', 'max:255', 'regex:#^(/[^?\#\s]*[^/?\#\s])?$#'],
             'data.attributes.customerId' => ['required', 'integer', 'exists:customers,id'],
@@ -53,7 +50,7 @@ class TrackedDomainCreateRequest extends FormRequest
             // so a token that belongs to nobody gets an empty list and may create no mapping at all.
             'data.attributes.userId' => ['required', 'integer', Rule::in($ownUserId === null ? [] : [$ownUserId])],
             'data.attributes.sourceId' => ['nullable', 'integer', 'exists:tracked_domains,id'],
-        ]);
+        ];
     }
 
     /**

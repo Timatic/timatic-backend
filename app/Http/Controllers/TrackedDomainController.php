@@ -25,7 +25,6 @@ class TrackedDomainController extends Controller implements HasMiddleware
         return [
             new Middleware('can:viewAny,App\Models\TrackedDomain', only: ['index']),
             new Middleware('can:create,App\Models\TrackedDomain', only: ['store']),
-            new Middleware('can:update,tracked_domain', only: ['update']),
             new Middleware('can:delete,tracked_domain', only: ['destroy']),
         ];
     }
@@ -61,13 +60,6 @@ class TrackedDomainController extends Controller implements HasMiddleware
             ...$request->validatedAttributes(),
             'created_by_user_id' => $this->userId($user),
         ]);
-
-        return new Resources\TrackedDomain($trackedDomain);
-    }
-
-    public function update(TrackedDomainCreateRequest $request, TrackedDomain $trackedDomain): Resources\TrackedDomain
-    {
-        $trackedDomain->update($request->validatedAttributes());
 
         return new Resources\TrackedDomain($trackedDomain);
     }

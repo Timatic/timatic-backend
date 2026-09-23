@@ -126,7 +126,7 @@ Route::middleware([
 
     Route::get('budget-time-spent-totals', GetBudgetTimeSpentTotalsController::class)->name('budget.time-spent-totals');
 
-    Route::apiResource('tracked-domains', TrackedDomainController::class)->except('show');
+    Route::apiResource('tracked-domains', TrackedDomainController::class)->only(['index', 'store', 'destroy']);
 
     Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
     Route::get('tickets/{key}', [TicketController::class, 'show'])->name('tickets.show');
