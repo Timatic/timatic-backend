@@ -5,7 +5,10 @@ namespace Timatic\GoogleCalendar;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use RuntimeException;
+use Saloon\Exceptions\Request\FatalRequestException;
+use Saloon\Exceptions\Request\RequestException;
 use Timatic\GoogleCalendar\Requests\RefreshTokenRequest;
+use Timatic\GoogleCalendar\Requests\RevokeTokenRequest;
 
 class OAuthService
 {
@@ -28,8 +31,21 @@ class OAuthService
         });
     }
 
+    /**
+     * Revokes the grant at Google before forgetting the tokens. Google only hands out a refresh
+     * token on a first authorization, so a grant left standing would leave the user unable to
+     * reconnect by logging in again.
+     */
     public function disconnect(User $user): void
     {
+        if (filled($user->oauth_refresh_token)) {
+            try {
+                new OAuthConnector()->send(new RevokeTokenRequest((string) $user->oauth_refresh_token));
+            } catch (FatalRequestException|RequestException) {
+                // Unreachable or already gone at Google; forgetting it here is the whole point.
+            }
+        }
+
         $user->update([
             'oauth_access_token' => null,
             'oauth_refresh_token' => null,
