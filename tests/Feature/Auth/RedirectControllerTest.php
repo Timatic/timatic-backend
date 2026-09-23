@@ -58,3 +58,12 @@ it('does not call scopes when no listener adds any', function () {
 
     $this->get(route('auth.redirect'));
 });
+
+it('refuses to start a login flow for a provider that has no credentials', function () {
+    config([
+        'auth.socialite_driver' => 'google',
+        'services.google.client_id' => null,
+    ]);
+
+    $this->get(route('auth.redirect'))->assertStatus(503);
+});
