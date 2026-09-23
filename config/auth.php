@@ -28,4 +28,14 @@ return [
         ],
     ],
     'socialite_driver' => env('SOCIALITE_DRIVER'),
+
+    /*
+     * What a user should read on the login button, since the driver key is not it. A deployment
+     * runs exactly one provider, so adding one is a matter of a label and env credentials.
+     */
+    'socialite_labels' => [
+        'azure' => 'Microsoft',
+        'google' => 'Google',
+        'auth0' => 'Auth0',
+    ],
 ];
