@@ -48,7 +48,7 @@ class TrackedDomainCreateRequest extends FormRequest
             // time is not something a client gets to ask for. Shared mappings are made in the web app,
             // so a token that belongs to nobody gets an empty list and may create no mapping at all.
             'data.attributes.userId' => ['required', 'integer', Rule::in($ownUserId === null ? [] : [$ownUserId])],
-            'data.attributes.sourceId' => ['nullable', 'integer', 'exists:tracked_domains,id'],
+            'data.attributes.parentId' => ['nullable', 'integer', 'exists:tracked_domains,id'],
         ];
     }
 
@@ -59,16 +59,16 @@ class TrackedDomainCreateRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
-                $sourceId = $this->input('data.attributes.sourceId');
+                $parentId = $this->input('data.attributes.parentId');
 
-                if ($sourceId === null) {
+                if ($parentId === null) {
                     return;
                 }
 
-                $isShared = TrackedDomain::query()->whereKey($sourceId)->shared()->exists();
+                $isShared = TrackedDomain::query()->whereKey($parentId)->shared()->exists();
 
                 if (! $isShared) {
-                    $validator->errors()->add('data.attributes.sourceId', 'A mapping can only be accepted from a shared one.');
+                    $validator->errors()->add('data.attributes.parentId', 'A mapping can only be accepted from a shared one.');
                 }
             },
             function (Validator $validator): void {

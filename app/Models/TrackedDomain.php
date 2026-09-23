@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
 /**
  * @property ?int $id
  * @property ?int $user_id
- * @property ?int $source_id
+ * @property ?int $parent_id
  * @property string $domain
  * @property string $path
  * @property int $customer_id
@@ -27,7 +27,7 @@ use Illuminate\Support\Str;
  * @property ?Customer $customer
  * @property ?Budget $budget
  * @property ?User $user
- * @property ?TrackedDomain $source
+ * @property ?TrackedDomain $parent
  *
  * @method static Builder<TrackedDomain> shared(mixed $isShared = true)
  * @method static Builder<TrackedDomain> visibleTo(?int $userId)
@@ -39,7 +39,7 @@ class TrackedDomain extends Model
 
     protected $fillable = [
         'user_id',
-        'source_id',
+        'parent_id',
         'domain',
         'path',
         'customer_id',
@@ -133,9 +133,9 @@ class TrackedDomain extends Model
      *
      * @return BelongsTo<TrackedDomain, $this>
      */
-    public function source(): BelongsTo
+    public function parent(): BelongsTo
     {
-        return $this->belongsTo(self::class, 'source_id');
+        return $this->belongsTo(self::class, 'parent_id');
     }
 
     /**

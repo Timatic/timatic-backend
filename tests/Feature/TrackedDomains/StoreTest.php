@@ -278,15 +278,15 @@ it('accepts a shared mapping as a mapping of its own', function () {
             'type' => 'tracked-domains',
             'attributes' => [
                 'userId' => $user->id,
-                'sourceId' => $shared->id,
+                'parentId' => $shared->id,
                 'domain' => 'jira.acme.com',
                 'customerId' => $shared->customer_id,
             ],
         ],
     ])->assertCreated();
 
-    expect($response->json('data.attributes.sourceId'))->toEqual($shared->id);
-    expect(TrackedDomain::query()->where('user_id', $user->id)->sole()->source_id)->toEqual($shared->id);
+    expect($response->json('data.attributes.parentId'))->toEqual($shared->id);
+    expect(TrackedDomain::query()->where('user_id', $user->id)->sole()->parent_id)->toEqual($shared->id);
 });
 
 it('refuses to accept a mapping that belongs to somebody', function () {
@@ -299,12 +299,12 @@ it('refuses to accept a mapping that belongs to somebody', function () {
             'type' => 'tracked-domains',
             'attributes' => [
                 'userId' => $user->id,
-                'sourceId' => $other->id,
+                'parentId' => $other->id,
                 'domain' => 'jira.acme.com',
                 'customerId' => $other->customer_id,
             ],
         ],
-    ])->assertJsonValidationErrors('data.attributes.sourceId');
+    ])->assertJsonValidationErrors('data.attributes.parentId');
 });
 
 it('lets two users map the same domain', function () {

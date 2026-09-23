@@ -14,8 +14,6 @@ return new class extends Migration
             $table->foreignId('customer_id')->constrained()->cascadeOnDelete();
             $table->foreignId('budget_id')->nullable()->constrained()->nullOnDelete();
             $table->boolean('is_internal')->default(false);
-            $table->boolean('is_active')->default(true);
-            $table->foreignId('created_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
     }
