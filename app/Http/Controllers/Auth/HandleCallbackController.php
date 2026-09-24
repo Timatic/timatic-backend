@@ -52,6 +52,9 @@ class HandleCallbackController
 
         Auth::guard('web')->login($user);
 
-        return Response::redirectTo(Session::pull('auth_original_url', '/'));
+        $intended = Session::pull('url.intended');
+        $previous = Session::pull('auth_original_url', '/');
+
+        return Response::redirectTo($intended ?? $previous);
     }
 }
