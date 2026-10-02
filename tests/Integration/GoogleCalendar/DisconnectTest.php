@@ -1,9 +1,9 @@
 <?php
 
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
+use Timatic\GoogleCalendar\Models\GoogleCalendarConnection;
 use Timatic\GoogleCalendar\OAuthService;
 use Timatic\GoogleCalendar\Requests\RevokeTokenRequest;
 
@@ -14,39 +14,29 @@ afterEach(function () {
 });
 
 it('revokes the grant at google and forgets the tokens', function () {
-    $user = User::factory()->create([
-        'oauth_access_token' => 'test-access-token',
-        'oauth_refresh_token' => 'test-refresh-token',
-        'oauth_token_expires_at' => now()->addHour()->timestamp,
-    ]);
+    $connection = GoogleCalendarConnection::factory()->create(['refresh_token' => 'test-refresh-token']);
 
     $mock = MockClient::global([
         RevokeTokenRequest::class => MockResponse::make([], 200),
     ]);
 
-    app(OAuthService::class)->disconnect($user);
+    app(OAuthService::class)->disconnect($connection);
 
     $mock->assertSent(function (RevokeTokenRequest $request): bool {
         return $request->body()->all() === ['token' => 'test-refresh-token'];
     });
 
-    expect($user->refresh()->oauth_refresh_token)->toBeNull()
-        ->and($user->oauth_access_token)->toBeNull()
-        ->and($user->oauth_token_expires_at)->toBe(0);
+    expect(GoogleCalendarConnection::count())->toBe(0);
 });
 
 it('forgets the tokens even when google refuses the revocation', function () {
-    $user = User::factory()->create([
-        'oauth_access_token' => 'test-access-token',
-        'oauth_refresh_token' => 'test-refresh-token',
-        'oauth_token_expires_at' => now()->addHour()->timestamp,
-    ]);
+    $connection = GoogleCalendarConnection::factory()->create(['refresh_token' => 'test-refresh-token']);
 
     MockClient::global([
         RevokeTokenRequest::class => MockResponse::make(['error' => 'invalid_token'], 400),
     ]);
 
-    app(OAuthService::class)->disconnect($user);
+    app(OAuthService::class)->disconnect($connection);
 
-    expect($user->refresh()->oauth_refresh_token)->toBeNull();
+    expect(GoogleCalendarConnection::count())->toBe(0);
 });

@@ -4,7 +4,6 @@ namespace Timatic\GoogleCalendar\Filament\Pages;
 
 use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Models\Integration;
-use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\Action as TableAction;
 use Filament\Forms\Components\TextInput;
@@ -17,6 +16,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
+use Timatic\GoogleCalendar\Models\GoogleCalendarConnection;
 use Timatic\GoogleCalendar\OAuthService;
 
 /**
@@ -61,23 +61,21 @@ class SettingsPage extends Page implements HasTable
                 ->required(),
             Callout::make('Users connect their Google Calendar by logging in with Google.')
                 ->info()
-                ->description('Each user\'s calendar access is obtained automatically during Google login. The table below shows all currently connected users.'),
+                ->description('The table below shows all currently connected users.'),
         ])->statePath('data');
     }
 
     public function table(Table $table): Table
     {
         return $table
-            ->query(
-                User::query()->whereNotNull('oauth_refresh_token')
-            )
+            ->query(GoogleCalendarConnection::query()->with('user'))
             ->columns([
-                TextColumn::make('full_name')
+                TextColumn::make('user.full_name')
                     ->label('User')
                     ->searchable(['given_name', 'family_name']),
-                TextColumn::make('email')
+                TextColumn::make('user.email')
                     ->label('Email'),
-                TextColumn::make('updated_at')
+                TextColumn::make('created_at')
                     ->label('Connected at')
                     ->dateTime()
                     ->sortable(),
@@ -87,10 +85,10 @@ class SettingsPage extends Page implements HasTable
                     ->label('Disconnect')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->action(fn (User $record) => app(OAuthService::class)->disconnect($record)),
+                    ->action(fn (GoogleCalendarConnection $record) => app(OAuthService::class)->disconnect($record)),
             ])
             ->emptyStateHeading('No users connected yet')
-            ->emptyStateDescription('Users will appear here after they log in with Google and grant calendar access.');
+            ->emptyStateDescription('Users will appear here after they grant calendar access.');
     }
 
     protected function getHeaderActions(): array

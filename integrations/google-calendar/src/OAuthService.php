@@ -7,66 +7,60 @@ use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 use Saloon\Exceptions\Request\FatalRequestException;
 use Saloon\Exceptions\Request\RequestException;
+use Timatic\GoogleCalendar\Models\GoogleCalendarConnection;
 use Timatic\GoogleCalendar\Requests\RefreshTokenRequest;
 use Timatic\GoogleCalendar\Requests\RevokeTokenRequest;
 
 class OAuthService
 {
-    public function refreshIfExpired(User $user): User
+    public function refreshIfExpired(GoogleCalendarConnection $connection): GoogleCalendarConnection
     {
-        if (now()->timestamp < $user->oauth_token_expires_at) {
-            return $user;
+        if (! $connection->hasExpired()) {
+            return $connection;
         }
 
-        $lock = Cache::lock('google_calendar.token.refresh.'.$user->id, 10);
+        $lock = Cache::lock('google_calendar.token.refresh.'.$connection->user_id, 10);
 
-        return $lock->block(10, function () use ($user): User {
-            $user->refresh();
+        return $lock->block(10, function () use ($connection): GoogleCalendarConnection {
+            $connection->refresh();
 
-            if (now()->timestamp < $user->oauth_token_expires_at) {
-                return $user;
+            if (! $connection->hasExpired()) {
+                return $connection;
             }
 
-            return $this->refreshTokens($user);
+            return $this->refreshTokens($connection);
         });
     }
 
     /**
-     * Revokes the grant at Google before forgetting the tokens. Google only hands out a refresh
-     * token on a first authorization, so a grant left standing would leave the user unable to
-     * reconnect by logging in again.
+     * Revokes the grant at Google before forgetting it. Google only hands out a refresh token on a
+     * first authorization, so a grant left standing would leave the user unable to reconnect.
      */
-    public function disconnect(User $user): void
+    public function disconnect(GoogleCalendarConnection $connection): void
     {
-        if (filled($user->oauth_refresh_token)) {
-            try {
-                new OAuthConnector()->send(new RevokeTokenRequest((string) $user->oauth_refresh_token));
-            } catch (FatalRequestException|RequestException) {
-                // Unreachable or already gone at Google; forgetting it here is the whole point.
-            }
+        try {
+            new OAuthConnector()->send(new RevokeTokenRequest((string) $connection->refresh_token));
+        } catch (FatalRequestException|RequestException) {
+            // Unreachable or already gone at Google; forgetting it here is the whole point.
         }
 
-        $user->update([
-            'oauth_access_token' => null,
-            'oauth_refresh_token' => null,
-            'oauth_token_expires_at' => 0,
-        ]);
+        $connection->delete();
     }
 
-    private function refreshTokens(User $user): User
+    /**
+     * A refusal means Google no longer honours the grant, which the user can only answer by
+     * connecting again, so the connection is dropped rather than kept in a state that cannot work.
+     */
+    private function refreshTokens(GoogleCalendarConnection $connection): GoogleCalendarConnection
     {
         $response = new OAuthConnector()->send(
-            new RefreshTokenRequest((string) $user->oauth_refresh_token)
+            new RefreshTokenRequest((string) $connection->refresh_token)
         );
 
         if ($response->status() === 400) {
-            $user->update([
-                'oauth_access_token' => null,
-                'oauth_refresh_token' => null,
-                'oauth_token_expires_at' => 0,
-            ]);
+            $connection->delete();
 
-            return $user->refresh();
+            return $connection;
         }
 
         if ($response->failed()) {
@@ -75,12 +69,12 @@ class OAuthService
 
         $tokens = $response->dto();
 
-        $user->update(array_filter([
-            'oauth_access_token' => $tokens->accessToken,
-            'oauth_refresh_token' => $tokens->refreshToken ?? $user->oauth_refresh_token,
-            'oauth_token_expires_at' => now()->addSeconds($tokens->expiresIn - 60)->timestamp,
-        ]));
+        $connection->update([
+            'access_token' => $tokens->accessToken,
+            'refresh_token' => $tokens->refreshToken ?? $connection->refresh_token,
+            'expires_at' => $tokens->expiresAt(),
+        ]);
 
-        return $user->refresh();
+        return $connection;
     }
 }

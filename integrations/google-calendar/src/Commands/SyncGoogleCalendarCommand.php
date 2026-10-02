@@ -2,9 +2,9 @@
 
 namespace Timatic\GoogleCalendar\Commands;
 
-use App\Models\User;
 use Illuminate\Console\Command;
 use Timatic\GoogleCalendar\Jobs\SyncUserCalendarJob;
+use Timatic\GoogleCalendar\Models\GoogleCalendarConnection;
 
 class SyncGoogleCalendarCommand extends Command
 {
@@ -14,10 +14,10 @@ class SyncGoogleCalendarCommand extends Command
 
     public function handle(): void
     {
-        $users = User::whereNotNull('oauth_refresh_token')->get();
+        $connections = GoogleCalendarConnection::all();
 
-        $this->info("Dispatching sync for {$users->count()} connected user(s).");
+        $this->info("Dispatching sync for {$connections->count()} connected user(s).");
 
-        $users->each(fn (User $user) => SyncUserCalendarJob::dispatch($user));
+        $connections->each(fn (GoogleCalendarConnection $connection) => SyncUserCalendarJob::dispatch($connection));
     }
 }

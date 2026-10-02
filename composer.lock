@@ -11189,7 +11189,7 @@
             "dist": {
                 "type": "path",
                 "url": "integrations/google-calendar",
-                "reference": "216e6bb9dbfd59d3aa12322104a030424034b250"
+                "reference": "90ccb931d7354611be49cfc8c03c588f11444f46"
             },
             "require": {
                 "php": "^8.4",
@@ -11205,7 +11205,8 @@
             },
             "autoload": {
                 "psr-4": {
-                    "Timatic\\GoogleCalendar\\": "src/"
+                    "Timatic\\GoogleCalendar\\": "src/",
+                    "Timatic\\GoogleCalendar\\Database\\Factories\\": "database/factories/"
                 }
             },
             "description": "Google Calendar integration for Timatic",

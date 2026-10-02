@@ -2,8 +2,11 @@
 
 namespace Timatic\GoogleCalendar\Requests;
 
+use Illuminate\Support\Collection;
 use Saloon\Enums\Method;
 use Saloon\Http\Request;
+use Saloon\Http\Response;
+use Timatic\GoogleCalendar\DataTransferObjects\CalendarEvent;
 
 class ListEventsRequest extends Request
 {
@@ -19,6 +22,21 @@ class ListEventsRequest extends Request
     public function resolveEndpoint(): string
     {
         return '/calendars/primary/events';
+    }
+
+    /**
+     * A cancelled event and one without a start time carry nothing a time entry could be made from,
+     * so they never become a CalendarEvent in the first place.
+     *
+     * @return Collection<int, CalendarEvent>
+     */
+    public function createDtoFromResponse(Response $response): Collection
+    {
+        return new Collection($response->json('items') ?? [])
+            ->reject(fn (array $item): bool => ($item['status'] ?? '') === 'cancelled')
+            ->filter(fn (array $item): bool => isset($item['start']['dateTime']))
+            ->map(fn (array $item): CalendarEvent => CalendarEvent::fromApiResponse($item))
+            ->values();
     }
 
     protected function defaultQuery(): array
