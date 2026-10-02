@@ -1754,7 +1754,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `activities.events.source`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `activities.events.source`, `activities.eventType`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
@@ -3744,6 +3744,24 @@
                                 "required": [
                                     "data"
                                 ]
+                            },
+                            "eventType": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "anyOf": [
+                                            {
+                                                "$ref": "#/components/schemas/EventTypeIdentifier"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "data"
+                                ]
                             }
                         }
                     }
@@ -5518,6 +5536,25 @@
                     "data"
                 ],
                 "title": "EventRequest"
+            },
+            "EventTypeIdentifier": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "eventTypes"
+                        ]
+                    },
+                    "id": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "type",
+                    "id"
+                ],
+                "title": "EventTypeIdentifier"
             },
             "ExportFormat": {
                 "type": "object",
