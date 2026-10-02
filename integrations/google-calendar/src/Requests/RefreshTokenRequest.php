@@ -7,7 +7,7 @@ use Saloon\Enums\Method;
 use Saloon\Http\Request;
 use Saloon\Http\Response;
 use Saloon\Traits\Body\HasFormBody;
-use Timatic\GoogleCalendar\DataTransferObjects\RefreshedTokens;
+use Timatic\GoogleCalendar\DataTransferObjects\GoogleTokens;
 
 class RefreshTokenRequest extends Request implements HasBody
 {
@@ -22,9 +22,9 @@ class RefreshTokenRequest extends Request implements HasBody
         return '/token';
     }
 
-    public function createDtoFromResponse(Response $response): RefreshedTokens
+    public function createDtoFromResponse(Response $response): GoogleTokens
     {
-        return new RefreshedTokens(
+        return new GoogleTokens(
             accessToken: (string) $response->json('access_token'),
             refreshToken: $response->json('refresh_token'),
             expiresIn: (int) $response->json('expires_in'),
