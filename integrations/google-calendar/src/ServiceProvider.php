@@ -2,10 +2,8 @@
 
 namespace Timatic\GoogleCalendar;
 
-use App\Events\SocialiteRedirecting;
 use App\Integrations\IntegrationTypeRegistry;
 use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Timatic\GoogleCalendar\Commands\SyncGoogleCalendarCommand;
 use Timatic\GoogleCalendar\Filament\Pages\SettingsPage;
@@ -33,10 +31,6 @@ class ServiceProvider extends BaseServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
 
         $this->commands([SyncGoogleCalendarCommand::class]);
-
-        Event::listen(SocialiteRedirecting::class, function (SocialiteRedirecting $event): void {
-            $event->addScopes('https://www.googleapis.com/auth/calendar.readonly');
-        });
 
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
             $schedule->command(SyncGoogleCalendarCommand::class)
