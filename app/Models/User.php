@@ -52,6 +52,7 @@ class User extends \Illuminate\Foundation\Auth\User implements FilamentUser, Has
         'email',
         'given_name',
         'family_name',
+        'team_id',
         'bitbucket_account_id',
         'oauth_access_token',
         'oauth_refresh_token',

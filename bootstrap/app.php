@@ -24,7 +24,14 @@ return Application::configure(basePath: dirname(__DIR__))
         );
     })
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->redirectGuestsTo(fn () => route('auth.redirect'));
+        /*
+         * The reauthenticate flag has to survive the trip to the login flow, since by the time the
+         * authorization request is refused for want of a session it is the only thing left of it.
+         */
+        $middleware->redirectGuestsTo(fn (Request $request) => route(
+            'auth.redirect',
+            $request->boolean('reauthenticate') ? ['reauthenticate' => 1] : [],
+        ));
     })
     ->withExceptions(function (Exceptions $exceptions) {
         Integration::handles($exceptions);
