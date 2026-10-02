@@ -59,9 +59,9 @@ class SettingsPage extends Page implements HasTable
             TextInput::make('name')
                 ->label('Integration name')
                 ->required(),
-            Callout::make('Users connect their Google Calendar by logging in with Google.')
+            Callout::make('Users connect their own Google Calendar from their profile.')
                 ->info()
-                ->description('The table below shows all currently connected users.'),
+                ->description('Signing in to Timatic no longer asks for calendar access. A user grants it separately, so only those who want their calendar read are asked. The table below shows all currently connected users.'),
         ])->statePath('data');
     }
 
@@ -88,7 +88,7 @@ class SettingsPage extends Page implements HasTable
                     ->action(fn (GoogleCalendarConnection $record) => app(OAuthService::class)->disconnect($record)),
             ])
             ->emptyStateHeading('No users connected yet')
-            ->emptyStateDescription('Users will appear here after they grant calendar access.');
+            ->emptyStateDescription('Users will appear here after they connect their calendar from their profile.');
     }
 
     protected function getHeaderActions(): array

@@ -4,15 +4,61 @@ namespace Timatic\GoogleCalendar;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Saloon\Exceptions\Request\FatalRequestException;
 use Saloon\Exceptions\Request\RequestException;
 use Timatic\GoogleCalendar\Models\GoogleCalendarConnection;
+use Timatic\GoogleCalendar\Requests\ExchangeCodeRequest;
 use Timatic\GoogleCalendar\Requests\RefreshTokenRequest;
 use Timatic\GoogleCalendar\Requests\RevokeTokenRequest;
 
 class OAuthService
 {
+    /**
+     * Ties the code Google sends back to the request this application made, so a code from anywhere
+     * else is refused.
+     */
+    public const NONCE = 'google_calendar.nonce';
+
+    /**
+     * Calendar access is asked for here rather than at login, so a user who does not want their
+     * calendar read never sees the consent screen. Consent is forced because Google hands out a
+     * refresh token on a first authorization only, and the sync cannot run without one.
+     */
+    public function buildAuthorizationUrl(): string
+    {
+        $nonce = Str::random(32);
+
+        Session::put(self::NONCE, $nonce);
+
+        return 'https://accounts.google.com/o/oauth2/v2/auth?'.http_build_query([
+            'client_id' => config('google_calendar.client_id'),
+            'redirect_uri' => config('google_calendar.redirect'),
+            'response_type' => 'code',
+            'scope' => 'https://www.googleapis.com/auth/calendar.readonly',
+            'access_type' => 'offline',
+            'prompt' => 'consent',
+            'state' => $nonce,
+        ]);
+    }
+
+    public function handleCallback(User $user, string $code, string $state): GoogleCalendarConnection
+    {
+        if ($state !== Session::pull(self::NONCE)) {
+            throw new RuntimeException('Invalid OAuth state parameter.');
+        }
+
+        $tokens = new OAuthConnector()->send(new ExchangeCodeRequest($code))->dto();
+
+        return GoogleCalendarConnection::updateOrCreate(['user_id' => $user->id], [
+            'access_token' => $tokens->accessToken,
+            'refresh_token' => $tokens->refreshToken,
+            'expires_at' => $tokens->expiresAt(),
+        ]);
+    }
+
     public function refreshIfExpired(GoogleCalendarConnection $connection): GoogleCalendarConnection
     {
         if (! $connection->hasExpired()) {
