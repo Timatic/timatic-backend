@@ -26,6 +26,7 @@ trait LoginUser
 
         $user->givePermissionTo($permissions);
 
+        Auth::guard('api')->setUser($user);
         Auth::setUser($user);
 
         return Auth::user();
