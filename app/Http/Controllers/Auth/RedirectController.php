@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Auth;
 
-use App\Events\SocialiteRedirecting;
 use Dedoc\Scramble\Attributes\ExcludeRouteFromDocs;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,16 +30,7 @@ class RedirectController
             'This Timatic has no identity provider configured.',
         );
 
-        $event = new SocialiteRedirecting;
-
-        event($event);
-
-        /*
-         * Offline access asks for the refresh token the calendar sync runs on. Consent is not
-         * forced: Google returns a refresh token on a first authorization by itself, and
-         * disconnecting revokes the grant, so a reconnect counts as a first authorization again.
-         */
-        $parameters = ['access_type' => 'offline'];
+        $parameters = [];
 
         /*
          * A caller that asks for it has the user pass the provider again rather than being carried
@@ -59,10 +49,6 @@ class RedirectController
         /** @var AbstractProvider $provider */
         $provider = Socialite::driver($driver);
         $provider->with($parameters);
-
-        if ($event->getScopes() !== []) {
-            $provider->scopes($event->getScopes());
-        }
 
         return Response::redirectTo(
             $provider->redirect()->getTargetUrl()
