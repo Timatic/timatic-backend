@@ -35,15 +35,11 @@ class RedirectController
         /*
          * A caller that asks for it has the user pass the provider again rather than being carried
          * through on the session it still holds, which is what the frontend asks for after someone
-         * signs out. Which provider needs which answer is decided here, since the caller does not
-         * know the driver: Auth0 renders a picker only for upstream connections, so the others are
-         * asked for a full reauthentication rather than a picker they may quietly skip.
+         * signs out. Reauthentication rather than an account picker: Auth0 renders a picker only
+         * for upstream connections and silently signs the user back in otherwise.
          */
         if ($request->boolean('reauthenticate')) {
-            $parameters['prompt'] = match ($driver) {
-                'auth0' => 'select_account',
-                default => 'login',
-            };
+            $parameters['prompt'] = 'login';
         }
 
         /** @var AbstractProvider $provider */
