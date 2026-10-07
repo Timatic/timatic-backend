@@ -4179,7 +4179,9 @@
                             },
                             "renewalFrequencies": {
                                 "type": "array",
-                                "items": {}
+                                "items": {
+                                    "type": "string"
+                                }
                             },
                             "hasSupervisor": {
                                 "type": "boolean"
