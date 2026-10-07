@@ -18,7 +18,7 @@ use Illuminate\Support\Str;
  * @property ?int $user_id
  * @property ?int $parent_id
  * @property string $domain
- * @property string $path
+ * @property ?string $path
  * @property int $customer_id
  * @property ?int $budget_id
  * @property bool $is_internal
@@ -51,7 +51,6 @@ class TrackedDomain extends Model
      * @var array<string, mixed>
      */
     protected $attributes = [
-        'path' => '',
         'is_internal' => false,
     ];
 
@@ -71,9 +70,9 @@ class TrackedDomain extends Model
 
     /**
      * Reduces a url path to the form that is stored: a leading slash, no trailing slash and no
-     * query or fragment. An empty path means the mapping covers the whole host.
+     * query or fragment. Null means the mapping covers the whole host.
      */
-    public static function normalisePath(string $pathOrUrl): string
+    public static function normalisePath(string $pathOrUrl): ?string
     {
         $path = trim($pathOrUrl);
 
@@ -83,7 +82,7 @@ class TrackedDomain extends Model
 
         $path = rtrim(Str::before(Str::before($path, '?'), '#'), '/');
 
-        return $path === '/' ? '' : $path;
+        return $path === '' ? null : $path;
     }
 
     /**

@@ -38,10 +38,10 @@ class TrackedDomainCreateRequest extends FormRequest
                 'regex:/^[a-z0-9-]+(\.[a-z0-9-]+)+$/',
                 'not_regex:/^www\./',
                 Rule::unique(TrackedDomain::class, 'domain')
-                    ->where('path', (string) $this->input('data.attributes.path', ''))
+                    ->where('path', $this->input('data.attributes.path'))
                     ->where('user_id', $ownUserId),
             ],
-            'data.attributes.path' => ['string', 'max:255', 'regex:#^(/[^?\#\s]*[^/?\#\s])?$#'],
+            'data.attributes.path' => ['nullable', 'string', 'max:255', 'regex:#^(/[^?\#\s]*[^/?\#\s])?$#'],
             'data.attributes.customerId' => ['required', 'integer', 'exists:customers,id'],
             'data.attributes.budgetId' => [
                 'bail',

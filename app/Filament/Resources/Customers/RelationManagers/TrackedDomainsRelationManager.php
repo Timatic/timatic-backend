@@ -38,14 +38,14 @@ class TrackedDomainsRelationManager extends RelationManager
 
                     $path = TrackedDomain::normalisePath((string) $state);
 
-                    if ($path !== '') {
+                    if ($path !== null) {
                         $set('path', $path);
                     }
                 })
                 ->dehydrateStateUsing(fn (string $state): string => TrackedDomain::normalise($state)),
             TextInput::make('path')
                 ->helperText('Optional. /projects/TIM only tracks that part of the domain, and wins over a mapping on the whole domain.')
-                ->dehydrateStateUsing(fn (?string $state): string => TrackedDomain::normalisePath((string) $state)),
+                ->dehydrateStateUsing(fn (?string $state): ?string => TrackedDomain::normalisePath((string) $state)),
             Select::make('budget_id')
                 ->label('Budget')
                 ->helperText('Leave empty to book the time as paid per hour.')
