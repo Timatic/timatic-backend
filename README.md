@@ -20,15 +20,6 @@ herd link api.app.timatic --secure
 
 `timatic:install` runs migrations, creates the first admin user, and optionally generates an API token and seeds dummy data.
 
-### Session cookie
-
-Every environment must set `SESSION_SAME_SITE=lax` and keep `SESSION_SECURE_COOKIE=true`.
-The frontend and the API share one registrable domain (`app.timatic.test` and
-`api.app.timatic.test` both resolve to `timatic.test`), so the browser still classifies API
-requests as same-site and sends the cookie. `SESSION_SAME_SITE=none` would additionally let
-any origin's form post ride along on the session, which `tests/Feature/SessionCookieTest.php`
-guards against.
-
 ### Authentication
 
 A deployment runs exactly one identity provider. Set `SOCIALITE_DRIVER` to `azure`, `google` or
@@ -44,7 +35,9 @@ who may ask for one, which redirect uris their codes may travel to and how long 
 | `extension` | `EXTENSION_IDS` | `EXTENSION_TOKEN_LIFETIME_DAYS` (90) |
 
 The web session remains in use by the Filament admin panel, the integration consent pages and the
-`oauth/authorize` consent screen.
+`oauth/authorize` consent screen. Keep `SESSION_SAME_SITE=lax` and `SESSION_SECURE_COOKIE=true`:
+`lax` is what lets the cookie travel on the browser's top level navigations to `oauth/authorize`
+and `auth/logout`.
 
 ### Dummy data
 
