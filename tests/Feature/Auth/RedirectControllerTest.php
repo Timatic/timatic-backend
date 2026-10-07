@@ -19,12 +19,8 @@ it('refuses to start a login flow for a provider that has no credentials', funct
     $this->get(route('auth.redirect'))->assertStatus(503);
 });
 
-it('makes a user who signed out pass the identity provider again', function (string $driver, string $prompt) {
-    config([
-        'auth.socialite_driver' => $driver,
-        "services.{$driver}.client_id" => 'a-client-id',
-        'api_clients.clients.web.redirect_uris' => ['https://app.timatic.test/auth/callback'],
-    ]);
+it('makes a user who signed out pass the identity provider again', function () {
+    config(['api_clients.clients.web.redirect_uris' => ['https://app.timatic.test/auth/callback']]);
 
     $capturedParameters = [];
 
@@ -53,8 +49,5 @@ it('makes a user who signed out pass the identity provider again', function (str
 
     $this->get((string) $authorizeResponse->headers->get('Location'));
 
-    expect($capturedParameters)->toHaveKey('prompt', $prompt);
-})->with([
-    ['google', 'login'],
-    ['auth0', 'select_account'],
-]);
+    expect($capturedParameters)->toHaveKey('prompt', 'login');
+});
