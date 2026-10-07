@@ -1,15 +1,29 @@
 ---
 services:
   app:
-    container_name: timatic_api_webserver
     build:
       context: './'
-    image: "timatic-api:${APP_VERSION}"
+    image: "timatic-backend:${APP_VERSION:-local}"
     restart: unless-stopped
+    environment:
+      SERVER_NAME: ":80"
     ports:
-      - ${APP_PORT:-8443}:443
+      - ${APP_PORT:-80}:80
     volumes:
       - ./:/app
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - mysql
+      - redis
+  queue:
+    image: "timatic-backend:${APP_VERSION:-local}"
+    command: php artisan queue:listen --tries=1
+    restart: unless-stopped
+    volumes:
+      - ./:/app
+    depends_on:
+      - app
   mysql:
     image: mysql:8.0.34
     command: --default-authentication-plugin=mysql_native_password
