@@ -31,7 +31,7 @@ it('refuses a redirect uri that is not allowlisted', function () {
         'state' => 'state-123',
         'code_challenge' => $this->codeChallenge,
         'code_challenge_method' => 'S256',
-    ]))->assertSessionHasErrors('redirect_uri');
+    ]))->assertBadRequest();
 });
 
 it('shows the consent screen to a logged in user', function () {

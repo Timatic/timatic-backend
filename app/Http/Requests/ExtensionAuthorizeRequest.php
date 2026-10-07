@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Services\ExtensionAuthorizationService;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -26,6 +27,15 @@ class ExtensionAuthorizeRequest extends FormRequest
             'code_challenge' => ['required', 'string', 'regex:/^[A-Za-z0-9\-_]{43}$/'],
             'code_challenge_method' => ['required', 'in:S256'],
         ];
+    }
+
+    /**
+     * The default redirects back to the previous url, which can drop the auth window on a page from
+     * an earlier request instead of telling the extension what went wrong.
+     */
+    protected function failedValidation(Validator $validator): never
+    {
+        abort(400);
     }
 
     public function redirectUri(): string
