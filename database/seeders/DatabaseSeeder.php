@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(ApiClientSeeder::class);
         $this->call(EventTypeSeeder::class);
         $this->call(OvertimeTypeSeeder::class);
         $this->call(OvertimeRuleSeeder::class);

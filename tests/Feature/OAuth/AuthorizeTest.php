@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\ApiClient;
 use App\Models\User;
 use Illuminate\Support\Facades\URL;
 use Tests\Concerns\LoginUser;
@@ -7,10 +8,11 @@ use Tests\Concerns\LoginUser;
 uses(LoginUser::class);
 
 beforeEach(function () {
-    config([
-        'api_clients.clients.extension.redirect_uris' => ['https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/'],
-        'api_clients.clients.web.redirect_uris' => ['https://app.timatic.test/auth/callback'],
-    ]);
+    ApiClient::findOrFail('extension')
+        ->update(['redirect_uris' => ['https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/']]);
+
+    ApiClient::findOrFail('web')
+        ->update(['redirect_uris' => ['https://app.timatic.test/auth/callback']]);
 
     $this->redirectUri = 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/';
     $this->codeVerifier = str_repeat('a', 64);

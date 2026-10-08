@@ -10,9 +10,8 @@ return [
     'consent_lifetime_minutes' => 5,
 
     /*
-     * Clients that may run the authorization code flow. Each one owns the redirect uris it is
-     * allowed to send a code to, so a code minted for one client can never be delivered to
-     * another.
+     * Defaults for the two first party clients, seeded into the api_clients table. The table is
+     * what the authorization flow reads; re-run ApiClientSeeder after changing these.
      */
     'clients' => [
         'extension' => [

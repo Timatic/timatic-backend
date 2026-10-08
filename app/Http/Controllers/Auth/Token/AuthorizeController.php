@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Auth\Token;
 
-use App\DataTransferObjects\ApiClient;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AuthorizeClientRequest;
+use App\Models\ApiClient;
 use App\Models\User;
 use App\Services\AuthorizationCodeService;
 use Dedoc\Scramble\Attributes\ExcludeRouteFromDocs;
@@ -30,7 +30,7 @@ class AuthorizeController extends Controller
     {
         $client = $request->client();
 
-        if ($client->autoApprove) {
+        if ($client->auto_approve) {
             return $this->redirectWithCode($client, $request, $user);
         }
 

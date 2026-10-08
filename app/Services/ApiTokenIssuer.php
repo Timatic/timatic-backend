@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\DataTransferObjects\ApiClient;
 use App\DataTransferObjects\IssuedApiToken;
+use App\Models\ApiClient;
 use App\Models\ApiToken;
 use App\Models\User;
 use Illuminate\Support\Str;
@@ -22,7 +22,7 @@ class ApiTokenIssuer
             'title' => $deviceName,
             'description' => $client->label,
             'key' => hash('sha512', $plainTextToken),
-            'expires_at' => now()->addDays($client->tokenLifetimeDays),
+            'expires_at' => now()->addDays($client->token_lifetime_days),
         ]);
 
         return new IssuedApiToken($apiToken, $plainTextToken);
