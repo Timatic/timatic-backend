@@ -1,20 +1,21 @@
 <?php
 
+use App\Models\ApiClient;
 use App\Models\ApiToken;
 use App\Models\User;
-use App\Services\ApiClientRegistry;
 use App\Services\AuthorizationCodeService;
 
 beforeEach(function () {
-    config([
-        'api_clients.clients.extension.redirect_uris' => ['https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/'],
-        'api_clients.clients.web.redirect_uris' => ['https://app.timatic.test/auth/callback'],
-    ]);
+    ApiClient::findOrFail('extension')
+        ->update(['redirect_uris' => ['https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/']]);
+
+    ApiClient::findOrFail('web')
+        ->update(['redirect_uris' => ['https://app.timatic.test/auth/callback']]);
 
     $this->redirectUri = 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/';
     $this->codeVerifier = str_repeat('a', 64);
     $this->codeChallenge = rtrim(strtr(base64_encode(hash('sha256', $this->codeVerifier, true)), '+/', '-_'), '=');
-    $this->extension = app(ApiClientRegistry::class)->findOrFail('extension');
+    $this->extension = ApiClient::findOrFail('extension');
 });
 
 it('exchanges a code for a user bound token', function () {
@@ -47,7 +48,7 @@ it('issues a token for the web client with its own lifetime', function () {
     $redirectUri = 'https://app.timatic.test/auth/callback';
 
     $code = app(AuthorizationCodeService::class)->issueCode(
-        app(ApiClientRegistry::class)->findOrFail('web'),
+        ApiClient::findOrFail('web'),
         $user,
         $this->codeChallenge,
         $redirectUri,

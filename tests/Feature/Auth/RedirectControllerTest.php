@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\ApiClient;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\GoogleProvider;
 
@@ -20,7 +21,8 @@ it('refuses to start a login flow for a provider that has no credentials', funct
 });
 
 it('makes a user who signed out pass the identity provider again', function () {
-    config(['api_clients.clients.web.redirect_uris' => ['https://app.timatic.test/auth/callback']]);
+    ApiClient::findOrFail('web')
+        ->update(['redirect_uris' => ['https://app.timatic.test/auth/callback']]);
 
     $capturedParameters = [];
 

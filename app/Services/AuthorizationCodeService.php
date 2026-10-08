@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\DataTransferObjects\ApiClient;
 use App\Exceptions\InvalidAuthorizationCodeException;
+use App\Models\ApiClient;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
