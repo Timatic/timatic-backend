@@ -37,12 +37,6 @@ class HandleCallbackController
             $user->assignRole($role);
         }
 
-        /*
-         * The provider's own tokens are not kept. Signing in proves who someone is and nothing
-         * else; the calendar integration asks for its own access when a user connects, and storing
-         * an identity token here would leave it looking like a calendar grant that cannot read a
-         * calendar.
-         */
         Auth::guard('web')->login($user);
 
         $intended = Session::pull('url.intended');
