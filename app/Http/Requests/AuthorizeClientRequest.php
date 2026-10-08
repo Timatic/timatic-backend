@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
-use App\Services\ExtensionAuthorizationService;
+use App\Models\ApiClient;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Rule;
 
-class ExtensionAuthorizeRequest extends FormRequest
+class AuthorizeClientRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -22,7 +23,8 @@ class ExtensionAuthorizeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'redirect_uri' => ['required', 'string', Rule::in(app(ExtensionAuthorizationService::class)->allowedRedirectUris())],
+            'client_id' => ['required', 'string', Rule::in(ApiClient::query()->pluck('id'))],
+            'redirect_uri' => ['required', 'string', Rule::in(ApiClient::find($this->string('client_id')->toString())->redirect_uris ?? [])],
             'state' => ['required', 'string', 'max:255'],
             'code_challenge' => ['required', 'string', 'regex:/^[A-Za-z0-9\-_]{43}$/'],
             'code_challenge_method' => ['required', 'in:S256'],
@@ -30,12 +32,19 @@ class ExtensionAuthorizeRequest extends FormRequest
     }
 
     /**
-     * The default redirects back to the previous url, which can drop the auth window on a page from
-     * an earlier request instead of telling the extension what went wrong.
+     * A rejected request is a dead end: the caller registered the wrong parameters, so redirecting
+     * back would send the browser round the login loop again. It gets a page of its own instead.
      */
-    protected function failedValidation(Validator $validator): never
+    protected function failedValidation(Validator $validator): void
     {
-        abort(400);
+        throw new HttpResponseException(
+            response()->view('oauth.error', status: 400)
+        );
+    }
+
+    public function client(): ApiClient
+    {
+        return ApiClient::findOrFail((string) $this->validated('client_id'));
     }
 
     public function redirectUri(): string

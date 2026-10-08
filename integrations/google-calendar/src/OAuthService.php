@@ -4,8 +4,11 @@ namespace Timatic\GoogleCalendar;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use RuntimeException;
+use Saloon\Exceptions\Request\FatalRequestException;
+use Saloon\Exceptions\Request\RequestException;
+use Timatic\GoogleCalendar\Requests\RefreshTokenRequest;
+use Timatic\GoogleCalendar\Requests\RevokeTokenRequest;
 
 class OAuthService
 {
@@ -28,8 +31,21 @@ class OAuthService
         });
     }
 
+    /**
+     * Revokes the grant at Google before forgetting the tokens. Google only hands out a refresh
+     * token on a first authorization, so a grant left standing would leave the user unable to
+     * reconnect by logging in again.
+     */
     public function disconnect(User $user): void
     {
+        if (filled($user->oauth_refresh_token)) {
+            try {
+                new OAuthConnector()->send(new RevokeTokenRequest((string) $user->oauth_refresh_token));
+            } catch (FatalRequestException|RequestException) {
+                // Unreachable or already gone at Google; forgetting it here is the whole point.
+            }
+        }
+
         $user->update([
             'oauth_access_token' => null,
             'oauth_refresh_token' => null,
@@ -39,12 +55,9 @@ class OAuthService
 
     private function refreshTokens(User $user): User
     {
-        $response = Http::post('https://oauth2.googleapis.com/token', [
-            'grant_type' => 'refresh_token',
-            'client_id' => config('google_calendar.client_id'),
-            'client_secret' => config('google_calendar.client_secret'),
-            'refresh_token' => $user->oauth_refresh_token,
-        ]);
+        $response = new OAuthConnector()->send(
+            new RefreshTokenRequest((string) $user->oauth_refresh_token)
+        );
 
         if ($response->status() === 400) {
             $user->update([
@@ -60,12 +73,12 @@ class OAuthService
             throw new RuntimeException('Google token refresh failed.');
         }
 
-        $tokens = $response->json();
+        $tokens = $response->dto();
 
         $user->update(array_filter([
-            'oauth_access_token' => $tokens['access_token'],
-            'oauth_refresh_token' => $tokens['refresh_token'] ?? $user->oauth_refresh_token,
-            'oauth_token_expires_at' => now()->addSeconds($tokens['expires_in'] - 60)->timestamp,
+            'oauth_access_token' => $tokens->accessToken,
+            'oauth_refresh_token' => $tokens->refreshToken ?? $user->oauth_refresh_token,
+            'oauth_token_expires_at' => now()->addSeconds($tokens->expiresIn - 60)->timestamp,
         ]));
 
         return $user->refresh();

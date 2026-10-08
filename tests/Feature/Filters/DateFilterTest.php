@@ -18,7 +18,7 @@ class DateFilterTest extends TestCase
         // Create a test user for authentication
         $this->user = User::factory()->create();
         $this->user->givePermissionTo('entries.read');
-        $this->actingAs($this->user);
+        $this->actingAs($this->user, 'api');
     }
 
     /** @test */
