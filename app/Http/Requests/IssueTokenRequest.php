@@ -21,7 +21,7 @@ class IssueTokenRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'client_id' => ['required', 'string', Rule::in(ApiClient::query()->pluck('id'))],
+            'client_id' => ['required', 'string', Rule::in(ApiClient::ids())],
             'code' => ['required', 'string', 'max:255'],
             'code_verifier' => ['required', 'string', 'min:43', 'max:128'],
             'redirect_uri' => ['required', 'string', Rule::in(ApiClient::find($this->string('client_id')->toString())->redirect_uris ?? [])],

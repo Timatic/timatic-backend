@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\UnknownApiClientException;
 use App\Models\ApiClient;
 use App\Models\User;
 use Illuminate\Support\Facades\URL;
@@ -154,3 +155,17 @@ it('skips the consent screen for a first party client', function () {
     expect($query['state'])->toEqual('state-123');
     expect($query['code'])->toHaveLength(64);
 });
+
+it('fails loudly when the deployment has no api clients', function () {
+    ApiClient::query()->delete();
+
+    $this->withoutExceptionHandling()->actingAs(User::factory()->create());
+
+    $this->get(route('oauth.authorize.show', [
+        'client_id' => 'web',
+        'redirect_uri' => 'https://app.timatic.test/auth/callback',
+        'state' => 'state-123',
+        'code_challenge' => $this->codeChallenge,
+        'code_challenge_method' => 'S256',
+    ]));
+})->throws(UnknownApiClientException::class);

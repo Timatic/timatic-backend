@@ -12,4 +12,9 @@ class UnknownApiClientException extends Exception
     {
         return new self("There is no api client registered under [{$clientId}].");
     }
+
+    public static function noneRegistered(): self
+    {
+        return new self('No api clients are registered. Run ApiClientSeeder on this deployment.');
+    }
 }

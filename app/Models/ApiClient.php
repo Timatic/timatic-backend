@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Exceptions\UnknownApiClientException;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 /**
  * A client that may run the authorization code flow. It owns the redirect uris its codes may
@@ -26,6 +28,22 @@ class ApiClient extends Model
     public $incrementing = false;
 
     protected $guarded = [];
+
+    /**
+     * The ids a client may identify itself by. An empty table is a deployment that was never
+     * seeded rather than a caller sending a bad id, so it fails loudly here instead of rejecting
+     * every authorization request as if the caller were at fault.
+     *
+     * @return Collection<int, string>
+     *
+     * @throws UnknownApiClientException
+     */
+    public static function ids(): Collection
+    {
+        $ids = self::query()->pluck('id');
+
+        return $ids->isNotEmpty() ? $ids : throw UnknownApiClientException::noneRegistered();
+    }
 
     public function allowsRedirectUri(string $redirectUri): bool
     {

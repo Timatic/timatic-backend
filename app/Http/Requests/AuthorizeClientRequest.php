@@ -23,7 +23,7 @@ class AuthorizeClientRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'client_id' => ['required', 'string', Rule::in(ApiClient::query()->pluck('id'))],
+            'client_id' => ['required', 'string', Rule::in(ApiClient::ids())],
             'redirect_uri' => ['required', 'string', Rule::in(ApiClient::find($this->string('client_id')->toString())->redirect_uris ?? [])],
             'state' => ['required', 'string', 'max:255'],
             'code_challenge' => ['required', 'string', 'regex:/^[A-Za-z0-9\-_]{43}$/'],
