@@ -23,8 +23,8 @@ herd link api.app.timatic --secure
 ### Authentication
 
 A deployment runs exactly one identity provider. Set `SOCIALITE_DRIVER` to `azure`, `google` or
-`auth0` and fill that provider's credentials in `.env`; `GET auth/provider` answers 503 until it can,
-so a misconfigured deployment fails on the login screen rather than at the provider.
+`auth0` and fill that provider's credentials in `.env`; `auth/redirect` answers 503 until it can, so a
+misconfigured deployment says so itself rather than failing inside the provider.
 
 Browser callers authenticate with a bearer token, not the session. `config/api_clients.php` registers
 who may ask for one, which redirect uris their codes may travel to and how long their tokens live:
