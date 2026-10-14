@@ -36,6 +36,7 @@ it('exchanges a code for a user bound token', function () {
     $apiToken = ApiToken::query()->sole();
 
     expect($apiToken->user_id)->toEqual($user->id);
+    expect($apiToken->client_id)->toEqual('chrome-extension');
     expect($apiToken->title)->toEqual('Chrome op Mac');
     expect($apiToken->description)->toEqual('Browser extension');
     expect($apiToken->key)->toEqual(hash('sha512', $response->json('token')));

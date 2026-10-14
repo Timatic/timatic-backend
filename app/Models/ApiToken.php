@@ -20,6 +20,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property ?int $id
  * @property ?int $user_id
  * @property ?TimaticUser $user
+ * @property ?string $client_id
  * @property ?string $external_id
  * @property ?string $title
  * @property ?string $description

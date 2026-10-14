@@ -19,6 +19,7 @@ class ApiTokenIssuer
         /** @var ApiToken $apiToken */
         $apiToken = ApiToken::query()->create([
             'user_id' => $user->id,
+            'client_id' => $client->id,
             'title' => $deviceName,
             'description' => $client->label,
             'key' => hash('sha512', $plainTextToken),
