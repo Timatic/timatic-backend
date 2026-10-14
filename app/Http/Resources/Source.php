@@ -2,11 +2,12 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Source as SourceModel;
 use Illuminate\Http\Request;
 use TiMacDonald\JsonApi\JsonApiResource;
 
 /**
- * @mixin \App\Models\Source
+ * @mixin SourceModel
  */
 class Source extends JsonApiResource
 {
@@ -15,7 +16,7 @@ class Source extends JsonApiResource
         return [
             'key' => $this->key,
             'title' => $this->title,
-            'iconUrl' => \App\Models\Source::iconUrlFor($this->id),
+            'iconUrl' => SourceModel::iconUrlFor($this->id),
         ];
     }
 }
