@@ -6,6 +6,7 @@ use Database\Factories\IntegrationFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
@@ -30,7 +31,7 @@ class Integration extends Model
      */
     protected function displayTitle(): Attribute
     {
-        return Attribute::get(fn (): string => $this->title ?? str($this->type)->headline()->toString());
+        return Attribute::get(fn (): string => $this->title ?? Str::headline($this->type));
     }
 
     public function generateShareToken(): static

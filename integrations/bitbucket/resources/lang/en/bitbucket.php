@@ -14,13 +14,13 @@ return [
         'action_save' => 'Save',
         'action_refresh' => 'Refresh',
         'field_title' => 'Title',
-        'notification_name_changed' => 'Name updated.',
+        'notification_title_changed' => 'Title updated.',
         'connection_expired_title' => 'Bitbucket connection expired',
         'connection_expired_body' => 'Reconnect Bitbucket via Settings.',
     ],
 
     'settings' => [
-        'page_title' => ':name (Bitbucket) — Settings',
+        'page_title' => ':title (Bitbucket) — Settings',
         'nav_label' => 'Settings',
         'callout_connected_title' => 'Connected',
         'callout_connected_description' => 'Connected to workspace: :workspace. Webhook installed.',
@@ -44,7 +44,7 @@ return [
     ],
 
     'repository_mapping' => [
-        'page_title' => ':name (Bitbucket) — Repository mapping',
+        'page_title' => ':title (Bitbucket) — Repository mapping',
         'nav_label' => 'Repository mapping',
         'no_credentials_heading' => 'No settings configured',
         'no_credentials_description' => 'Configure the Bitbucket settings before linking repositories.',

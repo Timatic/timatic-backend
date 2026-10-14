@@ -34,7 +34,7 @@ class SettingsPage extends Page
 
     public function getTitle(): string
     {
-        return __('jira::jira.settings.page_title', ['name' => $this->getIntegration()->display_title]);
+        return __('jira::jira.settings.page_title', ['title' => $this->getIntegration()->display_title]);
     }
 
     public function mount(int|string $record): void
@@ -168,7 +168,7 @@ class SettingsPage extends Page
                 ->action(function (): void {
                     $data = $this->form->getState();
                     $this->getIntegration()->update(['title' => $data['title']]);
-                    Notification::make()->title(__('jira::jira.common.notification_name_changed'))->success()->send();
+                    Notification::make()->title(__('jira::jira.common.notification_title_changed'))->success()->send();
                 })
                 ->visible($this->isConnected($config)),
         ];

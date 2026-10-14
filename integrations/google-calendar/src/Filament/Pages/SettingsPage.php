@@ -102,7 +102,7 @@ class SettingsPage extends Page implements HasTable
                 ->action(function (): void {
                     $data = $this->form->getState();
                     $this->getIntegration()->update(['title' => $data['title']]);
-                    Notification::make()->title('Name updated.')->success()->send();
+                    Notification::make()->title('Title updated.')->success()->send();
                 }),
         ];
     }

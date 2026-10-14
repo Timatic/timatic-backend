@@ -41,7 +41,7 @@ class SettingsPage extends Page
 
     public function getTitle(): string
     {
-        return __('bitbucket::bitbucket.settings.page_title', ['name' => $this->getIntegration()->display_title]);
+        return __('bitbucket::bitbucket.settings.page_title', ['title' => $this->getIntegration()->display_title]);
     }
 
     public function mount(int|string $record): void
@@ -257,7 +257,7 @@ class SettingsPage extends Page
                 ->action(function (): void {
                     $data = $this->form->getState();
                     $this->getIntegration()->update(['title' => $data['title']]);
-                    Notification::make()->title(__('bitbucket::bitbucket.common.notification_name_changed'))->success()->send();
+                    Notification::make()->title(__('bitbucket::bitbucket.common.notification_title_changed'))->success()->send();
                 }),
         ];
     }
