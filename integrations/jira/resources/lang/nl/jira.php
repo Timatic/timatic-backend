@@ -14,13 +14,13 @@ return [
         'action_save' => 'Opslaan',
         'action_refresh' => 'Vernieuwen',
         'field_title' => 'Titel',
-        'notification_name_changed' => 'Naam gewijzigd.',
+        'notification_title_changed' => 'Titel gewijzigd.',
         'connection_expired_title' => 'Jira verbinding verlopen',
         'connection_expired_body' => 'Verbind Jira opnieuw via Instellingen.',
     ],
 
     'settings' => [
-        'page_title' => ':name (Jira) — Instellingen',
+        'page_title' => ':title (Jira) — Instellingen',
         'nav_label' => 'Instellingen',
         'callout_connected_title' => 'Verbonden',
         'callout_connected_description' => 'Verbonden met :cloud_url',
@@ -40,7 +40,7 @@ return [
     ],
 
     'project_mapping' => [
-        'page_title' => ':name (Jira) — Project mapping',
+        'page_title' => ':title (Jira) — Project mapping',
         'nav_label' => 'Project mapping',
         'no_credentials_heading' => 'Geen instellingen geconfigureerd',
         'no_credentials_description' => 'Vul eerst de Jira instellingen in voordat je projecten kunt koppelen.',

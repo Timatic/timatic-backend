@@ -14,13 +14,13 @@ return [
         'action_save' => 'Save',
         'action_refresh' => 'Refresh',
         'field_title' => 'Title',
-        'notification_name_changed' => 'Name updated.',
+        'notification_title_changed' => 'Title updated.',
         'connection_expired_title' => 'Jira connection expired',
         'connection_expired_body' => 'Reconnect Jira via Settings.',
     ],
 
     'settings' => [
-        'page_title' => ':name (Jira) — Settings',
+        'page_title' => ':title (Jira) — Settings',
         'nav_label' => 'Settings',
         'callout_connected_title' => 'Connected',
         'callout_connected_description' => 'Connected to :cloud_url',
@@ -38,7 +38,7 @@ return [
     ],
 
     'project_mapping' => [
-        'page_title' => ':name (Jira) — Project mapping',
+        'page_title' => ':title (Jira) — Project mapping',
         'nav_label' => 'Project mapping',
         'no_credentials_heading' => 'No settings configured',
         'no_credentials_description' => 'Configure the Jira settings before linking projects.',

@@ -8,7 +8,7 @@ use Filament\Facades\Filament;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 
-it('creates an integration without a name', function () {
+it('creates an integration without a title', function () {
     $user = User::factory()->create();
     $user->assignRole(Role::findOrCreate('super_admin'));
     $this->actingAs($user);

@@ -14,13 +14,13 @@ return [
         'action_save' => 'Opslaan',
         'action_refresh' => 'Vernieuwen',
         'field_title' => 'Titel',
-        'notification_name_changed' => 'Naam gewijzigd.',
+        'notification_title_changed' => 'Titel gewijzigd.',
         'connection_expired_title' => 'Bitbucket verbinding verlopen',
         'connection_expired_body' => 'Verbind Bitbucket opnieuw via Instellingen.',
     ],
 
     'settings' => [
-        'page_title' => ':name (Bitbucket) — Instellingen',
+        'page_title' => ':title (Bitbucket) — Instellingen',
         'nav_label' => 'Instellingen',
         'callout_connected_title' => 'Verbonden',
         'callout_connected_description' => 'Verbonden met workspace: :workspace. Webhook geïnstalleerd.',
@@ -46,7 +46,7 @@ return [
     ],
 
     'repository_mapping' => [
-        'page_title' => ':name (Bitbucket) — Repository mapping',
+        'page_title' => ':title (Bitbucket) — Repository mapping',
         'nav_label' => 'Repository mapping',
         'no_credentials_heading' => 'Geen instellingen geconfigureerd',
         'no_credentials_description' => 'Vul eerst de Bitbucket instellingen in voordat je repositories kunt koppelen.',
