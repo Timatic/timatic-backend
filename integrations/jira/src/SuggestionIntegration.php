@@ -10,6 +10,11 @@ use App\Models\User;
 
 class SuggestionIntegration implements SuggestionIntegrationInterface
 {
+    public function sourceId(): string
+    {
+        return ServiceProvider::SOURCE_ID;
+    }
+
     public function label(): string
     {
         return __('jira::jira.integration.label');

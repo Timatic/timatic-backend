@@ -32,4 +32,9 @@ class Source extends Model
     public $incrementing = false;
 
     protected $guarded = [];
+
+    public static function iconUrlFor(string $sourceId): string
+    {
+        return asset('icons/'.$sourceId.'.svg');
+    }
 }

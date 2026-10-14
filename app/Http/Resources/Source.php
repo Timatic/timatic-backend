@@ -15,6 +15,7 @@ class Source extends JsonApiResource
         return [
             'key' => $this->key,
             'title' => $this->title,
+            'iconUrl' => \App\Models\Source::iconUrlFor($this->id),
         ];
     }
 }

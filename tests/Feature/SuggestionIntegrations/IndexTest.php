@@ -17,6 +17,7 @@ it('lists a company managed integration once an admin enabled it', function () {
     $jira = collect($response->json('data'))->firstWhere('id', 'jira');
 
     expect($jira['attributes']['label'])->toEqual('Jira');
+    expect($jira['attributes']['iconUrl'])->toEndWith('/icons/jira.svg');
     expect($jira['attributes']['isCompanyManaged'])->toBeTrue();
     expect($jira['attributes']['isActive'])->toBeTrue();
 });

@@ -8,6 +8,8 @@ use App\Models\User;
 
 interface SuggestionIntegrationInterface
 {
+    public function sourceId(): string;
+
     public function label(): string;
 
     /** Markdown explaining how the integration turns a user's work into suggestions. */

@@ -12,6 +12,11 @@ use Timatic\GoogleCalendar\Models\GoogleCalendarConnection;
 
 class SuggestionIntegration implements SuggestionIntegrationInterface
 {
+    public function sourceId(): string
+    {
+        return ServiceProvider::SOURCE_ID;
+    }
+
     public function label(): string
     {
         return __('google_calendar::google_calendar.integration.label');

@@ -12,6 +12,11 @@ class ChromeExtensionIntegration implements SuggestionIntegrationInterface
 {
     public const CLIENT_ID = 'chrome-extension';
 
+    public function sourceId(): string
+    {
+        return 'browser';
+    }
+
     public function label(): string
     {
         return __('integrations.chrome_extension.label');

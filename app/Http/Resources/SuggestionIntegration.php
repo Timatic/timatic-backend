@@ -18,6 +18,7 @@ class SuggestionIntegration extends JsonApiResource
     {
         return [
             'label' => $this->label,
+            'iconUrl' => $this->iconUrl,
             'instructions' => Str::markdown($this->instructions),
             'isCompanyManaged' => $this->isCompanyManaged,
             'isActive' => $this->isActive,
