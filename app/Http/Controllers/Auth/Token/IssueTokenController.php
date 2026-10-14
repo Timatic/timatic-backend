@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Auth\Token;
 use App\Exceptions\InvalidAuthorizationCodeException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IssueTokenRequest;
+use App\Models\ApiClient;
 use App\Services\ApiTokenIssuer;
 use App\Services\AuthorizationCodeService;
 use Dedoc\Scramble\Attributes\ExcludeRouteFromDocs;
@@ -28,16 +29,16 @@ class IssueTokenController extends Controller
     #[ExcludeRouteFromDocs]
     public function __invoke(IssueTokenRequest $request): JsonResponse
     {
-        $client = $request->client();
+        $client = ApiClient::findOrFail((string) $request->validated('client_id'));
 
         $user = $this->authorizationCodes->claimCode(
             $client,
-            $request->code(),
-            $request->codeVerifier(),
-            $request->redirectUri(),
+            $request->validated('code'),
+            $request->validated('code_verifier'),
+            $request->validated('redirect_uri'),
         );
 
-        $issuedToken = $this->tokens->issue($client, $user, $request->deviceName());
+        $issuedToken = $this->tokens->issue($client, $user, $request->validated('device_name'));
 
         return response()->json([
             'token' => $issuedToken->plainTextToken,

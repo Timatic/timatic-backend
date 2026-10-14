@@ -28,29 +28,4 @@ class IssueTokenRequest extends FormRequest
             'device_name' => ['required', 'string', 'max:255'],
         ];
     }
-
-    public function client(): ApiClient
-    {
-        return ApiClient::findOrFail((string) $this->validated('client_id'));
-    }
-
-    public function code(): string
-    {
-        return (string) $this->validated('code');
-    }
-
-    public function codeVerifier(): string
-    {
-        return (string) $this->validated('code_verifier');
-    }
-
-    public function redirectUri(): string
-    {
-        return (string) $this->validated('redirect_uri');
-    }
-
-    public function deviceName(): string
-    {
-        return (string) $this->validated('device_name');
-    }
 }
