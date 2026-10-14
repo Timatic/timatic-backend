@@ -36,13 +36,13 @@ class SettingsPage extends Page implements HasTable
 
     public function getTitle(): string
     {
-        return $this->getIntegration()->name;
+        return $this->getIntegration()->display_title;
     }
 
     public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
-        $this->form->fill(['name' => $this->getIntegration()->name]);
+        $this->form->fill(['title' => $this->getIntegration()->title]);
     }
 
     public function form(Schema $form): Schema
@@ -56,9 +56,10 @@ class SettingsPage extends Page implements HasTable
         }
 
         return $form->schema([
-            TextInput::make('name')
-                ->label('Integration name')
-                ->required(),
+            TextInput::make('title')
+                ->label('Integration title')
+                ->autocomplete(false)
+                ->helperText(__('integrations.title_helper')),
             Callout::make('Users connect their Google Calendar by logging in with Google.')
                 ->info()
                 ->description('Each user\'s calendar access is obtained automatically during Google login. The table below shows all currently connected users.'),
@@ -100,7 +101,7 @@ class SettingsPage extends Page implements HasTable
                 ->label('Save')
                 ->action(function (): void {
                     $data = $this->form->getState();
-                    $this->getIntegration()->update(['name' => $data['name']]);
+                    $this->getIntegration()->update(['title' => $data['title']]);
                     Notification::make()->title('Name updated.')->success()->send();
                 }),
         ];

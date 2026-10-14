@@ -18,7 +18,7 @@ class IntegrationFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->company(),
+            'title' => $this->faker->company(),
             'type' => $this->faker->word(),
             'config' => [],
             'share_token' => bin2hex(random_bytes(32)),

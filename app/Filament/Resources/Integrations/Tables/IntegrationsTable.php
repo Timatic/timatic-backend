@@ -13,8 +13,8 @@ class IntegrationsTable
     {
         return $table
             ->columns([
-                TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('type')->sortable(),
+                TextColumn::make('title')->searchable()->sortable(),
                 TextColumn::make('created_at')->dateTime()->sortable(),
             ])
             ->recordUrl(function (Integration $record): ?string {

@@ -35,7 +35,7 @@ class OvertimeSyncPage extends Page implements HasTable
 
     public function getTitle(): string
     {
-        return $this->getIntegration()->name.' — Overwerk synchronisatie';
+        return $this->getIntegration()->display_title.' — Overwerk synchronisatie';
     }
 
     public function mount(int|string $record): void

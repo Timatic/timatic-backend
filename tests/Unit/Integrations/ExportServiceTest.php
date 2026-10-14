@@ -7,7 +7,7 @@ use App\Integrations\ExportService;
 use App\Models\Integration;
 
 it('throws when providers register duplicate format keys', function () {
-    Integration::create(['name' => 'Duplicate core', 'type' => 'duplicate-core', 'config' => []]);
+    Integration::create(['title' => 'Duplicate core', 'type' => 'duplicate-core', 'config' => []]);
 
     $registry = new ExportProviderRegistry;
     $registry->register('duplicate-core', CoreExportProvider::class);

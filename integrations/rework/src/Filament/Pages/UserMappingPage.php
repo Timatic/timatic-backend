@@ -38,7 +38,7 @@ class UserMappingPage extends Page implements HasTable
 
     public function getTitle(): string
     {
-        return $this->getIntegration()->name.' — Gebruikers';
+        return $this->getIntegration()->display_title.' — Gebruikers';
     }
 
     public function mount(int|string $record): void

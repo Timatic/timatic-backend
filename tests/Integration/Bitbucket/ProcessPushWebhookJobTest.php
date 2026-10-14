@@ -40,7 +40,7 @@ function pushMapping(): RepositoryMapping
     /** @var Customer $customer */
     $customer = Customer::factory()->create();
 
-    $integration = Integration::create(['name' => 'Bitbucket', 'type' => 'bitbucket', 'config' => []]);
+    $integration = Integration::create(['title' => 'Bitbucket', 'type' => 'bitbucket', 'config' => []]);
 
     return RepositoryMapping::create([
         'integration_id' => $integration->id,

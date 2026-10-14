@@ -41,13 +41,13 @@ class SettingsPage extends Page
 
     public function getTitle(): string
     {
-        return __('bitbucket::bitbucket.settings.page_title', ['name' => $this->getIntegration()->name]);
+        return __('bitbucket::bitbucket.settings.page_title', ['name' => $this->getIntegration()->display_title]);
     }
 
     public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
-        $this->form->fill(['name' => $this->getIntegration()->name]);
+        $this->form->fill(['title' => $this->getIntegration()->title]);
 
         if (session('bitbucket_success')) {
             Notification::make()->title(session('bitbucket_success'))->success()->send();
@@ -114,9 +114,10 @@ class SettingsPage extends Page
         }
 
         return $form->schema([
-            TextInput::make('name')
-                ->label(__('bitbucket::bitbucket.common.field_name'))
-                ->required(),
+            TextInput::make('title')
+                ->label(__('bitbucket::bitbucket.common.field_title'))
+                ->autocomplete(false)
+                ->helperText(__('integrations.title_helper')),
             Callout::make(__('bitbucket::bitbucket.settings.callout_connected_title'))
                 ->success()
                 ->description(__('bitbucket::bitbucket.settings.callout_connected_description', ['workspace' => $config['workspace'] ?? ''])),
@@ -255,7 +256,7 @@ class SettingsPage extends Page
                 ->label(__('bitbucket::bitbucket.common.action_save'))
                 ->action(function (): void {
                     $data = $this->form->getState();
-                    $this->getIntegration()->update(['name' => $data['name']]);
+                    $this->getIntegration()->update(['title' => $data['title']]);
                     Notification::make()->title(__('bitbucket::bitbucket.common.notification_name_changed'))->success()->send();
                 }),
         ];

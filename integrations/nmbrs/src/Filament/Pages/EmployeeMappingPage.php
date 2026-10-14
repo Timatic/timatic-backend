@@ -39,7 +39,7 @@ class EmployeeMappingPage extends Page implements HasTable
 
     public function getTitle(): string
     {
-        return $this->getIntegration()->name.' — Medewerkers';
+        return $this->getIntegration()->display_title.' — Medewerkers';
     }
 
     public function mount(int|string $record): void

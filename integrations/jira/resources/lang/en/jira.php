@@ -13,7 +13,7 @@ return [
         'action_disconnect' => 'Remove connection',
         'action_save' => 'Save',
         'action_refresh' => 'Refresh',
-        'field_name' => 'Name',
+        'field_title' => 'Title',
         'notification_name_changed' => 'Name updated.',
         'connection_expired_title' => 'Jira connection expired',
         'connection_expired_body' => 'Reconnect Jira via Settings.',

@@ -48,7 +48,7 @@ class SettingsPage extends Page
 
     public function getTitle(): string
     {
-        return $this->getIntegration()->name;
+        return $this->getIntegration()->display_title;
     }
 
     public static function getSubNavigationPosition(): SubNavigationPosition
@@ -81,7 +81,7 @@ class SettingsPage extends Page
         $hourCodes = $config['hour_codes'] ?? [];
 
         $this->form->fill([
-            'name' => $this->getIntegration()->name,
+            'title' => $this->getIntegration()->title,
             'company_id' => $config['company_id'] ?? null,
             'management_emails' => $config['management_emails'] ?? '',
             ...$this->hourCodeFormData('fulltime', $hourCodes['fulltime'] ?? []),
@@ -120,9 +120,10 @@ class SettingsPage extends Page
         }
 
         return $form->schema([
-            TextInput::make('name')
-                ->label('Naam integratie')
-                ->required(),
+            TextInput::make('title')
+                ->label('Titel integratie')
+                ->autocomplete(false)
+                ->helperText(__('integrations.title_helper')),
 
             Select::make('company_id')
                 ->label('Bedrijf')
@@ -224,7 +225,7 @@ class SettingsPage extends Page
                     ]);
 
                     $this->getIntegration()->update([
-                        'name' => $data['name'],
+                        'title' => $data['title'],
                         'config' => $config,
                     ]);
 

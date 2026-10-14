@@ -26,7 +26,6 @@ class ListIntegrations extends ListRecords
 
         return [
             CreateAction::make()->form([
-                TextInput::make('name')->required(),
                 Select::make('type')->options($types)->required()->rules([
                     fn (): Closure => function (string $attribute, string $type, Closure $fail): void {
                         $missingConfig = app(IntegrationTypeRegistry::class)->missingConfig($type);
@@ -36,6 +35,7 @@ class ListIntegrations extends ListRecords
                         }
                     },
                 ]),
+                TextInput::make('title')->autocomplete(false)->helperText(__('integrations.title_helper')),
             ])->createAnother(false),
         ];
     }
