@@ -6199,7 +6199,10 @@
                                 "type": "string"
                             },
                             "path": {
-                                "type": "string"
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
                             },
                             "customerId": {
                                 "type": "integer"
@@ -6321,7 +6324,10 @@
                                         "maxLength": 255
                                     },
                                     "path": {
-                                        "type": "string",
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
                                         "pattern": "#^(/[^?\\#\\s]*[^/?\\#\\s])?$#",
                                         "maxLength": 255
                                     },
