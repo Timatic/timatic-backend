@@ -8,24 +8,23 @@ use App\Models\Entry;
 use App\Models\Period;
 use App\Models\Team;
 use App\Models\User;
-use App\Services\MinutesSpentCalculator;
 use Carbon\Carbon;
 use Faker\Factory;
 use Faker\Generator;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 class EntrySeeder extends Seeder
 {
-    private Generator $faker;
+    use WithoutModelEvents;
 
-    private MinutesSpentCalculator $minutesSpentCalculator;
+    private Generator $faker;
 
     public function run(): void
     {
         $this->faker = Factory::create('nl_NL');
-        $this->minutesSpentCalculator = app(MinutesSpentCalculator::class);
 
         $budgets = Budget::with(['allowedUsers', 'budgetVersions', 'customer'])
             ->whereIn('budget_type_id', ['project', 'support', 'retainer'])
@@ -75,7 +74,7 @@ class EntrySeeder extends Seeder
             $customer = $customers->random();
             $user = $users->random();
 
-            $entry = Entry::create([
+            Entry::create([
                 'customer_id' => $customer->id,
                 'customer_name' => $customer->name,
                 'user_id' => $user->id,
@@ -92,11 +91,9 @@ class EntrySeeder extends Seeder
                 'ticket_title' => $this->faker->sentence(),
                 'is_internal' => $isInternal,
                 'is_locked' => false,
-                'hourly_rate' => null,
+                'hourly_rate' => $customer->hourly_rate ?? config('timatic.default_hourly_rate'),
+                'minutes_spent' => $minutes,
             ]);
-
-            $entry->minutes_spent = $this->minutesSpentCalculator->calculate($entry);
-            $entry->saveQuietly();
         }
     }
 
@@ -137,7 +134,7 @@ class EntrySeeder extends Seeder
                 $startedAt = $dates[$index];
                 $endedAt = $startedAt->copy()->addMinutes($minutes);
 
-                $entry = Entry::create([
+                Entry::create([
                     'customer_id' => $budget->customer_id,
                     'customer_name' => $budget->customer !== null ? $budget->customer->name : '',
                     'user_id' => $user->id,
@@ -155,10 +152,8 @@ class EntrySeeder extends Seeder
                     'is_internal' => false,
                     'is_locked' => false,
                     'hourly_rate' => null,
+                    'minutes_spent' => $minutes,
                 ]);
-
-                $entry->minutes_spent = $this->minutesSpentCalculator->calculate($entry);
-                $entry->saveQuietly();
             }
         }
     }
