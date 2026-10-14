@@ -56,7 +56,7 @@ function it_denies_overtimes_without_read_permissions_to_an_api_token()
 
     $token->setPermissions(['user']);
 
-    Auth::setUser($token);
+    Auth::guard('api')->setUser($token);
 
     $this->getJson('overtimes')
         ->assertSuccessful();

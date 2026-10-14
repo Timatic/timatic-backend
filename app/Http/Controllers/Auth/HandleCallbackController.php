@@ -37,19 +37,6 @@ class HandleCallbackController
             $user->assignRole($role);
         }
 
-        if (filled($socialiteUser->token)) {
-            $tokenData = [
-                'oauth_access_token' => $socialiteUser->token,
-                'oauth_token_expires_at' => now()->addSeconds(($socialiteUser->expiresIn ?? 3600) - 60)->timestamp,
-            ];
-
-            if (filled($socialiteUser->refreshToken)) {
-                $tokenData['oauth_refresh_token'] = $socialiteUser->refreshToken;
-            }
-
-            $user->update($tokenData);
-        }
-
         Auth::guard('web')->login($user);
 
         $intended = Session::pull('url.intended');

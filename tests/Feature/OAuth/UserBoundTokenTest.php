@@ -71,7 +71,7 @@ it('revokes the token it is called with', function () {
         'key' => hash('sha512', 'plain-text-token'),
     ]);
 
-    $this->deleteJson(route('extension.token.destroy'), [], ['Authorization' => 'Bearer plain-text-token'])
+    $this->deleteJson(route('oauth.token.destroy'), [], ['Authorization' => 'Bearer plain-text-token'])
         ->assertNoContent();
 
     expect(ApiToken::query()->count())->toEqual(0);

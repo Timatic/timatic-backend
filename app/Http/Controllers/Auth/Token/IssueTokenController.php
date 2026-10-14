@@ -2,21 +2,22 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Extension;
+namespace App\Http\Controllers\Auth\Token;
 
 use App\Exceptions\InvalidAuthorizationCodeException;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ExtensionTokenRequest;
-use App\Services\ExtensionAuthorizationService;
-use App\Services\ExtensionTokenService;
+use App\Http\Requests\IssueTokenRequest;
+use App\Models\ApiClient;
+use App\Services\ApiTokenIssuer;
+use App\Services\AuthorizationCodeService;
 use Dedoc\Scramble\Attributes\ExcludeRouteFromDocs;
 use Illuminate\Http\JsonResponse;
 
 class IssueTokenController extends Controller
 {
     public function __construct(
-        private readonly ExtensionAuthorizationService $authorizations,
-        private readonly ExtensionTokenService $tokens,
+        private readonly AuthorizationCodeService $authorizationCodes,
+        private readonly ApiTokenIssuer $tokens,
     ) {}
 
     /**
@@ -26,17 +27,18 @@ class IssueTokenController extends Controller
      * @throws InvalidAuthorizationCodeException
      */
     #[ExcludeRouteFromDocs]
-    public function __invoke(ExtensionTokenRequest $request): JsonResponse
+    public function __invoke(IssueTokenRequest $request): JsonResponse
     {
-        $validated = $request->validated();
+        $client = ApiClient::findOrFail((string) $request->validated('client_id'));
 
-        $user = $this->authorizations->claimCode(
-            $validated['code'],
-            $validated['code_verifier'],
-            $validated['redirect_uri'],
+        $user = $this->authorizationCodes->claimCode(
+            $client,
+            $request->validated('code'),
+            $request->validated('code_verifier'),
+            $request->validated('redirect_uri'),
         );
 
-        $issuedToken = $this->tokens->issue($user, $validated['device_name']);
+        $issuedToken = $this->tokens->issue($client, $user, $request->validated('device_name'));
 
         return response()->json([
             'token' => $issuedToken->plainTextToken,

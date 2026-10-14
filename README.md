@@ -20,6 +20,26 @@ herd link api.app.timatic --secure
 
 `timatic:install` runs migrations, creates the first admin user, and optionally generates an API token and seeds dummy data.
 
+### Authentication
+
+A deployment runs exactly one identity provider. Set `SOCIALITE_DRIVER` to `azure`, `google` or
+`auth0` and fill that provider's credentials in `.env`; `auth/redirect` answers 503 until it can, so a
+misconfigured deployment says so itself rather than failing inside the provider.
+
+Browser callers authenticate with a bearer token, not the session. `ApiClientSeeder` registers who
+may ask for one, which redirect uris their codes may travel to and how long their tokens live. Re-run
+it after changing `APP_FRONTEND_URL` or `EXTENSION_IDS`:
+
+| Client | Redirect uris from | Lifetime |
+|---|---|---|
+| `web` | `APP_FRONTEND_URL` + `/auth/callback` | 30 days |
+| `chrome-extension` | `EXTENSION_IDS` | 90 days |
+
+The web session remains in use by the Filament admin panel, the integration consent pages and the
+`oauth/authorize` consent screen. Keep `SESSION_SAME_SITE=lax` and `SESSION_SECURE_COOKIE=true`:
+`lax` is what lets the cookie travel on the browser's top level navigations to `oauth/authorize`
+and `auth/logout`.
+
 ### Dummy data
 
 To (re)seed dummy data at any time:
