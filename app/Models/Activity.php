@@ -72,7 +72,7 @@ class Activity extends Model
     }
 
     /**
-     * @return Builder<Activity>
+     * @return Builder<static>
      */
     public function prunable(): Builder
     {

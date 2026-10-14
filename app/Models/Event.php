@@ -83,7 +83,7 @@ class Event extends Model
     }
 
     /**
-     * @return Builder<Event>
+     * @return Builder<static>
      */
     public function prunable(): Builder
     {

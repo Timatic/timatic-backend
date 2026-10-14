@@ -5,6 +5,7 @@ namespace Timatic\Nmbrs;
 use App\Integrations\IntegrationTypeRegistry;
 use App\Models\Integration;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Timatic\Nmbrs\Commands\PushOvertimesToNmbrsCommand;
 use Timatic\Nmbrs\Commands\SendOvertimeEmailsCommand;
@@ -44,6 +45,11 @@ class ServiceProvider extends BaseServiceProvider
             $schedule->command(SyncLeaveFromNmbrsCommand::class)
                 ->dailyAt('07:00')
                 ->onOneServer();
+
+            // Schedule resolves on every artisan boot, including `migrate` on a fresh database.
+            if (! Schema::hasTable('integrations')) {
+                return;
+            }
 
             $integration = Integration::where('type', 'nmbrs')->first();
 
