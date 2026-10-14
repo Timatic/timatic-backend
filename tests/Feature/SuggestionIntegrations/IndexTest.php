@@ -53,8 +53,6 @@ it('hides a company managed integration that is not enabled', function () {
 it('offers a signed link to connect google calendar', function () {
     $this->loginUser();
 
-    config(['google_calendar.client_id' => 'a-client-id', 'google_calendar.client_secret' => 'a-client-secret']);
-
     Integration::factory()->create(['type' => 'google_calendar']);
 
     $response = $this->getJson(route('suggestion-integrations.index'))->assertOk();
