@@ -31,7 +31,7 @@ class SettingsPage extends Page
 
     public function getTitle(): string
     {
-        return $this->getIntegration()->name;
+        return $this->getIntegration()->display_title;
     }
 
     public static function getSubNavigationPosition(): SubNavigationPosition
@@ -60,7 +60,7 @@ class SettingsPage extends Page
         $config = $this->getIntegration()->config ?? [];
 
         $this->form->fill([
-            'name' => $this->getIntegration()->name,
+            'title' => $this->getIntegration()->title,
             'api_key' => $config['api_key'] ?? null,
             'company_id' => $config['company_id'] ?? null,
             'sync_leave_enabled' => $config['sync_leave_enabled'] ?? true,
@@ -70,9 +70,10 @@ class SettingsPage extends Page
     public function form(Schema $form): Schema
     {
         return $form->schema([
-            TextInput::make('name')
-                ->label('Naam integratie')
-                ->required(),
+            TextInput::make('title')
+                ->label('Titel integratie')
+                ->autocomplete(false)
+                ->helperText(__('integrations.title_helper')),
 
             TextInput::make('api_key')
                 ->label('API sleutel')
@@ -111,7 +112,7 @@ class SettingsPage extends Page
                     ]);
 
                     $this->getIntegration()->update([
-                        'name' => $data['name'],
+                        'title' => $data['title'],
                         'config' => $config,
                     ]);
 

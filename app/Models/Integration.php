@@ -3,25 +3,35 @@
 namespace App\Models;
 
 use Database\Factories\IntegrationFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
  * @property int $id
- * @property string $name
+ * @property string|null $title
  * @property string $type
  * @property array<string, mixed> $config
+ * @property-read string $display_title
  */
 class Integration extends Model
 {
     /** @use HasFactory<IntegrationFactory> */
     use HasFactory;
 
-    protected $fillable = ['name', 'type', 'config', 'share_token'];
+    protected $fillable = ['title', 'type', 'config', 'share_token'];
 
     protected $casts = [
         'config' => 'encrypted:array',
     ];
+
+    /**
+     * @return Attribute<string, never>
+     */
+    protected function displayTitle(): Attribute
+    {
+        return Attribute::get(fn (): string => $this->title ?? str($this->type)->headline()->toString());
+    }
 
     public function generateShareToken(): static
     {

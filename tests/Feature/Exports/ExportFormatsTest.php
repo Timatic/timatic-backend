@@ -61,7 +61,7 @@ it('lists the exact globe export when the integration is configured', function (
 
 it('hides the exact globe export when the integration has no ledger mapping', function () {
     $this->loginUser();
-    Integration::create(['name' => 'Exact Globe', 'type' => 'exact-globe', 'config' => []]);
+    Integration::create(['title' => 'Exact Globe', 'type' => 'exact-globe', 'config' => []]);
 
     $response = $this->getJson(route('export-formats.index'));
 

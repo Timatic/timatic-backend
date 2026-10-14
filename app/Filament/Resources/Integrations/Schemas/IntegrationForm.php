@@ -10,7 +10,7 @@ class IntegrationForm
     public static function configure(Schema $form): Schema
     {
         return $form->components([
-            TextInput::make('name')->required(),
+            TextInput::make('title')->autocomplete(false)->helperText(__('integrations.title_helper')),
             TextInput::make('type')->disabled(),
         ]);
     }

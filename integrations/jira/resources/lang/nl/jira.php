@@ -13,7 +13,7 @@ return [
         'action_disconnect' => 'Verbinding verwijderen',
         'action_save' => 'Opslaan',
         'action_refresh' => 'Vernieuwen',
-        'field_name' => 'Naam',
+        'field_title' => 'Titel',
         'notification_name_changed' => 'Naam gewijzigd.',
         'connection_expired_title' => 'Jira verbinding verlopen',
         'connection_expired_body' => 'Verbind Jira opnieuw via Instellingen.',

@@ -33,7 +33,7 @@ class LedgerMappingPage extends Page
 
     public function getTitle(): string
     {
-        return $this->getIntegration()->name;
+        return $this->getIntegration()->display_title;
     }
 
     public static function getSubNavigationPosition(): SubNavigationPosition
@@ -60,7 +60,7 @@ class LedgerMappingPage extends Page
         $ledgerMapping = $config['ledger_mapping'] ?? [];
 
         $this->form->fill([
-            'name' => $this->getIntegration()->name,
+            'title' => $this->getIntegration()->title,
             'ledger_mapping' => $ledgerMapping,
             'enabled' => array_fill_keys(array_keys($ledgerMapping), true),
         ]);
@@ -69,9 +69,10 @@ class LedgerMappingPage extends Page
     public function form(Schema $form): Schema
     {
         return $form->schema([
-            TextInput::make('name')
-                ->label('Integration name')
-                ->required(),
+            TextInput::make('title')
+                ->label('Integration title')
+                ->autocomplete(false)
+                ->helperText(__('integrations.title_helper')),
 
             ...$this->budgetTypeSections(),
         ])->statePath('data');
@@ -102,7 +103,7 @@ class LedgerMappingPage extends Page
                     ]);
 
                     $this->getIntegration()->update([
-                        'name' => $data['name'],
+                        'title' => $data['title'],
                         'config' => $config,
                     ]);
 

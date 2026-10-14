@@ -34,13 +34,13 @@ class SettingsPage extends Page
 
     public function getTitle(): string
     {
-        return __('jira::jira.settings.page_title', ['name' => $this->getIntegration()->name]);
+        return __('jira::jira.settings.page_title', ['name' => $this->getIntegration()->display_title]);
     }
 
     public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
-        $this->form->fill(['name' => $this->getIntegration()->name]);
+        $this->form->fill(['title' => $this->getIntegration()->title]);
 
         if (session('jira_success')) {
             Notification::make()->title(session('jira_success'))->success()->send();
@@ -109,9 +109,10 @@ class SettingsPage extends Page
         }
 
         return $form->schema([
-            TextInput::make('name')
-                ->label(__('jira::jira.common.field_name'))
-                ->required(),
+            TextInput::make('title')
+                ->label(__('jira::jira.common.field_title'))
+                ->autocomplete(false)
+                ->helperText(__('integrations.title_helper')),
             Callout::make(__('jira::jira.settings.callout_connected_title'))
                 ->success()
                 ->description(__('jira::jira.settings.callout_connected_description', ['cloud_url' => $config['cloud_url'] ?? ''])),
@@ -166,7 +167,7 @@ class SettingsPage extends Page
                 ->label(__('jira::jira.common.action_save'))
                 ->action(function (): void {
                     $data = $this->form->getState();
-                    $this->getIntegration()->update(['name' => $data['name']]);
+                    $this->getIntegration()->update(['title' => $data['title']]);
                     Notification::make()->title(__('jira::jira.common.notification_name_changed'))->success()->send();
                 })
                 ->visible($this->isConnected($config)),

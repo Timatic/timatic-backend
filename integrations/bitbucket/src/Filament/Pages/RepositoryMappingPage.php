@@ -40,7 +40,7 @@ class RepositoryMappingPage extends Page implements HasTable
 
     public function getTitle(): string
     {
-        return __('bitbucket::bitbucket.repository_mapping.page_title', ['name' => $this->getIntegration()->name]);
+        return __('bitbucket::bitbucket.repository_mapping.page_title', ['name' => $this->getIntegration()->display_title]);
     }
 
     public function mount(int|string $record): void
