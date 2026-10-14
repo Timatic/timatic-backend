@@ -29,7 +29,7 @@ class SuggestionIntegrationController extends Controller
                 instructions: $integration->instructions(),
                 isCompanyManaged: $integration->isCompanyManaged(),
                 isActive: $integration->isActiveFor($user),
-                connectUrl: $integration->connectUrl($user),
+                connectUrl: $integration->isActive() ? $integration->connectUrl($user) : null,
             ))
             ->values();
 

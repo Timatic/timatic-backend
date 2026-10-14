@@ -7,10 +7,15 @@ use Timatic\GoogleCalendar\Models\GoogleCalendarConnection;
 
 uses(LoginUser::class);
 
-it('lists a company managed integration once an admin enabled it', function () {
+it('lists a company managed integration as active once an admin set it up', function () {
     $this->loginUser();
 
-    Integration::factory()->create(['type' => 'jira']);
+    config(['jira.client_id' => 'a-client-id', 'jira.client_secret' => 'a-client-secret']);
+
+    Integration::factory()->create([
+        'type' => 'jira',
+        'config' => ['access_token' => 'an-access-token', 'cloud_id' => 'a-cloud-id'],
+    ]);
 
     $response = $this->getJson(route('suggestion-integrations.index'))->assertOk();
 
@@ -20,6 +25,21 @@ it('lists a company managed integration once an admin enabled it', function () {
     expect($jira['attributes']['iconUrl'])->toEndWith('/icons/jira.svg');
     expect($jira['attributes']['isCompanyManaged'])->toBeTrue();
     expect($jira['attributes']['isActive'])->toBeTrue();
+});
+
+it('lists a company managed integration as inactive until an admin finished its setup', function () {
+    $this->loginUser();
+
+    config(['bitbucket.client_id' => 'a-client-id', 'bitbucket.client_secret' => 'a-client-secret']);
+
+    Integration::factory()->create([
+        'type' => 'bitbucket',
+        'config' => ['access_token' => 'an-access-token', 'workspace' => 'a-workspace'],
+    ]);
+
+    $response = $this->getJson(route('suggestion-integrations.index'))->assertOk();
+
+    expect(collect($response->json('data'))->firstWhere('id', 'bitbucket')['attributes']['isActive'])->toBeFalse();
 });
 
 it('hides a company managed integration that is not enabled', function () {
@@ -32,6 +52,8 @@ it('hides a company managed integration that is not enabled', function () {
 
 it('offers a signed link to connect google calendar', function () {
     $this->loginUser();
+
+    config(['google_calendar.client_id' => 'a-client-id', 'google_calendar.client_secret' => 'a-client-secret']);
 
     Integration::factory()->create(['type' => 'google_calendar']);
 
@@ -46,6 +68,8 @@ it('offers a signed link to connect google calendar', function () {
 
 it('shows google calendar as active once the user connected it', function () {
     $user = $this->loginUser();
+
+    config(['google_calendar.client_id' => 'a-client-id', 'google_calendar.client_secret' => 'a-client-secret']);
 
     Integration::factory()->create(['type' => 'google_calendar']);
     GoogleCalendarConnection::factory()->create(['user_id' => $user->id]);

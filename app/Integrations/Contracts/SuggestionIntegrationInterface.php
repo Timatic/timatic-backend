@@ -20,6 +20,9 @@ interface SuggestionIntegrationInterface
 
     public function isAvailable(): bool;
 
+    /** Whether an admin finished setting the integration up, e.g. connected it and installed its webhook. */
+    public function isActive(): bool;
+
     public function isActiveFor(User $user): bool;
 
     public function connectUrl(User $user): ?string;

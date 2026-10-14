@@ -37,9 +37,14 @@ class SuggestionIntegration implements SuggestionIntegrationInterface
         return Integration::query()->where('type', 'google_calendar')->exists();
     }
 
+    public function isActive(): bool
+    {
+        return filled(config('google_calendar.client_id')) && filled(config('google_calendar.client_secret'));
+    }
+
     public function isActiveFor(User $user): bool
     {
-        return GoogleCalendarConnection::query()->where('user_id', $user->id)->exists();
+        return $this->isActive() && GoogleCalendarConnection::query()->where('user_id', $user->id)->exists();
     }
 
     public function connectUrl(User $user): string

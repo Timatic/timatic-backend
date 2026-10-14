@@ -35,9 +35,21 @@ class SuggestionIntegration implements SuggestionIntegrationInterface
         return Integration::query()->where('type', 'jira')->exists();
     }
 
+    public function isActive(): bool
+    {
+        if (blank(config('jira.client_id')) || blank(config('jira.client_secret'))) {
+            return false;
+        }
+
+        return Integration::query()->where('type', 'jira')->get()->contains(
+            fn (Integration $integration): bool => filled($integration->config['access_token'] ?? null)
+                && filled($integration->config['cloud_id'] ?? null),
+        );
+    }
+
     public function isActiveFor(User $user): bool
     {
-        return $this->isAvailable();
+        return $this->isActive();
     }
 
     public function connectUrl(User $user): ?string
