@@ -37,7 +37,6 @@ class SuggestionIntegration implements SuggestionIntegrationInterface
         return GoogleCalendarConnection::query()->where('user_id', $user->id)->exists();
     }
 
-    /** The api authenticates with a bearer token a browser redirect cannot carry, so the url vouches for the user instead. */
     public function connectUrl(User $user): string
     {
         return URL::temporarySignedRoute('google_calendar.connect', now()->addMinutes(5), ['user' => $user->id]);
