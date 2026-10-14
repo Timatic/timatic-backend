@@ -19,7 +19,7 @@ class ServiceProvider extends BaseServiceProvider
             $types->register('jira', [
                 'jira.projects' => ProjectMappingPage::class,
                 'jira.settings' => SettingsPage::class,
-            ])->landingPage(function (Integration $integration): string {
+            ])->requiresConfig(['jira.client_id', 'jira.client_secret'])->landingPage(function (Integration $integration): string {
                 $config = $integration->config ?? [];
 
                 $isConnected = filled($config['access_token'] ?? null) && filled($config['cloud_id'] ?? null);

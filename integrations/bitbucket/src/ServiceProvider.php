@@ -17,7 +17,7 @@ class ServiceProvider extends BaseServiceProvider
             $types->register('bitbucket', [
                 'bitbucket.repositories' => RepositoryMappingPage::class,
                 'bitbucket.settings' => SettingsPage::class,
-            ]);
+            ])->requiresConfig(['bitbucket.client_id', 'bitbucket.client_secret']);
         });
     }
 

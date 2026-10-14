@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Integrations\Pages;
 
 use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Integrations\IntegrationTypeRegistry;
+use Closure;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -26,7 +27,15 @@ class ListIntegrations extends ListRecords
         return [
             CreateAction::make()->form([
                 TextInput::make('name')->required(),
-                Select::make('type')->options($types)->required(),
+                Select::make('type')->options($types)->required()->rules([
+                    fn (): Closure => function (string $attribute, string $type, Closure $fail): void {
+                        $missingConfig = app(IntegrationTypeRegistry::class)->missingConfig($type);
+
+                        if ($missingConfig !== []) {
+                            $fail(__('integrations.missing_config', ['keys' => implode(', ', $missingConfig)]));
+                        }
+                    },
+                ]),
             ])->createAnother(false),
         ];
     }
