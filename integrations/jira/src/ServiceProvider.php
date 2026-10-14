@@ -3,6 +3,7 @@
 namespace Timatic\Jira;
 
 use App\Integrations\IntegrationTypeRegistry;
+use App\Integrations\SuggestionIntegrationRegistry;
 use App\Integrations\TicketProviderRegistry;
 use App\Models\Integration;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
@@ -29,9 +30,10 @@ class ServiceProvider extends BaseServiceProvider
         });
     }
 
-    public function boot(TicketProviderRegistry $ticketProviders): void
+    public function boot(TicketProviderRegistry $ticketProviders, SuggestionIntegrationRegistry $suggestionIntegrations): void
     {
         $ticketProviders->register('jira', TicketProvider::class);
+        $suggestionIntegrations->register('jira', SuggestionIntegration::class);
 
         $this->mergeConfigFrom(__DIR__.'/../config/jira.php', 'jira');
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');

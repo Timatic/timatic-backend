@@ -72,4 +72,8 @@ return [
         'administrator_hint' => 'Workspaces marked "(not an administrator)" are disabled because you do not have administrator rights there. Only administrators can install the webhook.',
         'install_webhook_action' => 'Install webhook',
     ],
+    'integration' => [
+        'label' => 'Bitbucket',
+        'instructions' => "Your commits and pull requests show up as suggestions. Commits are matched to you by the email address of the commit author, so commit with the same email address you use in Timatic.\n\nMention the ticket number in the branch name, commit message or pull request title to link the suggestion to that ticket.",
+    ],
 ];

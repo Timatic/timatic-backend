@@ -3,6 +3,7 @@
 namespace Timatic\Bitbucket;
 
 use App\Integrations\IntegrationTypeRegistry;
+use App\Integrations\SuggestionIntegrationRegistry;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Timatic\Bitbucket\Filament\Pages\RepositoryMappingPage;
 use Timatic\Bitbucket\Filament\Pages\SettingsPage;
@@ -21,8 +22,10 @@ class ServiceProvider extends BaseServiceProvider
         });
     }
 
-    public function boot(): void
+    public function boot(SuggestionIntegrationRegistry $suggestionIntegrations): void
     {
+        $suggestionIntegrations->register('bitbucket', SuggestionIntegration::class);
+
         $this->mergeConfigFrom(__DIR__.'/../config/bitbucket.php', 'bitbucket');
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'bitbucket');

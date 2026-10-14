@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Integrations\ChromeExtensionIntegration;
 use App\Integrations\ExportProviderRegistry;
 use App\Integrations\ExportService;
 use App\Integrations\IntegrationTypeRegistry;
+use App\Integrations\SuggestionIntegrationRegistry;
 use App\Integrations\TicketProviderRegistry;
 use App\Integrations\TicketService;
 use App\Models\ApiToken;
@@ -39,10 +41,13 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(TicketService::class);
         $this->app->singleton(ExportProviderRegistry::class);
         $this->app->singleton(ExportService::class);
+        $this->app->singleton(SuggestionIntegrationRegistry::class);
     }
 
-    public function boot(): void
+    public function boot(SuggestionIntegrationRegistry $suggestionIntegrations): void
     {
+        $suggestionIntegrations->register('chrome_extension', ChromeExtensionIntegration::class);
+
         $this->app->booted(function () {
             if (! Schema::hasTable('permissions')) {
                 return;
