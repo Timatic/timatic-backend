@@ -45,7 +45,7 @@ class OAuthService
 
     public function handleCallback(string $code, string $state): GoogleCalendarConnection
     {
-        $user = User::find(Cache::pull(self::STATE_CACHE_PREFIX.$state))
+        $user = User::find((int) Cache::pull(self::STATE_CACHE_PREFIX.$state))
             ?? throw new RuntimeException('Invalid OAuth state parameter.');
 
         $tokens = new OAuthConnector()->send(new ExchangeCodeRequest($code))->dto();
