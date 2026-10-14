@@ -27,6 +27,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property ?string $family_name
  * @property ?string $full_name
  * @property ?string $bitbucket_account_id
+ * @property ?string $github_login
  * @property ?string $oauth_access_token
  * @property ?string $oauth_refresh_token
  * @property int $oauth_token_expires_at
@@ -54,6 +55,7 @@ class User extends \Illuminate\Foundation\Auth\User implements FilamentUser, Has
         'family_name',
         'team_id',
         'bitbucket_account_id',
+        'github_login',
         'oauth_access_token',
         'oauth_refresh_token',
         'oauth_token_expires_at',
