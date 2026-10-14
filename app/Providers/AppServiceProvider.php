@@ -48,6 +48,8 @@ class AppServiceProvider extends ServiceProvider
     {
         $suggestionIntegrations->register('chrome_extension', ChromeExtensionIntegration::class);
 
+        $this->publishes([resource_path('icons') => public_path('icons')], 'source-icons');
+
         $this->app->booted(function () {
             if (! Schema::hasTable('permissions')) {
                 return;

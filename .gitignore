@@ -2,6 +2,7 @@
 /.phpunit.cache
 /node_modules
 /public/hot
+/public/icons
 /public/storage
 /public/*/filament
 /public/*/filament-socialite/

@@ -25,6 +25,7 @@ class ServiceProvider extends BaseServiceProvider
     public function boot(SuggestionIntegrationRegistry $suggestionIntegrations): void
     {
         $suggestionIntegrations->register('bitbucket', SuggestionIntegration::class);
+        $this->publishes([__DIR__.'/../resources/icons/bitbucket.svg' => public_path('icons/bitbucket.svg')], 'source-icons');
 
         $this->mergeConfigFrom(__DIR__.'/../config/bitbucket.php', 'bitbucket');
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');

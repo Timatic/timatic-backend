@@ -29,6 +29,7 @@ class ServiceProvider extends BaseServiceProvider
     public function boot(SuggestionIntegrationRegistry $suggestionIntegrations): void
     {
         $suggestionIntegrations->register('google_calendar', SuggestionIntegration::class);
+        $this->publishes([__DIR__.'/../resources/icons/google_calendar.svg' => public_path('icons/google_calendar.svg')], 'source-icons');
 
         $this->mergeConfigFrom(__DIR__.'/../config/google_calendar.php', 'google_calendar');
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');

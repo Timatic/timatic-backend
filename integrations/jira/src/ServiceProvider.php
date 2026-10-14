@@ -34,6 +34,7 @@ class ServiceProvider extends BaseServiceProvider
     {
         $ticketProviders->register('jira', TicketProvider::class);
         $suggestionIntegrations->register('jira', SuggestionIntegration::class);
+        $this->publishes([__DIR__.'/../resources/icons/jira.svg' => public_path('icons/jira.svg')], 'source-icons');
 
         $this->mergeConfigFrom(__DIR__.'/../config/jira.php', 'jira');
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
