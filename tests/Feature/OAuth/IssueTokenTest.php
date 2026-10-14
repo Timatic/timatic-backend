@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Services\AuthorizationCodeService;
 
 beforeEach(function () {
-    ApiClient::findOrFail('extension')
+    ApiClient::findOrFail('chrome-extension')
         ->update(['redirect_uris' => ['https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/']]);
 
     ApiClient::findOrFail('web')
@@ -15,7 +15,7 @@ beforeEach(function () {
     $this->redirectUri = 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/';
     $this->codeVerifier = str_repeat('a', 64);
     $this->codeChallenge = rtrim(strtr(base64_encode(hash('sha256', $this->codeVerifier, true)), '+/', '-_'), '=');
-    $this->extension = ApiClient::findOrFail('extension');
+    $this->extension = ApiClient::findOrFail('chrome-extension');
 });
 
 it('exchanges a code for a user bound token', function () {
@@ -25,7 +25,7 @@ it('exchanges a code for a user bound token', function () {
         ->issueCode($this->extension, $user, $this->codeChallenge, $this->redirectUri);
 
     $response = $this->postJson(route('oauth.token.store'), [
-        'client_id' => 'extension',
+        'client_id' => 'chrome-extension',
         'code' => $code,
         'code_verifier' => $this->codeVerifier,
         'redirect_uri' => $this->redirectUri,
@@ -103,7 +103,7 @@ it('refuses a code verifier that does not match the challenge', function () {
         ->issueCode($this->extension, $user, $this->codeChallenge, $this->redirectUri);
 
     $this->postJson(route('oauth.token.store'), [
-        'client_id' => 'extension',
+        'client_id' => 'chrome-extension',
         'code' => $code,
         'code_verifier' => str_repeat('b', 64),
         'redirect_uri' => $this->redirectUri,
@@ -120,7 +120,7 @@ it('refuses to use the same code twice', function () {
         ->issueCode($this->extension, $user, $this->codeChallenge, $this->redirectUri);
 
     $body = [
-        'client_id' => 'extension',
+        'client_id' => 'chrome-extension',
         'code' => $code,
         'code_verifier' => $this->codeVerifier,
         'redirect_uri' => $this->redirectUri,
@@ -142,7 +142,7 @@ it('refuses an expired code', function () {
     $this->travel(2)->minutes();
 
     $this->postJson(route('oauth.token.store'), [
-        'client_id' => 'extension',
+        'client_id' => 'chrome-extension',
         'code' => $code,
         'code_verifier' => $this->codeVerifier,
         'redirect_uri' => $this->redirectUri,

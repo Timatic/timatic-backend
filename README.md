@@ -26,13 +26,14 @@ A deployment runs exactly one identity provider. Set `SOCIALITE_DRIVER` to `azur
 `auth0` and fill that provider's credentials in `.env`; `auth/redirect` answers 503 until it can, so a
 misconfigured deployment says so itself rather than failing inside the provider.
 
-Browser callers authenticate with a bearer token, not the session. `config/api_clients.php` registers
-who may ask for one, which redirect uris their codes may travel to and how long their tokens live:
+Browser callers authenticate with a bearer token, not the session. `ApiClientSeeder` registers who
+may ask for one, which redirect uris their codes may travel to and how long their tokens live. Re-run
+it after changing `APP_FRONTEND_URL` or `EXTENSION_IDS`:
 
 | Client | Redirect uris from | Lifetime |
 |---|---|---|
-| `web` | `APP_FRONTEND_URL` + `/auth/callback` | `WEB_TOKEN_LIFETIME_DAYS` (30) |
-| `extension` | `EXTENSION_IDS` | `EXTENSION_TOKEN_LIFETIME_DAYS` (90) |
+| `web` | `APP_FRONTEND_URL` + `/auth/callback` | 30 days |
+| `chrome-extension` | `EXTENSION_IDS` | 90 days |
 
 The web session remains in use by the Filament admin panel, the integration consent pages and the
 `oauth/authorize` consent screen. Keep `SESSION_SAME_SITE=lax` and `SESSION_SECURE_COOKIE=true`:

@@ -9,7 +9,7 @@ use Tests\Concerns\LoginUser;
 uses(LoginUser::class);
 
 beforeEach(function () {
-    ApiClient::findOrFail('extension')
+    ApiClient::findOrFail('chrome-extension')
         ->update(['redirect_uris' => ['https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/']]);
 
     ApiClient::findOrFail('web')
@@ -22,7 +22,7 @@ beforeEach(function () {
 
 it('sends a guest to the login flow', function () {
     $this->get(route('oauth.authorize.show', [
-        'client_id' => 'extension',
+        'client_id' => 'chrome-extension',
         'redirect_uri' => $this->redirectUri,
         'state' => 'state-123',
         'code_challenge' => $this->codeChallenge,
@@ -58,7 +58,7 @@ it('refuses a redirect uri that is not allowlisted', function () {
     $this->actingAs(User::factory()->create());
 
     $this->get(route('oauth.authorize.show', [
-        'client_id' => 'extension',
+        'client_id' => 'chrome-extension',
         'redirect_uri' => 'https://evil.example.com/',
         'state' => 'state-123',
         'code_challenge' => $this->codeChallenge,
@@ -72,7 +72,7 @@ it('shows the consent screen to a logged in user', function () {
     $this->actingAs($user);
 
     $this->get(route('oauth.authorize.show', [
-        'client_id' => 'extension',
+        'client_id' => 'chrome-extension',
         'redirect_uri' => $this->redirectUri,
         'state' => 'state-123',
         'code_challenge' => $this->codeChallenge,
@@ -88,7 +88,7 @@ it('redirects to the client with a code when approved', function () {
     $this->actingAs(User::factory()->create());
 
     $approveUrl = URL::temporarySignedRoute('oauth.authorize.approve', now()->addMinutes(5), [
-        'client_id' => 'extension',
+        'client_id' => 'chrome-extension',
         'redirect_uri' => $this->redirectUri,
         'state' => 'state-123',
         'code_challenge' => $this->codeChallenge,
@@ -113,7 +113,7 @@ it('refuses to approve without a csrf token', function () {
     $this->actingAs(User::factory()->create());
 
     $approveUrl = URL::temporarySignedRoute('oauth.authorize.approve', now()->addMinutes(5), [
-        'client_id' => 'extension',
+        'client_id' => 'chrome-extension',
         'redirect_uri' => $this->redirectUri,
         'state' => 'state-123',
         'code_challenge' => $this->codeChallenge,
@@ -127,7 +127,7 @@ it('refuses to approve without a valid signature', function () {
     $this->actingAs(User::factory()->create());
 
     $this->post(route('oauth.authorize.approve', [
-        'client_id' => 'extension',
+        'client_id' => 'chrome-extension',
         'redirect_uri' => $this->redirectUri,
         'state' => 'state-123',
         'code_challenge' => $this->codeChallenge,
