@@ -19,7 +19,7 @@ class ServiceProvider extends BaseServiceProvider
         $this->callAfterResolving(IntegrationTypeRegistry::class, function (IntegrationTypeRegistry $types): void {
             $types->register('google_calendar', [
                 'google_calendar.settings' => SettingsPage::class,
-            ]);
+            ])->requiresConfig(['google_calendar.client_id', 'google_calendar.client_secret']);
         });
     }
 

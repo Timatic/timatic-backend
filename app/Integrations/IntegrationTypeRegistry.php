@@ -13,6 +13,9 @@ class IntegrationTypeRegistry
     /** @var array<string, Closure(Integration): class-string> */
     private array $landingResolvers = [];
 
+    /** @var array<string, list<string>> */
+    private array $requiredConfigKeys = [];
+
     private string $lastType = '';
 
     /**
@@ -32,6 +35,23 @@ class IntegrationTypeRegistry
         $this->landingResolvers[$this->lastType] = $resolver;
 
         return $this;
+    }
+
+    /** @param  list<string>  $configKeys */
+    public function requiresConfig(array $configKeys): static
+    {
+        $this->requiredConfigKeys[$this->lastType] = $configKeys;
+
+        return $this;
+    }
+
+    /** @return list<string> */
+    public function missingConfig(string $type): array
+    {
+        return array_values(array_filter(
+            $this->requiredConfigKeys[$type] ?? [],
+            fn (string $configKey): bool => blank(config($configKey)),
+        ));
     }
 
     /** @return class-string|null */
