@@ -51,4 +51,9 @@ class SuggestionIntegration implements SuggestionIntegrationInterface
     {
         return URL::temporarySignedRoute('google_calendar.connect', now()->addMinutes(5), ['user' => $user->id]);
     }
+
+    public function connectLabel(): string
+    {
+        return __('integrations.connect');
+    }
 }

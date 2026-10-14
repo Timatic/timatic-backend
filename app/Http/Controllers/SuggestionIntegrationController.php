@@ -30,6 +30,7 @@ class SuggestionIntegrationController extends Controller
                 isCompanyManaged: $integration->isCompanyManaged(),
                 isActive: $integration->isActiveFor($user),
                 connectUrl: $integration->connectUrl($user),
+                connectLabel: $integration->connectLabel(),
             ))
             ->values();
 

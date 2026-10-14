@@ -56,4 +56,9 @@ class SuggestionIntegration implements SuggestionIntegrationInterface
     {
         return null;
     }
+
+    public function connectLabel(): ?string
+    {
+        return null;
+    }
 }

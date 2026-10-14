@@ -26,4 +26,6 @@ interface SuggestionIntegrationInterface
     public function isActiveFor(User $user): bool;
 
     public function connectUrl(User $user): ?string;
+
+    public function connectLabel(): ?string;
 }

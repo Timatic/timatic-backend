@@ -14,5 +14,6 @@ readonly class SuggestionIntegrationStatus
         public bool $isCompanyManaged,
         public bool $isActive,
         public ?string $connectUrl,
+        public ?string $connectLabel,
     ) {}
 }

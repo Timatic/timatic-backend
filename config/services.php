@@ -14,7 +14,7 @@ return [
         'tenant' => env('AZURE_TENANT_ID'),
     ],
     'chrome_extension' => [
-        'install_url' => env('CHROME_EXTENSION_INSTALL_URL'),
+        'install_url' => env('CHROME_EXTENSION_INSTALL_URL', 'https://chromewebstore.google.com/detail/timatic-web-tracker/eolienieclhcocjhogconifmgpkkkafa'),
     ],
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),

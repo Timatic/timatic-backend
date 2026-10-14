@@ -23,6 +23,7 @@ class SuggestionIntegration extends JsonApiResource
             'isCompanyManaged' => $this->isCompanyManaged,
             'isActive' => $this->isActive,
             'connectUrl' => $this->connectUrl,
+            'connectLabel' => $this->connectLabel,
         ];
     }
 

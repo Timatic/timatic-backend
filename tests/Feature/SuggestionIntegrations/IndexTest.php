@@ -25,6 +25,7 @@ it('lists a company managed integration as active once an admin set it up', func
     expect($jira['attributes']['iconUrl'])->toEndWith('/icons/jira.svg');
     expect($jira['attributes']['isCompanyManaged'])->toBeTrue();
     expect($jira['attributes']['isActive'])->toBeTrue();
+    expect($jira['attributes']['connectUrl'])->toBeNull();
 });
 
 it('lists a company managed integration as inactive until an admin finished its setup', function () {
@@ -75,6 +76,17 @@ it('shows google calendar as active once the user connected it', function () {
     $response = $this->getJson(route('suggestion-integrations.index'))->assertOk();
 
     expect(collect($response->json('data'))->firstWhere('id', 'google_calendar')['attributes']['isActive'])->toBeTrue();
+});
+
+it('offers to install the chrome extension from the chrome web store', function () {
+    $this->loginUser();
+
+    $response = $this->getJson(route('suggestion-integrations.index'))->assertOk();
+
+    $extension = collect($response->json('data'))->firstWhere('id', 'chrome_extension');
+
+    expect($extension['attributes']['connectUrl'])->toStartWith('https://chromewebstore.google.com/detail/');
+    expect($extension['attributes']['connectLabel'])->toEqual('Install');
 });
 
 it('shows the chrome extension as active once the user connected it', function () {

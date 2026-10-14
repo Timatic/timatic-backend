@@ -55,4 +55,9 @@ class ChromeExtensionIntegration implements SuggestionIntegrationInterface
     {
         return config('services.chrome_extension.install_url');
     }
+
+    public function connectLabel(): string
+    {
+        return __('integrations.install');
+    }
 }
