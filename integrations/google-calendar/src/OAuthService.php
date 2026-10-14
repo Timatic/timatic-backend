@@ -4,7 +4,6 @@ namespace Timatic\GoogleCalendar;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Saloon\Exceptions\Request\FatalRequestException;
@@ -17,21 +16,21 @@ use Timatic\GoogleCalendar\Requests\RevokeTokenRequest;
 class OAuthService
 {
     /**
-     * Ties the code Google sends back to the request this application made, so a code from anywhere
-     * else is refused.
+     * Ties the code Google sends back to the user who asked for it, so a code from anywhere else is
+     * refused. The cache holds it because the flow starts from a signed url rather than a session.
      */
-    public const NONCE = 'google_calendar.nonce';
+    public const STATE_CACHE_PREFIX = 'google_calendar.state.';
 
     /**
      * Calendar access is asked for here rather than at login, so a user who does not want their
      * calendar read never sees the consent screen. Consent is forced because Google hands out a
      * refresh token on a first authorization only, and the sync cannot run without one.
      */
-    public function buildAuthorizationUrl(): string
+    public function buildAuthorizationUrl(User $user): string
     {
         $nonce = Str::random(32);
 
-        Session::put(self::NONCE, $nonce);
+        Cache::put(self::STATE_CACHE_PREFIX.$nonce, $user->id, now()->addMinutes(10));
 
         return 'https://accounts.google.com/o/oauth2/v2/auth?'.http_build_query([
             'client_id' => config('google_calendar.client_id'),
@@ -44,11 +43,10 @@ class OAuthService
         ]);
     }
 
-    public function handleCallback(User $user, string $code, string $state): GoogleCalendarConnection
+    public function handleCallback(string $code, string $state): GoogleCalendarConnection
     {
-        if ($state !== Session::pull(self::NONCE)) {
-            throw new RuntimeException('Invalid OAuth state parameter.');
-        }
+        $user = User::find(Cache::pull(self::STATE_CACHE_PREFIX.$state))
+            ?? throw new RuntimeException('Invalid OAuth state parameter.');
 
         $tokens = new OAuthConnector()->send(new ExchangeCodeRequest($code))->dto();
 

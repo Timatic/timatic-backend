@@ -2,9 +2,7 @@
 
 namespace Timatic\GoogleCalendar\Http\Controllers;
 
-use App\Models\User;
 use Dedoc\Scramble\Attributes\ExcludeRouteFromDocs;
-use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
@@ -20,16 +18,15 @@ class CallbackController
      * unconnected.
      */
     #[ExcludeRouteFromDocs]
-    public function __invoke(Request $request, #[CurrentUser] User $user): RedirectResponse
+    public function __invoke(Request $request): RedirectResponse
     {
         if ($request->filled('code')) {
             $this->oauth->handleCallback(
-                $user,
                 $request->string('code')->toString(),
                 $request->string('state')->toString(),
             );
         }
 
-        return Redirect::away(rtrim((string) config('app.frontend_url'), '/').'/profile');
+        return Redirect::away(rtrim((string) config('app.frontend_url'), '/').'/');
     }
 }
