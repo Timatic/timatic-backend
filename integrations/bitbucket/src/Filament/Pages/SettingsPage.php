@@ -7,6 +7,7 @@ use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Models\Integration;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Navigation\NavigationItem;
@@ -171,6 +172,9 @@ class SettingsPage extends Page
                         }
                     })
                     ->visible($this->hasWebhook($config)),
+
+                DeleteAction::make()
+                    ->successRedirectUrl(IntegrationResource::getUrl('index')),
             ]),
 
             Action::make('install_webhook')

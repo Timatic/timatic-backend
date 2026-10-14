@@ -7,6 +7,8 @@ use App\Models\Integration;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\Action as TableAction;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
@@ -97,6 +99,11 @@ class SettingsPage extends Page implements HasTable
     protected function getHeaderActions(): array
     {
         return [
+            ActionGroup::make([
+                DeleteAction::make()
+                    ->successRedirectUrl(IntegrationResource::getUrl('index')),
+            ]),
+
             Action::make('save')
                 ->label('Save')
                 ->action(function (): void {

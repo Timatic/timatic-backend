@@ -6,6 +6,8 @@ use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Models\BudgetType;
 use App\Models\Integration;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Navigation\NavigationItem;
@@ -81,14 +83,10 @@ class LedgerMappingPage extends Page
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('delete')
-                ->label('Delete')
-                ->color('danger')
-                ->requiresConfirmation()
-                ->action(function (): void {
-                    $this->getIntegration()->delete();
-                    $this->redirect(IntegrationResource::getUrl('index'));
-                }),
+            ActionGroup::make([
+                DeleteAction::make()
+                    ->successRedirectUrl(IntegrationResource::getUrl('index')),
+            ]),
 
             Action::make('save')
                 ->label('Save')

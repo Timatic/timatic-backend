@@ -5,6 +5,8 @@ namespace Timatic\Rework\Filament\Pages;
 use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Models\Integration;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Navigation\NavigationItem;
@@ -100,6 +102,11 @@ class SettingsPage extends Page
     protected function getHeaderActions(): array
     {
         return [
+            ActionGroup::make([
+                DeleteAction::make()
+                    ->successRedirectUrl(IntegrationResource::getUrl('index')),
+            ]),
+
             Action::make('save')
                 ->label('Opslaan')
                 ->action(function (): void {

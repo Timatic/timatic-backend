@@ -6,6 +6,8 @@ use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Models\Integration;
 use App\Models\OvertimeRule;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -179,6 +181,11 @@ class SettingsPage extends Page
     protected function getHeaderActions(): array
     {
         return [
+            ActionGroup::make([
+                DeleteAction::make()
+                    ->successRedirectUrl(IntegrationResource::getUrl('index')),
+            ]),
+
             Action::make('disconnect')
                 ->label('Verbreken')
                 ->color('danger')
