@@ -47,6 +47,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property ?Carbon $updated_at
  * @property ?Budget $budget
  * @property ?Customer $customer
+ * @property ?EntrySuggestion $entrySuggestion
  * @property ?User $user
  * @property Collection|Overtime[] $overtimes
  * @property ?Overtime $personalOvertime
@@ -212,6 +213,14 @@ class Entry extends Model
     public function budget(): BelongsTo
     {
         return $this->belongsTo(Budget::class);
+    }
+
+    /**
+     * @return BelongsTo<EntrySuggestion, $this>
+     */
+    public function entrySuggestion(): BelongsTo
+    {
+        return $this->belongsTo(EntrySuggestion::class)->withTrashed();
     }
 
     /**

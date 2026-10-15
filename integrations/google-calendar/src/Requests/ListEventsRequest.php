@@ -10,7 +10,8 @@ class ListEventsRequest extends Request
     /**
      * How far back to look for started events. Wider than the sync schedule interval
      * so a delayed or skipped run still gets re-covered by the next one; dedup on
-     * Event.external_id makes re-fetching already-synced events safe.
+     * Event.external_id (the sequence id), user and start time makes re-fetching
+     * already-synced events safe.
      */
     public const LOOKBACK_MINUTES = 60;
 

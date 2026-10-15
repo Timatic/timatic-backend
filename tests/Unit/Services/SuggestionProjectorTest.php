@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Activity;
+use App\Models\Entry;
 use App\Models\EntrySuggestion;
+use App\Models\Event;
 use App\Services\SuggestionProjector;
 use Carbon\Carbon;
 
@@ -326,4 +328,86 @@ test('a dismissed suggestion with a different ticket does not suppress the group
     );
 
     expect($suggestions)->toHaveCount(1);
+});
+
+test('a customerless activity takes customer and budget from the previous entry of its event sequence', function () {
+    $event = new Event;
+    $event->source_id = 'google_calendar';
+    $event->external_id = 'weekly-sync';
+    $activity = new Activity;
+    $activity->user_id = 1;
+    $activity->started_at = Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam');
+    $activity->ended_at = Carbon::parse('2026-07-16 10:30', 'Europe/Amsterdam');
+    $activity->setRelation('events', collect([$event]));
+    $previousEntry = new Entry;
+    $previousEntry->customer_id = 'customerX';
+    $previousEntry->budget_id = 7;
+    $previousEntry->is_internal = false;
+
+    $suggestions = (new SuggestionProjector)->project(
+        collect([$activity]),
+        collect(),
+        Carbon::parse('2026-07-16', 'Europe/Amsterdam'),
+        collect(['google_calendar:weekly-sync' => $previousEntry]),
+    );
+
+    expect($suggestions)->toHaveCount(1)
+        ->and($suggestions[0]->customer_id)->toBe('customerX')
+        ->and($suggestions[0]->budget_id)->toBe(7)
+        ->and($suggestions[0]->is_internal)->toBeFalse();
+});
+
+test('an activity with a customer of its own ignores the previous entry of its event sequence', function () {
+    $event = new Event;
+    $event->source_id = 'google_calendar';
+    $event->external_id = 'weekly-sync';
+    $activity = new Activity;
+    $activity->user_id = 1;
+    $activity->customer_id = 'customerY';
+    $activity->ticket_number = 'TIC-1';
+    $activity->started_at = Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam');
+    $activity->ended_at = Carbon::parse('2026-07-16 10:30', 'Europe/Amsterdam');
+    $activity->setRelation('events', collect([$event]));
+    $previousEntry = new Entry;
+    $previousEntry->customer_id = 'customerX';
+    $previousEntry->budget_id = 7;
+
+    $suggestions = (new SuggestionProjector)->project(
+        collect([$activity]),
+        collect(),
+        Carbon::parse('2026-07-16', 'Europe/Amsterdam'),
+        collect(['google_calendar:weekly-sync' => $previousEntry]),
+    );
+
+    expect($suggestions[0]->customer_id)->toBe('customerY')
+        ->and($suggestions[0]->budget_id)->toBeNull();
+});
+
+test('a dismissed suggestion matching the customer taken from the event sequence stays dismissed', function () {
+    $event = new Event;
+    $event->source_id = 'google_calendar';
+    $event->external_id = 'weekly-sync';
+    $activity = new Activity;
+    $activity->user_id = 1;
+    $activity->started_at = Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam');
+    $activity->ended_at = Carbon::parse('2026-07-16 10:30', 'Europe/Amsterdam');
+    $activity->setRelation('events', collect([$event]));
+    $previousEntry = new Entry;
+    $previousEntry->customer_id = 'customerX';
+    $previousEntry->budget_id = 7;
+    $previousEntry->is_internal = false;
+    $dismissed = new EntrySuggestion;
+    $dismissed->customer_id = 'customerX';
+    $dismissed->budget_id = 7;
+    $dismissed->ticket_number = null;
+    $dismissed->is_internal = false;
+
+    $suggestions = (new SuggestionProjector)->project(
+        collect([$activity]),
+        collect([$dismissed]),
+        Carbon::parse('2026-07-16', 'Europe/Amsterdam'),
+        collect(['google_calendar:weekly-sync' => $previousEntry]),
+    );
+
+    expect($suggestions)->toBeEmpty();
 });

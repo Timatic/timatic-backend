@@ -13,6 +13,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\DatabaseManager;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Collection;
 
@@ -54,12 +55,47 @@ class RebuildUserDay implements ShouldBeUnique, ShouldQueue
             ->get();
 
         $activities = $activityProjector->project($events, $entries);
-        $suggestions = $suggestionProjector->project($activities, $dismissedSuggestions, $day);
+        $suggestions = $suggestionProjector->project(
+            $activities,
+            $dismissedSuggestions,
+            $day,
+            $this->previousEntriesOfSequences($events),
+        );
 
         $db->transaction(function () use ($activities, $suggestions, $day) {
             $this->deleteProjectedState($day);
             $this->saveProjectedState($activities, $suggestions);
         });
+    }
+
+    /**
+     * For each sequence among the customerless events, the latest entry the user
+     * booked on a suggestion that contained an earlier event of that sequence.
+     *
+     * @param  Collection<int, Event>  $events
+     * @return Collection<string, Entry>
+     */
+    private function previousEntriesOfSequences(Collection $events): Collection
+    {
+        /** @var Collection<string, Entry> */
+        return $events
+            ->filter(fn (Event $event) => $event->customer_id === null && $event->sequenceKey() !== null)
+            ->sortBy(fn (Event $event) => $event->effectiveStart()->getTimestamp())
+            ->unique(fn (Event $event) => $event->sequenceKey())
+            ->mapWithKeys(fn (Event $event) => [(string) $event->sequenceKey() => $this->previousEntryOfSequence($event)])
+            ->filter();
+    }
+
+    private function previousEntryOfSequence(Event $event): ?Entry
+    {
+        return Entry::query()
+            ->where('user_id', $this->userId)
+            ->where('started_at', '<', $event->effectiveStart())
+            ->whereHas('entrySuggestion.activities.events', fn (Builder $query) => $query
+                ->where('source_id', $event->source_id)
+                ->where('external_id', $event->external_id))
+            ->latest('started_at')
+            ->first();
     }
 
     private function deleteProjectedState(CarbonInterface $day): void

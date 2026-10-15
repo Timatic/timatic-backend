@@ -122,6 +122,19 @@ class Event extends Model
         return $this->belongsTo(EventType::class);
     }
 
+    /**
+     * Events from the same source sharing an external id belong to one sequence,
+     * e.g. the instances of a recurring calendar event.
+     */
+    public function sequenceKey(): ?string
+    {
+        if ($this->source_id === null || $this->external_id === null) {
+            return null;
+        }
+
+        return $this->source_id.':'.$this->external_id;
+    }
+
     public function effectiveStart(): CarbonInterface
     {
         return $this->started_at ?: $this->ended_at->copy()->subMinutes(self::ESTIMATED_DURATION_MINUTES);
