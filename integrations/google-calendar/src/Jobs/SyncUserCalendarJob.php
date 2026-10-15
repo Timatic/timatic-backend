@@ -56,9 +56,10 @@ class SyncUserCalendarJob implements ShouldQueue
 
             Event::firstOrCreate([
                 'source_id' => ServiceProvider::SOURCE_ID,
-                'external_id' => $calendarEvent->googleEventId,
-            ], [
+                'external_id' => $calendarEvent->sequenceId(),
                 'user_id' => $connection->user_id,
+                'started_at' => $calendarEvent->startedAt,
+            ], [
                 'event_type_id' => ServiceProvider::EVENT_TYPE_CALENDAR_EVENT_STARTED,
                 'title' => mb_substr($calendarEvent->title, 0, 255),
                 'ticket_id' => $ticket?->id,
@@ -66,7 +67,6 @@ class SyncUserCalendarJob implements ShouldQueue
                 'ticket_type' => $ticket?->type,
                 'customer_id' => $ticket?->customer_id,
                 'budget_id' => $ticket?->budget_id,
-                'started_at' => $calendarEvent->startedAt,
                 'ended_at' => $calendarEvent->endedAt,
             ]);
         }
