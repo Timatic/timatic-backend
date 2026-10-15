@@ -233,7 +233,7 @@ it('stores an event from the Claude Code plugin', function () {
             'type' => 'events',
             'attributes' => [
                 'sourceId' => 'claude_code',
-                'eventTypeId' => 'claude_response_completed',
+                'eventTypeId' => 'claude_question_answered',
                 'userId' => $user->id,
                 'customerId' => $customer->id,
                 'ticketNumber' => 'TIM-12',

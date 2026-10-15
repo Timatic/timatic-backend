@@ -14,7 +14,6 @@ return new class extends Migration
     private array $eventTypes = [
         'claude_prompt_submitted' => ['name' => 'Claude Code prompt', 'weight' => 20],
         'claude_question_answered' => ['name' => 'Claude Code question answered', 'weight' => 20],
-        'claude_response_completed' => ['name' => 'Claude Code response', 'weight' => 20],
     ];
 
     public function up(): void
