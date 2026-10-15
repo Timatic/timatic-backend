@@ -17,6 +17,7 @@ readonly class CalendarEvent
         public CarbonImmutable $startedAt,
         public CarbonImmutable $endedAt,
         public string $visibility = 'default',
+        public ?string $recurringEventId = null,
     ) {}
 
     /** @param array<string, mixed> $item */
@@ -32,7 +33,17 @@ readonly class CalendarEvent
             startedAt: $startedAt,
             endedAt: $endedAt,
             visibility: $item['visibility'] ?? 'default',
+            recurringEventId: $item['recurringEventId'] ?? null,
         );
+    }
+
+    /**
+     * Identifies the sequence the event belongs to: every instance of a recurring
+     * event shares its recurring event id, a one-off event is a sequence of its own.
+     */
+    public function sequenceId(): string
+    {
+        return $this->recurringEventId ?? $this->googleEventId;
     }
 
     public function isPrivate(): bool

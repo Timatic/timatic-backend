@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\DataTransferObjects\PreviousSequenceBooking;
 use App\Models\Activity;
 use App\Models\EntrySuggestion;
+use App\Models\Event;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
@@ -12,13 +14,18 @@ class SuggestionProjector
     /**
      * @param  Collection<int, Activity>  $activities
      * @param  Collection<int, EntrySuggestion>  $dismissedSuggestions
+     * @param  Collection<int, PreviousSequenceBooking>  $previousSequenceBookings  latest first
      * @return Collection<int, EntrySuggestion>
      */
-    public function project(Collection $activities, Collection $dismissedSuggestions, CarbonInterface $date): Collection
-    {
+    public function project(
+        Collection $activities,
+        Collection $dismissedSuggestions,
+        CarbonInterface $date,
+        Collection $previousSequenceBookings = new Collection,
+    ): Collection {
         return $this->buildGroups($activities)
-            ->reject(fn (Collection $group) => $this->isDismissed($this->representative($group), $dismissedSuggestions))
-            ->map(fn (Collection $group) => $this->suggestionFromActivities($group, $date))
+            ->map(fn (Collection $group) => $this->suggestionFromActivities($group, $date, $previousSequenceBookings))
+            ->reject(fn (EntrySuggestion $suggestion) => $this->isDismissed($suggestion, $dismissedSuggestions))
             ->values();
     }
 
@@ -117,18 +124,19 @@ class SuggestionProjector
     /**
      * @param  Collection<int, EntrySuggestion>  $dismissedSuggestions
      */
-    private function isDismissed(Activity $activity, Collection $dismissedSuggestions): bool
+    private function isDismissed(EntrySuggestion $suggestion, Collection $dismissedSuggestions): bool
     {
-        return $dismissedSuggestions->contains(fn (EntrySuggestion $dismissed) => $dismissed->customer_id === $activity->customer_id
-            && $dismissed->budget_id === $activity->budget_id
-            && $dismissed->ticket_number === $activity->ticket_number
-            && $dismissed->is_internal === $activity->is_internal);
+        return $dismissedSuggestions->contains(fn (EntrySuggestion $dismissed) => $dismissed->customer_id === $suggestion->customer_id
+            && $dismissed->budget_id === $suggestion->budget_id
+            && $dismissed->ticket_number === $suggestion->ticket_number
+            && $dismissed->is_internal === $suggestion->is_internal);
     }
 
     /**
      * @param  Collection<int, Activity>  $activities
+     * @param  Collection<int, PreviousSequenceBooking>  $previousSequenceBookings
      */
-    private function suggestionFromActivities(Collection $activities, CarbonInterface $date): EntrySuggestion
+    private function suggestionFromActivities(Collection $activities, CarbonInterface $date, Collection $previousSequenceBookings): EntrySuggestion
     {
         $template = $this->representative($activities);
 
@@ -143,6 +151,40 @@ class SuggestionProjector
         $suggestion->date = $date->toDateString();
         $suggestion->setRelation('activities', $activities->sortBy('started_at')->values());
 
+        if ($suggestion->customer_id === null) {
+            $this->bookLikePreviousEntryOfSequence($suggestion, $activities, $previousSequenceBookings);
+        }
+
         return $suggestion;
+    }
+
+    /**
+     * A suggestion without a customer of its own takes the customer and budget
+     * from the last entry booked on an earlier occurrence of the same sequence,
+     * e.g. the previous instance of a recurring meeting.
+     *
+     * @param  Collection<int, Activity>  $activities
+     * @param  Collection<int, PreviousSequenceBooking>  $previousSequenceBookings
+     */
+    private function bookLikePreviousEntryOfSequence(EntrySuggestion $suggestion, Collection $activities, Collection $previousSequenceBookings): void
+    {
+        $previousBooking = $activities
+            ->filter(fn (Activity $activity) => $activity->relationLoaded('events'))
+            ->flatMap(fn (Activity $activity) => $activity->events)
+            ->map(fn (Event $event) => $previousSequenceBookings
+                ->where('sourceId', $event->source_id)
+                ->where('externalId', $event->external_id)
+                ->first())
+            ->filter()
+            ->sortByDesc('startedAt')
+            ->first();
+
+        if ($previousBooking === null) {
+            return;
+        }
+
+        $suggestion->customer_id = $previousBooking->customerId;
+        $suggestion->budget_id = $previousBooking->budgetId;
+        $suggestion->is_internal = $previousBooking->isInternal;
     }
 }

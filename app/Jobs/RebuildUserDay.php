@@ -2,10 +2,12 @@
 
 namespace App\Jobs;
 
+use App\DataTransferObjects\PreviousSequenceBooking;
 use App\Models\Activity;
 use App\Models\Entry;
 use App\Models\EntrySuggestion;
 use App\Models\Event;
+use App\Queries\PreviousBookingsOfSequences;
 use App\Services\ActivityProjector;
 use App\Services\SuggestionProjector;
 use Carbon\Carbon;
@@ -54,12 +56,44 @@ class RebuildUserDay implements ShouldBeUnique, ShouldQueue
             ->get();
 
         $activities = $activityProjector->project($events, $entries);
-        $suggestions = $suggestionProjector->project($activities, $dismissedSuggestions, $day);
+        $suggestions = $suggestionProjector->project(
+            $activities,
+            $dismissedSuggestions,
+            $day,
+            $this->previousSequenceBookings($events),
+        );
 
         $db->transaction(function () use ($activities, $suggestions, $day) {
             $this->deleteProjectedState($day);
             $this->saveProjectedState($activities, $suggestions);
         });
+    }
+
+    /**
+     * @param  Collection<int, Event>  $events
+     * @return Collection<int, PreviousSequenceBooking>
+     */
+    private function previousSequenceBookings(Collection $events): Collection
+    {
+        $eventsWithoutMapping = $events
+            ->filter(fn (Event $event) => $event->customer_id === null || $event->budget_id === null)
+            ->filter(fn (Event $event) => $event->external_id !== null);
+
+        if ($eventsWithoutMapping->isEmpty()) {
+            return new Collection;
+        }
+
+        return PreviousBookingsOfSequences::query($this->userId, $eventsWithoutMapping)
+            ->get()
+            ->map(fn (Entry $entry) => new PreviousSequenceBooking(
+                sourceId: $entry->getAttribute('source_id'),
+                externalId: $entry->getAttribute('external_id'),
+                customerId: $entry->customer_id,
+                budgetId: $entry->budget_id,
+                isInternal: $entry->is_internal,
+                startedAt: $entry->started_at,
+            ))
+            ->toBase();
     }
 
     private function deleteProjectedState(CarbonInterface $day): void
