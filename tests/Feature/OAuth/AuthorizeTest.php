@@ -169,3 +169,49 @@ it('fails loudly when the deployment has no api clients', function () {
         'code_challenge_method' => 'S256',
     ]));
 })->throws(UnknownApiClientException::class);
+
+it('lets a loopback redirect uri use any port', function () {
+    $this->actingAs(User::factory()->create());
+
+    $approveUrl = URL::temporarySignedRoute('oauth.authorize.approve', now()->addMinutes(5), [
+        'client_id' => 'claude-code',
+        'redirect_uri' => 'http://127.0.0.1:53124/callback',
+        'state' => 'state-123',
+        'code_challenge' => $this->codeChallenge,
+        'code_challenge_method' => 'S256',
+    ]);
+
+    expect($this->post($approveUrl)->headers->get('Location'))
+        ->toStartWith('http://127.0.0.1:53124/callback?');
+});
+
+it('refuses a loopback redirect uri that differs in more than its port', function (string $redirectUri) {
+    $this->actingAs(User::factory()->create());
+
+    $this->get(route('oauth.authorize.show', [
+        'client_id' => 'claude-code',
+        'redirect_uri' => $redirectUri,
+        'state' => 'state-123',
+        'code_challenge' => $this->codeChallenge,
+        'code_challenge_method' => 'S256',
+    ]))->assertStatus(400);
+})->with([
+    'another path' => 'http://127.0.0.1:53124/elsewhere',
+    'a query string' => 'http://127.0.0.1:53124/callback?next=https://evil.example.com',
+    'another host' => 'http://evil.example.com:53124/callback',
+    'localhost by name' => 'http://localhost:53124/callback',
+    'https' => 'https://127.0.0.1:53124/callback',
+    'userinfo' => 'http://evil.example.com@127.0.0.1:53124/callback',
+]);
+
+it('keeps requiring an exact match for a redirect uri that is not loopback', function () {
+    $this->actingAs(User::factory()->create());
+
+    $this->get(route('oauth.authorize.show', [
+        'client_id' => 'web',
+        'redirect_uri' => 'https://app.timatic.test:8443/auth/callback',
+        'state' => 'state-123',
+        'code_challenge' => $this->codeChallenge,
+        'code_challenge_method' => 'S256',
+    ]))->assertStatus(400);
+});

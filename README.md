@@ -34,6 +34,10 @@ it after changing `APP_FRONTEND_URL` or `EXTENSION_IDS`:
 |---|---|---|
 | `web` | `APP_FRONTEND_URL` + `/auth/callback` | 30 days |
 | `chrome-extension` | `EXTENSION_IDS` | 90 days |
+| `claude-code` | fixed: `http://127.0.0.1/callback`, any port | 90 days |
+
+A registered `http://127.0.0.1` or `http://[::1]` redirect uri matches any port (RFC 8252 §7.3), so a
+command line client can listen on whichever port is free.
 
 The web session remains in use by the Filament admin panel, the integration consent pages and the
 `oauth/authorize` consent screen. Keep `SESSION_SAME_SITE=lax` and `SESSION_SECURE_COOKIE=true`:
