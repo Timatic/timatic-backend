@@ -51,6 +51,7 @@ class ServiceProvider extends BaseServiceProvider
     {
         $ticketProviders->register(self::INTEGRATION_TYPE, IncidentTicketProvider::class);
         $ticketProviders->register(self::INTEGRATION_TYPE, ChangeTicketProvider::class);
+        $this->publishes([__DIR__.'/../resources/icons/topdesk.svg' => public_path('icons/topdesk.svg')], 'source-icons');
 
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../resources/views', self::INTEGRATION_TYPE);
