@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Timatic\GoogleCalendar\Models;
 
 use App\Models\User;
