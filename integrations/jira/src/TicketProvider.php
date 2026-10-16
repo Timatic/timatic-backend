@@ -4,6 +4,7 @@ namespace Timatic\Jira;
 
 use App\DataTransferObjects\Ticket;
 use App\DataTransferObjects\TicketAction;
+use App\DataTransferObjects\TicketMapping;
 use App\Integrations\Contracts\TicketProviderInterface;
 use App\Models\Customer;
 use App\Models\Integration;
@@ -153,6 +154,25 @@ final class TicketProvider implements TicketProviderInterface
         );
 
         return $details->withMapping($mapping?->customer_id, $mapping?->budget_id);
+    }
+
+    public function findMappingByTicketKey(string $key): ?TicketMapping
+    {
+        if (preg_match('/^([A-Z][A-Z0-9_]*)-\d+$/i', $key, $matches) !== 1) {
+            return null;
+        }
+
+        $mapping = ProjectMapping::query()
+            ->where('project_key', strtoupper($matches[1]))
+            ->when(isset($this->config['integration_id']), fn ($query) => $query->where('integration_id', $this->config['integration_id']))
+            ->active()
+            ->first();
+
+        if ($mapping?->customer_id === null) {
+            return null;
+        }
+
+        return new TicketMapping($mapping->customer_id, $mapping->budget_id);
     }
 
     /** @return Collection<int, Ticket> */

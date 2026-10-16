@@ -19,6 +19,8 @@ class Ticket extends JsonApiResource
             'createdAt' => $this->created_at->toISOString(),
             'closedAt' => $this->closed_at?->toISOString(),
             'url' => $this->url,
+            'customerId' => $this->customer_id,
+            'budgetId' => $this->budget_id,
         ];
     }
 
