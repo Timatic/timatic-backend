@@ -13,6 +13,9 @@ return [
         'redirect' => env('AZURE_REDIRECT_URI'),
         'tenant' => env('AZURE_TENANT_ID'),
     ],
+    'chrome_extension' => [
+        'install_url' => env('CHROME_EXTENSION_INSTALL_URL', 'https://chromewebstore.google.com/detail/timatic-web-tracker/eolienieclhcocjhogconifmgpkkkafa'),
+    ],
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),

@@ -1,0 +1,38 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use TiMacDonald\JsonApi\JsonApiResource;
+
+/**
+ * @mixin \App\DataTransferObjects\SuggestionIntegration
+ */
+class SuggestionIntegration extends JsonApiResource
+{
+    public function toAttributes(Request $request): array
+    {
+        return [
+            'label' => $this->label,
+            'iconUrl' => $this->iconUrl,
+            'instructions' => Str::markdown($this->instructions),
+            'isCompanyManaged' => $this->isCompanyManaged,
+            'isActive' => $this->isActive,
+            'connectUrl' => $this->connectUrl,
+            'connectLabel' => $this->connectLabel,
+        ];
+    }
+
+    public function toType(Request $request): string
+    {
+        return 'suggestionIntegrations';
+    }
+
+    public function toId(Request $request): string
+    {
+        return $this->key;
+    }
+}

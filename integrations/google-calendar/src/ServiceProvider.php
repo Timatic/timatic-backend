@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Timatic\GoogleCalendar;
 
 use App\Integrations\IntegrationTypeRegistry;
+use App\Integrations\SuggestionIntegrationRegistry;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Timatic\GoogleCalendar\Commands\SyncGoogleCalendarCommand;
@@ -21,15 +22,19 @@ class ServiceProvider extends BaseServiceProvider
         $this->callAfterResolving(IntegrationTypeRegistry::class, function (IntegrationTypeRegistry $types): void {
             $types->register('google_calendar', [
                 'google_calendar.settings' => SettingsPage::class,
-            ])->requiresConfig(['google_calendar.client_id', 'google_calendar.client_secret']);
+            ])->requiresConfig(['google_calendar.client_id', 'google_calendar.client_secret', 'google_calendar.redirect']);
         });
     }
 
-    public function boot(): void
+    public function boot(SuggestionIntegrationRegistry $suggestionIntegrations): void
     {
+        $suggestionIntegrations->register('google_calendar', SuggestionIntegration::class);
+        $this->publishes([__DIR__.'/../resources/icons/google_calendar.svg' => public_path('icons/google_calendar.svg')], 'source-icons');
+
         $this->mergeConfigFrom(__DIR__.'/../config/google_calendar.php', 'google_calendar');
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'google_calendar');
+        $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'google_calendar');
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
 
         $this->commands([SyncGoogleCalendarCommand::class]);

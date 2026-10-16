@@ -57,4 +57,8 @@ return [
         'connect_intro' => 'Click the button below to connect Jira to Timatic. You will be redirected to Jira to grant permission.',
         'connect_action' => 'Connect to Jira',
     ],
+    'integration' => [
+        'label' => 'Jira',
+        'instructions' => 'Ticket numbers like `ABC-123` are recognised in your calendar events, browser activity, commits and pull requests. A suggestion that mentions a ticket gets the customer and budget of its Jira project.',
+    ],
 ];

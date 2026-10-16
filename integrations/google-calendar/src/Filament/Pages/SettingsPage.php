@@ -51,22 +51,14 @@ class SettingsPage extends Page implements HasTable
 
     public function form(Schema $form): Schema
     {
-        if (! $this->isConfigured()) {
-            return $form->schema([
-                Callout::make('Google Calendar credentials are not configured.')
-                    ->danger()
-                    ->description('Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to your .env file.'),
-            ])->statePath('data');
-        }
-
         return $form->schema([
             TextInput::make('title')
-                ->label('Integration title')
+                ->label(__('google_calendar::google_calendar.settings.field_title'))
                 ->autocomplete(false)
                 ->helperText(__('integrations.title_helper')),
-            Callout::make('Users connect their Google Calendar themselves.')
+            Callout::make(__('google_calendar::google_calendar.settings.callout_connect_title'))
                 ->info()
-                ->description('A user can grant calendar access in the web app. The table below shows all currently connected users.'),
+                ->description(__('google_calendar::google_calendar.settings.callout_connect_description')),
         ])->statePath('data');
     }
 
@@ -76,24 +68,24 @@ class SettingsPage extends Page implements HasTable
             ->query(GoogleCalendarConnection::query()->with('user'))
             ->columns([
                 TextColumn::make('user.full_name')
-                    ->label('User')
+                    ->label(__('google_calendar::google_calendar.settings.column_user'))
                     ->searchable(['given_name', 'family_name']),
                 TextColumn::make('user.email')
-                    ->label('Email'),
+                    ->label(__('google_calendar::google_calendar.settings.column_email')),
                 TextColumn::make('created_at')
-                    ->label('Connected at')
+                    ->label(__('google_calendar::google_calendar.settings.column_connected_at'))
                     ->dateTime()
                     ->sortable(),
             ])
             ->actions([
                 TableAction::make('disconnect')
-                    ->label('Disconnect')
+                    ->label(__('google_calendar::google_calendar.settings.action_disconnect'))
                     ->color('danger')
                     ->requiresConfirmation()
                     ->action(fn (GoogleCalendarConnection $record) => app(OAuthService::class)->disconnect($record)),
             ])
-            ->emptyStateHeading('No users connected yet')
-            ->emptyStateDescription('Users will appear here after they connect their calendar from their profile.');
+            ->emptyStateHeading(__('google_calendar::google_calendar.settings.empty_heading'))
+            ->emptyStateDescription(__('google_calendar::google_calendar.settings.empty_description'));
     }
 
     protected function getHeaderActions(): array
@@ -105,18 +97,13 @@ class SettingsPage extends Page implements HasTable
             ]),
 
             Action::make('save')
-                ->label('Save')
+                ->label(__('google_calendar::google_calendar.settings.action_save'))
                 ->action(function (): void {
                     $data = $this->form->getState();
                     $this->getIntegration()->update(['title' => $data['title']]);
-                    Notification::make()->title('Title updated.')->success()->send();
+                    Notification::make()->title(__('google_calendar::google_calendar.settings.notification_title_updated'))->success()->send();
                 }),
         ];
-    }
-
-    private function isConfigured(): bool
-    {
-        return filled(config('google_calendar.client_id')) && filled(config('google_calendar.client_secret'));
     }
 
     private function getIntegration(): Integration

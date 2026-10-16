@@ -30,6 +30,7 @@ use App\Http\Controllers\GetTimeSpentTotalsController;
 use App\Http\Controllers\GetUserCustomerHoursAggregatesController;
 use App\Http\Controllers\OvertimeController;
 use App\Http\Controllers\ShowCurrentUserController;
+use App\Http\Controllers\SuggestionIntegrationController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\TrackedDomainController;
@@ -65,6 +66,8 @@ Route::middleware([
     Route::get('budgets/{budget}/entries-export', GetBudgetEntriesExportController::class)->name('budget.entries-export');
 
     Route::apiResource('entry-suggestions', EntrySuggestionController::class)->except('store', 'update');
+
+    Route::get('suggestion-integrations', SuggestionIntegrationController::class)->name('suggestion-integrations.index');
 
     Route::apiResource('entries', EntryController::class);
     Route::post('entries/{entry}/mark-as-invoiced', [EntryController::class, 'markAsInvoiced'])->name('entry.mark-as-invoiced');
