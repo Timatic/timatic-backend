@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use RuntimeException;
 use Saloon\Exceptions\Request\FatalRequestException;
 use Saloon\Exceptions\Request\RequestException;
+use Timatic\GoogleCalendar\Exceptions\CalendarConnectionFailedException;
 use Timatic\GoogleCalendar\Models\GoogleCalendarConnection;
 use Timatic\GoogleCalendar\Requests\ExchangeCodeRequest;
 use Timatic\GoogleCalendar\Requests\RefreshTokenRequest;
@@ -43,18 +44,34 @@ class OAuthService
         ]);
     }
 
+    /**
+     * @throws CalendarConnectionFailedException
+     */
     public function handleCallback(string $code, string $state): GoogleCalendarConnection
     {
         $user = User::find((int) Cache::pull(self::STATE_CACHE_PREFIX.$state))
-            ?? throw new RuntimeException('Invalid OAuth state parameter.');
+            ?? throw CalendarConnectionFailedException::unknownState();
 
-        $tokens = new OAuthConnector()->send(new ExchangeCodeRequest($code))->dto();
+        $response = new OAuthConnector()->send(new ExchangeCodeRequest($code));
 
-        return GoogleCalendarConnection::updateOrCreate(['user_id' => $user->id], [
+        if ($response->failed()) {
+            throw CalendarConnectionFailedException::codeRefused($response->status());
+        }
+
+        $tokens = $response->dto();
+
+        $connection = GoogleCalendarConnection::firstOrNew(['user_id' => $user->id]);
+
+        // Google may leave the refresh token out on a reconnect; the one already held stays valid.
+        $connection->fill([
             'access_token' => $tokens->accessToken,
-            'refresh_token' => $tokens->refreshToken,
+            'refresh_token' => $tokens->refreshToken
+                ?? $connection->refresh_token
+                ?? throw CalendarConnectionFailedException::missingRefreshToken(),
             'expires_at' => $tokens->expiresAt(),
-        ]);
+        ])->save();
+
+        return $connection;
     }
 
     public function refreshIfExpired(GoogleCalendarConnection $connection): GoogleCalendarConnection

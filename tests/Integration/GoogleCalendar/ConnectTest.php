@@ -76,3 +76,36 @@ it('leaves the calendar unconnected when the user declines at google', function 
 
     expect(GoogleCalendarConnection::count())->toBe(0);
 });
+
+it('returns to the frontend without a connection when google refuses a replayed code', function () {
+    config(['app.frontend_url' => 'https://app.timatic.test']);
+
+    Cache::put(OAuthService::STATE_CACHE_PREFIX.'a-nonce', User::factory()->create()->id);
+
+    MockClient::global([
+        ExchangeCodeRequest::class => MockResponse::make(['error' => 'invalid_grant'], 400),
+    ]);
+
+    $this->get(route('google_calendar.callback', ['code' => 'a-used-code', 'state' => 'a-nonce']))
+        ->assertRedirect('https://app.timatic.test/');
+
+    expect(GoogleCalendarConnection::count())->toBe(0);
+});
+
+it('keeps the refresh token it holds when google leaves it out on a reconnect', function () {
+    $connection = GoogleCalendarConnection::factory()->create(['refresh_token' => 'the-first-refresh-token']);
+
+    Cache::put(OAuthService::STATE_CACHE_PREFIX.'a-nonce', $connection->user_id);
+
+    MockClient::global([
+        ExchangeCodeRequest::class => MockResponse::make([
+            'access_token' => 'a-new-access-token',
+            'expires_in' => 3600,
+        ]),
+    ]);
+
+    $this->get(route('google_calendar.callback', ['code' => 'a-code', 'state' => 'a-nonce']));
+
+    expect($connection->refresh()->refresh_token)->toBe('the-first-refresh-token')
+        ->and($connection->access_token)->toBe('a-new-access-token');
+});
