@@ -24,8 +24,6 @@ return [
         'nav_label' => 'Instellingen',
         'callout_connected_title' => 'Verbonden',
         'callout_connected_description' => 'Verbonden met :cloud_url',
-        'callout_not_configured_title' => 'Niet geconfigureerd',
-        'callout_not_configured_description' => 'De omgevingsvariabelen JIRA_CLIENT_ID en JIRA_CLIENT_SECRET zijn niet ingesteld.',
         'callout_disconnected_title' => 'Niet verbonden',
         'callout_disconnected_description' => 'Klik op "Verbinden met Jira" om verbinding te maken.',
         'action_connect' => 'Verbinden met Jira',

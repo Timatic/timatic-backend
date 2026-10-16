@@ -24,8 +24,6 @@ return [
         'nav_label' => 'Settings',
         'callout_connected_title' => 'Connected',
         'callout_connected_description' => 'Connected to :cloud_url',
-        'callout_not_configured_title' => 'Not configured',
-        'callout_not_configured_description' => 'The environment variables JIRA_CLIENT_ID and JIRA_CLIENT_SECRET are not set.',
         'callout_disconnected_title' => 'Not connected',
         'callout_disconnected_description' => 'Click "Connect to Jira" to establish a connection.',
         'action_connect' => 'Connect to Jira',

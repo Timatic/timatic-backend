@@ -105,14 +105,6 @@ class SettingsPage extends Page
 
     public function form(Schema $form): Schema
     {
-        if (! $this->isConfigured()) {
-            return $form->schema([
-                Callout::make('NMBRS credentials zijn niet geconfigureerd.')
-                    ->danger()
-                    ->description('Voeg NMBRS_CLIENT_ID en NMBRS_CLIENT_SECRET toe aan je .env bestand.'),
-            ])->statePath('data');
-        }
-
         if (! $this->isConnected()) {
             return $form->schema([
                 Callout::make('Niet verbonden met NMBRS.')
@@ -194,12 +186,12 @@ class SettingsPage extends Page
                     app(OAuthService::class)->disconnect($this->getIntegration());
                     $this->redirect(request()->url());
                 })
-                ->visible($this->isConfigured() && $this->isConnected()),
+                ->visible($this->isConnected()),
 
             Action::make('connect')
                 ->label('Verbinden met NMBRS')
                 ->url(route('nmbrs.oauth.redirect', $this->getRecord()))
-                ->visible($this->isConfigured() && ! $this->isConnected()),
+                ->visible(! $this->isConnected()),
 
             Action::make('save')
                 ->label('Opslaan')
@@ -329,16 +321,11 @@ class SettingsPage extends Page
         return $this->hourCodes;
     }
 
-    private function isConfigured(): bool
-    {
-        return filled(config('nmbrs.client_id')) && filled(config('nmbrs.client_secret'));
-    }
-
     private function isConnected(): bool
     {
         $config = $this->getIntegration()->config ?? [];
 
-        return $this->isConfigured() && filled($config['access_token'] ?? null) && filled($config['company_id'] ?? null);
+        return filled($config['access_token'] ?? null) && filled($config['company_id'] ?? null);
     }
 
     private function getIntegration(): Integration

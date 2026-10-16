@@ -82,14 +82,6 @@ class SettingsPage extends Page
     {
         $config = $this->getRecord()->config ?? [];
 
-        if (! $this->isConfigured()) {
-            return $form->schema([
-                Callout::make(__('bitbucket::bitbucket.settings.callout_not_configured_title'))
-                    ->danger()
-                    ->description(__('bitbucket::bitbucket.settings.callout_not_configured_description')),
-            ])->statePath('data');
-        }
-
         if (! $this->hasTokens($config)) {
             return $form->schema([
                 Callout::make(__('bitbucket::bitbucket.settings.callout_disconnected_title'))
@@ -254,7 +246,7 @@ class SettingsPage extends Page
             Action::make('connect')
                 ->label(__('bitbucket::bitbucket.settings.action_connect'))
                 ->url(route('bitbucket.oauth.redirect', $this->getRecord()))
-                ->visible($this->isConfigured() && ! $this->hasTokens($config)),
+                ->visible(! $this->hasTokens($config)),
 
             Action::make('save')
                 ->label(__('bitbucket::bitbucket.common.action_save'))
@@ -266,15 +258,10 @@ class SettingsPage extends Page
         ];
     }
 
-    private function isConfigured(): bool
-    {
-        return filled(config('bitbucket.client_id')) && filled(config('bitbucket.client_secret'));
-    }
-
     /** @param array<string, mixed> $config */
     private function hasTokens(array $config): bool
     {
-        return $this->isConfigured() && filled($config['access_token'] ?? null);
+        return filled($config['access_token'] ?? null);
     }
 
     /** @param array<string, mixed> $config */

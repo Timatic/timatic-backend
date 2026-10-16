@@ -23,7 +23,7 @@ class ServiceProvider extends BaseServiceProvider
                 'nmbrs.settings' => SettingsPage::class,
                 'nmbrs.employee-mapping' => EmployeeMappingPage::class,
                 'nmbrs.overtime-sync' => OvertimeSyncPage::class,
-            ]);
+            ])->requiresConfig(['nmbrs.client_id', 'nmbrs.client_secret']);
         });
     }
 

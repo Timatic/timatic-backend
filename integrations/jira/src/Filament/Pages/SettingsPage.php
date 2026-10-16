@@ -75,14 +75,6 @@ class SettingsPage extends Page
     {
         $config = $this->getRecord()->config ?? [];
 
-        if (! $this->isConfigured()) {
-            return $form->schema([
-                Callout::make(__('jira::jira.settings.callout_not_configured_title'))
-                    ->danger()
-                    ->description(__('jira::jira.settings.callout_not_configured_description')),
-            ])->statePath('data');
-        }
-
         if ($this->isPendingSiteSelection($config)) {
             $rawResources = $config['pending_resources'] ?? [];
             $pendingResources = is_array($rawResources) ? $rawResources : [];
@@ -147,7 +139,7 @@ class SettingsPage extends Page
             Action::make('connect')
                 ->label(__('jira::jira.settings.action_connect'))
                 ->url(route('jira.oauth.redirect', $this->getRecord()))
-                ->visible($this->isConfigured() && ! $this->isConnected($config) && ! $isPending),
+                ->visible(! $this->isConnected($config) && ! $isPending),
 
             Action::make('confirmSite')
                 ->label(__('jira::jira.settings.action_confirm_site'))
@@ -178,15 +170,10 @@ class SettingsPage extends Page
         ];
     }
 
-    private function isConfigured(): bool
-    {
-        return filled(config('jira.client_id')) && filled(config('jira.client_secret'));
-    }
-
     /** @param array<string, mixed> $config */
     private function isConnected(array $config): bool
     {
-        return $this->isConfigured() && filled($config['access_token'] ?? null) && filled($config['cloud_id'] ?? null);
+        return filled($config['access_token'] ?? null) && filled($config['cloud_id'] ?? null);
     }
 
     /** @param array<string, mixed> $config */

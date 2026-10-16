@@ -28,8 +28,6 @@ return [
         'callout_webhook_missing_description' => 'Workspace linked, but the webhook has not been installed yet. Click "Install webhook".',
         'callout_choose_workspace_title' => 'Choose workspace',
         'callout_choose_workspace_description' => 'OAuth connected. Choose a workspace via the "Choose workspace" button.',
-        'callout_not_configured_title' => 'Not configured',
-        'callout_not_configured_description' => 'The environment variables BITBUCKET_CLIENT_ID and BITBUCKET_CLIENT_SECRET are not set.',
         'callout_disconnected_title' => 'Not connected',
         'callout_disconnected_description' => 'Click "Connect to Bitbucket" to establish a connection.',
         'action_delete_webhook' => 'Delete webhook',
