@@ -16,6 +16,13 @@ beforeEach(function () {
     $this->codeVerifier = str_repeat('a', 64);
     $this->codeChallenge = rtrim(strtr(base64_encode(hash('sha256', $this->codeVerifier, true)), '+/', '-_'), '=');
     $this->extension = ApiClient::findOrFail('chrome-extension');
+
+    $this->nativeApp = ApiClient::query()->create([
+        'id' => 'native-app',
+        'label' => 'Native app',
+        'redirect_uris' => ['http://127.0.0.1/callback'],
+        'token_lifetime_days' => 90,
+    ]);
 });
 
 it('exchanges a code for a user bound token', function () {
@@ -151,42 +158,42 @@ it('refuses an expired code', function () {
     ])->assertStatus(410);
 });
 
-it('issues a token to the claude code plugin on the loopback port it listened on', function () {
+it('issues a token to a native app on the loopback port it listened on', function () {
     $user = User::factory()->create();
     $redirectUri = 'http://127.0.0.1:53124/callback';
 
     $code = app(AuthorizationCodeService::class)->issueCode(
-        ApiClient::findOrFail('claude-code'),
+        $this->nativeApp,
         $user,
         $this->codeChallenge,
         $redirectUri,
     );
 
     $this->postJson(route('oauth.token.store'), [
-        'client_id' => 'claude-code',
+        'client_id' => 'native-app',
         'code' => $code,
         'code_verifier' => $this->codeVerifier,
         'redirect_uri' => $redirectUri,
-        'device_name' => 'Claude Code op Mac',
+        'device_name' => 'Laptop',
     ])->assertCreated();
 
-    expect(ApiToken::query()->sole()->client_id)->toEqual('claude-code');
+    expect(ApiToken::query()->sole()->client_id)->toEqual('native-app');
 });
 
 it('refuses to claim a loopback code on another port than it was issued for', function () {
     $code = app(AuthorizationCodeService::class)->issueCode(
-        ApiClient::findOrFail('claude-code'),
+        $this->nativeApp,
         User::factory()->create(),
         $this->codeChallenge,
         'http://127.0.0.1:53124/callback',
     );
 
     $this->postJson(route('oauth.token.store'), [
-        'client_id' => 'claude-code',
+        'client_id' => 'native-app',
         'code' => $code,
         'code_verifier' => $this->codeVerifier,
         'redirect_uri' => 'http://127.0.0.1:60000/callback',
-        'device_name' => 'Claude Code op Mac',
+        'device_name' => 'Laptop',
     ])->assertStatus(400);
 
     expect(ApiToken::query()->count())->toEqual(0);
