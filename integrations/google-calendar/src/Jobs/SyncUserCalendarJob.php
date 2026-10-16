@@ -1,18 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Timatic\GoogleCalendar\Jobs;
 
 use App\DataTransferObjects\Ticket;
 use App\Integrations\TicketService;
 use App\Models\Event;
-use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Timatic\GoogleCalendar\Connector;
-use Timatic\GoogleCalendar\DataTransferObjects\CalendarEvent;
+use Timatic\GoogleCalendar\Models\GoogleCalendarConnection;
 use Timatic\GoogleCalendar\OAuthService;
 use Timatic\GoogleCalendar\Requests\ListEventsRequest;
 use Timatic\GoogleCalendar\ServiceProvider;
@@ -21,33 +22,28 @@ class SyncUserCalendarJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(private readonly User $user) {}
+    /** A user may disconnect between the job being queued and it running. */
+    public bool $deleteWhenMissingModels = true;
+
+    public function __construct(private readonly GoogleCalendarConnection $calendarConnection) {}
 
     public function handle(OAuthService $oauthService, TicketService $ticketService): void
     {
-        $user = $oauthService->refreshIfExpired($this->user);
+        $connection = $oauthService->refreshIfExpired($this->calendarConnection);
 
-        if (! $user->isOAuthConnected()) {
+        if ($connection === null) {
             return;
         }
 
-        $response = (new Connector((string) $user->oauth_access_token))
-            ->send(new ListEventsRequest);
+        $response = new Connector((string) $connection->access_token)->send(new ListEventsRequest);
 
         if ($response->failed()) {
             return;
         }
 
-        $data = $response->json();
         $lookbackStartsAt = now()->subMinutes(ListEventsRequest::LOOKBACK_MINUTES);
 
-        foreach ($data['items'] ?? [] as $item) {
-            if (($item['status'] ?? '') === 'cancelled' || ! isset($item['start']['dateTime'])) {
-                continue;
-            }
-
-            $calendarEvent = CalendarEvent::fromApiResponse($item);
-
+        foreach ($response->dto() as $calendarEvent) {
             if ($calendarEvent->isPrivate()) {
                 continue;
             }
@@ -62,7 +58,7 @@ class SyncUserCalendarJob implements ShouldQueue
                 'source_id' => ServiceProvider::SOURCE_ID,
                 'external_id' => $calendarEvent->googleEventId,
             ], [
-                'user_id' => $user->id,
+                'user_id' => $connection->user_id,
                 'event_type_id' => ServiceProvider::EVENT_TYPE_CALENDAR_EVENT_STARTED,
                 'title' => mb_substr($calendarEvent->title, 0, 255),
                 'ticket_id' => $ticket?->id,
@@ -74,7 +70,6 @@ class SyncUserCalendarJob implements ShouldQueue
                 'ended_at' => $calendarEvent->endedAt,
             ]);
         }
-
     }
 
     private function findTicket(TicketService $ticketService, string ...$texts): ?Ticket

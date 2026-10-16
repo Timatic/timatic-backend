@@ -27,9 +27,6 @@ use Spatie\Permission\Traits\HasRoles;
  * @property ?string $family_name
  * @property ?string $full_name
  * @property ?string $bitbucket_account_id
- * @property ?string $oauth_access_token
- * @property ?string $oauth_refresh_token
- * @property int $oauth_token_expires_at
  * @property ?Carbon $created_at
  * @property ?Carbon $updated_at
  * @property ?Carbon $deleted_at
@@ -54,24 +51,7 @@ class User extends \Illuminate\Foundation\Auth\User implements FilamentUser, Has
         'family_name',
         'team_id',
         'bitbucket_account_id',
-        'oauth_access_token',
-        'oauth_refresh_token',
-        'oauth_token_expires_at',
     ];
-
-    protected function casts(): array
-    {
-        return [
-            'oauth_access_token' => 'encrypted',
-            'oauth_refresh_token' => 'encrypted',
-            'oauth_token_expires_at' => 'integer',
-        ];
-    }
-
-    public function isOAuthConnected(): bool
-    {
-        return filled($this->oauth_access_token) && filled($this->oauth_refresh_token);
-    }
 
     /** @var array<int, DerivedPermission> */
     public array $derivedPermissions = [];
