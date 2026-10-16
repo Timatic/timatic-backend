@@ -6154,6 +6154,18 @@
                             },
                             "url": {
                                 "type": "string"
+                            },
+                            "customerId": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "budgetId": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
                             }
                         },
                         "required": [
@@ -6161,7 +6173,9 @@
                             "title",
                             "createdAt",
                             "closedAt",
-                            "url"
+                            "url",
+                            "customerId",
+                            "budgetId"
                         ]
                     },
                     "relationships": {
