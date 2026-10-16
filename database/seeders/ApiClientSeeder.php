@@ -12,7 +12,8 @@ class ApiClientSeeder extends Seeder
 {
     /**
      * The first party clients every deployment runs. Their redirect uris come from the environment,
-     * so re-run this after changing APP_FRONTEND_URL or EXTENSION_IDS.
+     * so re-run this after changing APP_FRONTEND_URL or EXTENSION_IDS. A migration that adds a
+     * client runs this as well.
      */
     public function run(): void
     {
