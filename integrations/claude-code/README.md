@@ -1,4 +1,4 @@
-Receives the events of the [Timatic plugin for Claude Code](https://github.com/tomasvanrijsse/timatic-claude):
+Receives the events of the [Timatic plugin for Claude Code](https://github.com/Timatic/timatic-claude):
 a prompt sent and a question of Claude's answered.
 
 Nothing to configure. Each user installs the plugin and logs in on their own machine through the
