@@ -39,7 +39,9 @@ class SuggestionIntegration implements SuggestionIntegrationInterface
 
     public function isActive(): bool
     {
-        return filled(config('google_calendar.client_id')) && filled(config('google_calendar.client_secret'));
+        return filled(config('google_calendar.client_id'))
+            && filled(config('google_calendar.client_secret'))
+            && filled(config('google_calendar.redirect'));
     }
 
     public function isActiveFor(User $user): bool
@@ -47,9 +49,17 @@ class SuggestionIntegration implements SuggestionIntegrationInterface
         return $this->isActive() && GoogleCalendarConnection::query()->where('user_id', $user->id)->exists();
     }
 
-    public function connectUrl(User $user): string
+    /**
+     * The link is handed out with the list, so it lasts long enough for a user to read the
+     * instructions first. Without credentials Google would only show an error, so none is offered.
+     */
+    public function connectUrl(User $user): ?string
     {
-        return URL::temporarySignedRoute('google_calendar.connect', now()->addMinutes(5), ['user' => $user->id]);
+        if (! $this->isActive()) {
+            return null;
+        }
+
+        return URL::temporarySignedRoute('google_calendar.connect', now()->addHour(), ['user' => $user->id]);
     }
 
     public function connectLabel(): string
