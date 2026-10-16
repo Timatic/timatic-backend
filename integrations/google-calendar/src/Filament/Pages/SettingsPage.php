@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Timatic\GoogleCalendar\Filament\Pages;
 
 use App\Filament\Resources\Integrations\IntegrationResource;
+use App\Integrations\IntegrationTypeRegistry;
 use App\Models\Integration;
 use Filament\Actions\Action;
 use Filament\Actions\Action as TableAction;
@@ -116,9 +117,7 @@ class SettingsPage extends Page implements HasTable
 
     private function isConfigured(): bool
     {
-        return filled(config('google_calendar.client_id'))
-            && filled(config('google_calendar.client_secret'))
-            && filled(config('google_calendar.redirect'));
+        return app(IntegrationTypeRegistry::class)->missingConfig('google_calendar') === [];
     }
 
     private function getIntegration(): Integration

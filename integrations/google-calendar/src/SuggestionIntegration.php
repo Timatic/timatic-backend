@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Timatic\GoogleCalendar;
 
 use App\Integrations\Contracts\SuggestionIntegrationInterface;
+use App\Integrations\IntegrationTypeRegistry;
 use App\Models\Integration;
 use App\Models\User;
 use Illuminate\Support\Facades\URL;
@@ -39,9 +40,7 @@ class SuggestionIntegration implements SuggestionIntegrationInterface
 
     public function isActive(): bool
     {
-        return filled(config('google_calendar.client_id'))
-            && filled(config('google_calendar.client_secret'))
-            && filled(config('google_calendar.redirect'));
+        return app(IntegrationTypeRegistry::class)->missingConfig('google_calendar') === [];
     }
 
     public function isActiveFor(User $user): bool
