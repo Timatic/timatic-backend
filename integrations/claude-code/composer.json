@@ -1,0 +1,24 @@
+{
+    "name": "timatic/claude-code-integration",
+    "description": "Claude Code integration for Timatic",
+    "type": "library",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Timatic\\ClaudeCode\\": "src/",
+            "Timatic\\ClaudeCode\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Timatic\\ClaudeCode\\ServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

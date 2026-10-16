@@ -14,7 +14,6 @@ class SourceSeeder extends Seeder
      */
     private array $sources = [
         'browser' => 'Browser',
-        'claude_code' => 'Claude Code',
     ];
 
     public function run(): void
