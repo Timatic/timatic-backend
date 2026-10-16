@@ -2536,6 +2536,41 @@
                 }
             }
         },
+        "/suggestion-integrations": {
+            "get": {
+                "operationId": "suggestion-integrations.index",
+                "summary": "The integrations that turn a user's work into suggestions, with whether they are active for\nthe current user. Company managed integrations only show up once an admin switched them on",
+                "tags": [
+                    "SuggestionIntegration"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `SuggestionIntegration`",
+                        "content": {
+                            "application/vnd.api+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/SuggestionIntegration"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/teams": {
             "get": {
                 "operationId": "teams.index",
@@ -5884,11 +5919,15 @@
                             },
                             "title": {
                                 "type": "string"
+                            },
+                            "iconUrl": {
+                                "type": "string"
                             }
                         },
                         "required": [
                             "key",
-                            "title"
+                            "title",
+                            "iconUrl"
                         ]
                     }
                 },
@@ -5916,6 +5955,63 @@
                     "id"
                 ],
                 "title": "SourceIdentifier"
+            },
+            "SuggestionIntegration": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "attributes": {
+                        "type": "object",
+                        "properties": {
+                            "label": {
+                                "type": "string"
+                            },
+                            "iconUrl": {
+                                "type": "string"
+                            },
+                            "instructions": {
+                                "type": "string"
+                            },
+                            "isCompanyManaged": {
+                                "type": "boolean"
+                            },
+                            "isActive": {
+                                "type": "boolean"
+                            },
+                            "connectUrl": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "connectLabel": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "label",
+                            "iconUrl",
+                            "instructions",
+                            "isCompanyManaged",
+                            "isActive",
+                            "connectUrl",
+                            "connectLabel"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "type"
+                ],
+                "title": "SuggestionIntegration"
             },
             "Team": {
                 "type": "object",
