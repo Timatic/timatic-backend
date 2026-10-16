@@ -25,7 +25,7 @@ it('offers every user to install the Claude Code plugin', function () {
         ->and($claudeCode['attributes']['iconUrl'])->toEndWith('/icons/claude_code.svg')
         ->and($claudeCode['attributes']['isCompanyManaged'])->toBeFalse()
         ->and($claudeCode['attributes']['isActive'])->toBeFalse()
-        ->and($claudeCode['attributes']['connectUrl'])->toEqual('https://github.com/tomasvanrijsse/timatic-claude')
+        ->and($claudeCode['attributes']['connectUrl'])->toEqual('https://github.com/Timatic/timatic-claude')
         ->and($claudeCode['attributes']['connectLabel'])->toEqual('Install');
 });
 
