@@ -15,6 +15,13 @@ beforeEach(function () {
     ApiClient::findOrFail('web')
         ->update(['redirect_uris' => ['https://app.timatic.test/auth/callback']]);
 
+    ApiClient::query()->create([
+        'id' => 'native-app',
+        'label' => 'Native app',
+        'redirect_uris' => ['http://127.0.0.1/callback'],
+        'token_lifetime_days' => 90,
+    ]);
+
     $this->redirectUri = 'https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/';
     $this->codeVerifier = str_repeat('a', 64);
     $this->codeChallenge = rtrim(strtr(base64_encode(hash('sha256', $this->codeVerifier, true)), '+/', '-_'), '=');
@@ -174,7 +181,7 @@ it('lets a loopback redirect uri use any port', function () {
     $this->actingAs(User::factory()->create());
 
     $approveUrl = URL::temporarySignedRoute('oauth.authorize.approve', now()->addMinutes(5), [
-        'client_id' => 'claude-code',
+        'client_id' => 'native-app',
         'redirect_uri' => 'http://127.0.0.1:53124/callback',
         'state' => 'state-123',
         'code_challenge' => $this->codeChallenge,
@@ -189,7 +196,7 @@ it('refuses a loopback redirect uri that differs in more than its port', functio
     $this->actingAs(User::factory()->create());
 
     $this->get(route('oauth.authorize.show', [
-        'client_id' => 'claude-code',
+        'client_id' => 'native-app',
         'redirect_uri' => $redirectUri,
         'state' => 'state-123',
         'code_challenge' => $this->codeChallenge,

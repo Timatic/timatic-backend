@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7f4edd503ccc3309e1351e80f952b416",
+    "content-hash": "bedd602c432474d6b5a094b1648e325a",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -11149,6 +11149,36 @@
                 }
             },
             "description": "Bitbucket repository integration for Timatic",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "timatic/claude-code-integration",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "integrations/claude-code",
+                "reference": "17aef224ad2a6d6282dd8018ca500dd43caf0cfe"
+            },
+            "require": {
+                "php": "^8.4"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Timatic\\ClaudeCode\\ServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Timatic\\ClaudeCode\\": "src/",
+                    "Timatic\\ClaudeCode\\Database\\Seeders\\": "database/seeders/"
+                }
+            },
+            "description": "Claude Code integration for Timatic",
             "transport-options": {
                 "relative": true
             }
