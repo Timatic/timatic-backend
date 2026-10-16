@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\EventRequest;
 use App\Http\Resources\Event as EventResource;
+use App\Integrations\TicketService;
+use App\Models\Budget;
 use App\Models\Customer;
 use App\Models\Event;
 use App\Models\User;
@@ -27,7 +29,7 @@ class EventController extends Controller implements HasMiddleware
         ];
     }
 
-    public function store(EventRequest $request): EventResource
+    public function store(EventRequest $request, TicketService $ticketService): EventResource
     {
         $attributes = $request->validatedAttributes();
 
@@ -47,6 +49,26 @@ class EventController extends Controller implements HasMiddleware
             /** @var User $user */
             $user = User::query()->where('external_id', $externalUserId)->sole();
             $attributes['user_id'] = $user->id;
+        }
+
+        $ticketNumber = Arr::get($attributes, 'ticket_number');
+
+        if (is_string($ticketNumber) && $ticketNumber !== '') {
+            $mapping = $ticketService->findMappingByTicketKey($ticketNumber);
+
+            // A ticket belongs to one customer, so its mapping wins; a sent budget only survives when it belongs to that customer.
+            if ($mapping !== null) {
+                $attributes['customer_id'] = $mapping->customer_id;
+
+                if ($mapping->budget_id) {
+                    $attributes['budget_id'] = $mapping->budget_id;
+                } else {
+                    $attributes['budget_id'] = Budget::query()
+                        ->whereKey($attributes['budget_id'] ?? null)
+                        ->where('customer_id', $mapping->customer_id)
+                        ->value('id');
+                }
+            }
         }
 
         $event = Event::query()->create($attributes);

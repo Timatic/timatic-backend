@@ -3,6 +3,7 @@
 namespace App\Integrations;
 
 use App\DataTransferObjects\Ticket;
+use App\DataTransferObjects\TicketMapping;
 use App\Integrations\Contracts\TicketProviderInterface;
 use App\Models\Customer;
 use App\Models\Integration;
@@ -22,7 +23,11 @@ class TicketService
 
     public function fetchTicketDetails(string $key): ?Ticket
     {
-        foreach ($this->resolveProviders() as $provider) {
+        // A key outside every mapped project can still exist at a provider, so then ask them all.
+        $providers = $this->providersMatching($key)
+            ->whenEmpty(fn () => $this->resolveProviders());
+
+        foreach ($providers as $provider) {
             $details = $provider->fetchTicketDetails($key);
 
             if ($details !== null) {
@@ -35,7 +40,11 @@ class TicketService
 
     public function fetchTicketByKey(string $key): ?Ticket
     {
-        foreach ($this->resolveProviders() as $provider) {
+        // A key outside every mapped project can still exist at a provider, so then ask them all.
+        $providers = $this->providersMatching($key)
+            ->whenEmpty(fn () => $this->resolveProviders());
+
+        foreach ($providers as $provider) {
             $ticket = $provider->fetchTicketByKey($key);
 
             if ($ticket !== null) {
@@ -46,10 +55,30 @@ class TicketService
         return null;
     }
 
+    public function findMappingByTicketKey(string $key): ?TicketMapping
+    {
+        foreach ($this->providersMatching($key) as $provider) {
+            $mapping = $provider->findMappingByTicketKey($key);
+
+            if ($mapping !== null) {
+                return $mapping;
+            }
+        }
+
+        return null;
+    }
+
     /** @return array<string, string> */
     public function ticketKeyPatterns(): array
     {
         return array_map(fn ($class) => $class::ticketKeyPattern(), $this->registry->all());
+    }
+
+    /** @return Collection<int, TicketProviderInterface> */
+    private function providersMatching(string $key): Collection
+    {
+        return $this->resolveProviders()
+            ->filter(fn (TicketProviderInterface $provider) => preg_match('/^(?:'.$provider::ticketKeyPattern().')$/i', $key) === 1);
     }
 
     /** @return Collection<int, TicketProviderInterface> */

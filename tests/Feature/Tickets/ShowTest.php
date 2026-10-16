@@ -29,6 +29,8 @@ it('returns ticket details with actions', function () {
         created_at: CarbonImmutable::parse('2024-01-15T10:30:00Z'),
         closed_at: null,
         url: 'https://example.atlassian.net/browse/EB-389',
+        customer_id: 12,
+        budget_id: 34,
         actions: collect([$action]),
     );
 
@@ -42,6 +44,8 @@ it('returns ticket details with actions', function () {
         ->and($response->json('data.type'))->toBe('tickets')
         ->and($response->json('data.attributes.title'))->toBe('Login page broken')
         ->and($response->json('data.attributes.createdAt'))->toBe('2024-01-15T10:30:00.000000Z')
+        ->and($response->json('data.attributes.customerId'))->toBe(12)
+        ->and($response->json('data.attributes.budgetId'))->toBe(34)
         ->and($response->json('data.relationships.actions.data.0.id'))->toBe('comment-42');
 
     $actionIncluded = collect($response->json('included'))->firstWhere('type', 'actions');
