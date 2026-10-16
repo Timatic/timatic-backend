@@ -21,6 +21,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property ?int $user_id
  * @property ?TimaticUser $user
  * @property ?string $client_id
+ * @property ?ApiClient $client
  * @property ?string $external_id
  * @property ?string $title
  * @property ?string $description
@@ -55,13 +56,32 @@ class ApiToken extends User implements Authenticatable
         return $this->belongsTo(TimaticUser::class);
     }
 
+    /**
+     * @return BelongsTo<ApiClient, $this>
+     */
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(ApiClient::class);
+    }
+
+    /**
+     * Records that the token was used, at most once a minute. A token of a client with a sliding
+     * expiration is pushed forward as well, so it only expires once it lies unused for its lifetime.
+     */
     public function touchLastUsed(): void
     {
         if ($this->last_used_at?->isAfter(Carbon::now()->subMinute())) {
             return;
         }
 
-        $this->forceFill(['last_used_at' => Carbon::now()])->saveQuietly();
+        $attributes = ['last_used_at' => Carbon::now()];
+        $client = $this->client;
+
+        if ($this->expires_at !== null && $client !== null && $client->sliding_expiration) {
+            $attributes['expires_at'] = Carbon::now()->addDays($client->token_lifetime_days);
+        }
+
+        $this->forceFill($attributes)->saveQuietly();
     }
 
     /**

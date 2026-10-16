@@ -17,6 +17,7 @@ use Illuminate\Support\Collection;
  * @property string $label
  * @property list<string> $redirect_uris
  * @property int $token_lifetime_days
+ * @property bool $sliding_expiration A token of this client expires that many days after it was last used, not after it was issued
  * @property bool $auto_approve
  * @property ?CarbonImmutable $created_at
  * @property ?CarbonImmutable $updated_at
@@ -77,6 +78,7 @@ class ApiClient extends Model
         return [
             'redirect_uris' => 'array',
             'auto_approve' => 'boolean',
+            'sliding_expiration' => 'boolean',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',
         ];

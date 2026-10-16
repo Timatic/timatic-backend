@@ -43,6 +43,8 @@ class ApiClientSeeder extends Seeder
             // The plugin listens on whichever loopback port is free; see ApiClient::allowsRedirectUri.
             'redirect_uris' => ['http://127.0.0.1/callback'],
             'token_lifetime_days' => 90,
+            // Its hooks run unattended, so a token that expires mid use would silently stop tracking.
+            'sliding_expiration' => true,
             'auto_approve' => false,
         ]);
     }
