@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
-use App\DataTransferObjects\SuggestionIntegrationStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use TiMacDonald\JsonApi\JsonApiResource;
 
 /**
- * @mixin SuggestionIntegrationStatus
+ * @mixin \App\DataTransferObjects\SuggestionIntegration
  */
 class SuggestionIntegration extends JsonApiResource
 {

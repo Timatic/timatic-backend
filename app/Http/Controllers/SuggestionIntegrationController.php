@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\DataTransferObjects\SuggestionIntegrationStatus;
+use App\DataTransferObjects\SuggestionIntegration;
 use App\Http\Resources\SuggestionIntegration as SuggestionIntegrationResource;
 use App\Integrations\Contracts\SuggestionIntegrationInterface;
 use App\Integrations\SuggestionIntegrationRegistry;
@@ -21,8 +21,8 @@ class SuggestionIntegrationController extends Controller
      */
     public function __invoke(SuggestionIntegrationRegistry $registry, #[CurrentUser] User $user): JsonApiResourceCollection
     {
-        $statuses = $registry->available()
-            ->map(fn (SuggestionIntegrationInterface $integration, string $key): SuggestionIntegrationStatus => new SuggestionIntegrationStatus(
+        $integrations = $registry->available()
+            ->map(fn (SuggestionIntegrationInterface $integration, string $key): SuggestionIntegration => new SuggestionIntegration(
                 key: $key,
                 label: $integration->label(),
                 iconUrl: Source::iconUrlFor($integration->sourceId()),
@@ -34,6 +34,6 @@ class SuggestionIntegrationController extends Controller
             ))
             ->values();
 
-        return SuggestionIntegrationResource::collection($statuses);
+        return SuggestionIntegrationResource::collection($integrations);
     }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\DataTransferObjects;
 
-readonly class SuggestionIntegrationStatus
+readonly class SuggestionIntegration
 {
     public function __construct(
         public string $key,
