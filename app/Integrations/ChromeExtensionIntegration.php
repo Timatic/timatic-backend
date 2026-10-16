@@ -37,11 +37,6 @@ class ChromeExtensionIntegration implements SuggestionIntegrationInterface
         return true;
     }
 
-    public function isActive(): bool
-    {
-        return true;
-    }
-
     public function isActiveFor(User $user): bool
     {
         return ApiToken::query()

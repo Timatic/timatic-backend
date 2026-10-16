@@ -10,8 +10,6 @@ uses(LoginUser::class);
 it('lists a company managed integration as active once an admin set it up', function () {
     $this->loginUser();
 
-    config(['jira.client_id' => 'a-client-id', 'jira.client_secret' => 'a-client-secret']);
-
     Integration::factory()->create([
         'type' => 'jira',
         'config' => ['access_token' => 'an-access-token', 'cloud_id' => 'a-cloud-id'],
@@ -30,8 +28,6 @@ it('lists a company managed integration as active once an admin set it up', func
 
 it('lists a company managed integration as inactive until an admin finished its setup', function () {
     $this->loginUser();
-
-    config(['bitbucket.client_id' => 'a-client-id', 'bitbucket.client_secret' => 'a-client-secret']);
 
     Integration::factory()->create([
         'type' => 'bitbucket',
@@ -54,12 +50,6 @@ it('hides a company managed integration that is not enabled', function () {
 it('offers a signed link to connect google calendar', function () {
     $this->loginUser();
 
-    config([
-        'google_calendar.client_id' => 'a-client-id',
-        'google_calendar.client_secret' => 'a-client-secret',
-        'google_calendar.redirect' => 'https://api.timatic.test/google-calendar/callback',
-    ]);
-
     Integration::factory()->create(['type' => 'google_calendar']);
 
     $response = $this->getJson(route('suggestion-integrations.index'))->assertOk();
@@ -71,26 +61,8 @@ it('offers a signed link to connect google calendar', function () {
     expect($calendar['attributes']['connectUrl'])->toContain('signature=');
 });
 
-it('offers no link to connect google calendar before its credentials are configured', function () {
-    $this->loginUser();
-
-    config(['google_calendar.client_id' => null]);
-
-    Integration::factory()->create(['type' => 'google_calendar']);
-
-    $response = $this->getJson(route('suggestion-integrations.index'))->assertOk();
-
-    expect(collect($response->json('data'))->firstWhere('id', 'google_calendar')['attributes']['connectUrl'])->toBeNull();
-});
-
 it('shows google calendar as active once the user connected it', function () {
     $user = $this->loginUser();
-
-    config([
-        'google_calendar.client_id' => 'a-client-id',
-        'google_calendar.client_secret' => 'a-client-secret',
-        'google_calendar.redirect' => 'https://api.timatic.test/google-calendar/callback',
-    ]);
 
     Integration::factory()->create(['type' => 'google_calendar']);
     GoogleCalendarConnection::factory()->create(['user_id' => $user->id]);

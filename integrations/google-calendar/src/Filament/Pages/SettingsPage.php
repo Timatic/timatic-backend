@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Timatic\GoogleCalendar\Filament\Pages;
 
 use App\Filament\Resources\Integrations\IntegrationResource;
-use App\Integrations\IntegrationTypeRegistry;
 use App\Models\Integration;
 use Filament\Actions\Action;
 use Filament\Actions\Action as TableAction;
@@ -52,14 +51,6 @@ class SettingsPage extends Page implements HasTable
 
     public function form(Schema $form): Schema
     {
-        if (! $this->isConfigured()) {
-            return $form->schema([
-                Callout::make(__('google_calendar::google_calendar.settings.callout_not_configured_title'))
-                    ->danger()
-                    ->description(__('google_calendar::google_calendar.settings.callout_not_configured_description')),
-            ])->statePath('data');
-        }
-
         return $form->schema([
             TextInput::make('title')
                 ->label(__('google_calendar::google_calendar.settings.field_title'))
@@ -113,11 +104,6 @@ class SettingsPage extends Page implements HasTable
                     Notification::make()->title(__('google_calendar::google_calendar.settings.notification_title_updated'))->success()->send();
                 }),
         ];
-    }
-
-    private function isConfigured(): bool
-    {
-        return app(IntegrationTypeRegistry::class)->missingConfig('google_calendar') === [];
     }
 
     private function getIntegration(): Integration

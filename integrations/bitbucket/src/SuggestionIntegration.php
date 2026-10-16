@@ -35,22 +35,13 @@ class SuggestionIntegration implements SuggestionIntegrationInterface
         return Integration::query()->where('type', 'bitbucket')->exists();
     }
 
-    public function isActive(): bool
+    public function isActiveFor(User $user): bool
     {
-        if (blank(config('bitbucket.client_id')) || blank(config('bitbucket.client_secret'))) {
-            return false;
-        }
-
         return Integration::query()->where('type', 'bitbucket')->get()->contains(
             fn (Integration $integration): bool => filled($integration->config['access_token'] ?? null)
                 && filled($integration->config['workspace'] ?? null)
                 && filled($integration->config['webhook_uuid'] ?? null),
         );
-    }
-
-    public function isActiveFor(User $user): bool
-    {
-        return $this->isActive();
     }
 
     public function connectUrl(User $user): ?string

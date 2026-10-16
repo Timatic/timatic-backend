@@ -7,8 +7,6 @@ return [
     ],
 
     'settings' => [
-        'callout_not_configured_title' => 'Google Calendar credentials are not configured.',
-        'callout_not_configured_description' => 'Add GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and GOOGLE_CALENDAR_REDIRECT_URI to your .env file.',
         'field_title' => 'Integration title',
         'callout_connect_title' => 'Users connect their Google Calendar themselves.',
         'callout_connect_description' => 'A user grants calendar access manually, so only those who want their calendar read are asked. The table below shows all currently connected users.',
