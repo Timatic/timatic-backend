@@ -133,3 +133,15 @@ it('does not store the description of a calendar event', function () {
 
     expect(Event::sole()->description)->toBeNull();
 });
+
+it('stops quietly when the user disconnected before an expired token could be refreshed', function () {
+    $connection = GoogleCalendarConnection::factory()->create(['expires_at' => now()->subMinute()]);
+
+    GoogleCalendarConnection::query()->whereKey($connection->id)->delete();
+
+    MockClient::global();
+
+    new SyncUserCalendarJob($connection)->handle(app(OAuthService::class), app(TicketService::class));
+
+    expect(Event::count())->toBe(0);
+});

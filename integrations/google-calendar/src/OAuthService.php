@@ -74,7 +74,10 @@ class OAuthService
         return $connection;
     }
 
-    public function refreshIfExpired(GoogleCalendarConnection $connection): GoogleCalendarConnection
+    /**
+     * Null means the connection is gone: disconnected while this waited, or refused by Google.
+     */
+    public function refreshIfExpired(GoogleCalendarConnection $connection): ?GoogleCalendarConnection
     {
         if (! $connection->hasExpired()) {
             return $connection;
@@ -82,14 +85,14 @@ class OAuthService
 
         $lock = Cache::lock('google_calendar.token.refresh.'.$connection->user_id, 10);
 
-        return $lock->block(10, function () use ($connection): GoogleCalendarConnection {
-            $connection->refresh();
+        return $lock->block(10, function () use ($connection): ?GoogleCalendarConnection {
+            $current = $connection->fresh();
 
-            if (! $connection->hasExpired()) {
-                return $connection;
+            if ($current === null || ! $current->hasExpired()) {
+                return $current;
             }
 
-            return $this->refreshTokens($connection);
+            return $this->refreshTokens($current);
         });
     }
 
@@ -112,7 +115,7 @@ class OAuthService
      * A refusal means Google no longer honours the grant, which the user can only answer by
      * connecting again, so the connection is dropped rather than kept in a state that cannot work.
      */
-    private function refreshTokens(GoogleCalendarConnection $connection): GoogleCalendarConnection
+    private function refreshTokens(GoogleCalendarConnection $connection): ?GoogleCalendarConnection
     {
         $response = new OAuthConnector()->send(
             new RefreshTokenRequest((string) $connection->refresh_token)
@@ -121,7 +124,7 @@ class OAuthService
         if ($response->status() === 400) {
             $connection->delete();
 
-            return $connection;
+            return null;
         }
 
         if ($response->failed()) {

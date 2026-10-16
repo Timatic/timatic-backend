@@ -20,13 +20,16 @@ class SyncUserCalendarJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    /** A user may disconnect between the job being queued and it running. */
+    public bool $deleteWhenMissingModels = true;
+
     public function __construct(private readonly GoogleCalendarConnection $calendarConnection) {}
 
     public function handle(OAuthService $oauthService, TicketService $ticketService): void
     {
         $connection = $oauthService->refreshIfExpired($this->calendarConnection);
 
-        if (! $connection->exists) {
+        if ($connection === null) {
             return;
         }
 
