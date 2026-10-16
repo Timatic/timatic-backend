@@ -19,14 +19,6 @@ class Source extends Model
     /** @use HasFactory<SourceFactory> */
     use HasFactory;
 
-    public const ID_TOPDESK = 'topdesk';
-
-    public const ID_OUTLOOK_CALENDAR = 'outlook_calendar';
-
-    public const ID_WORD = 'word';
-
-    public const ID_EXCEL = 'excel';
-
     protected $keyType = 'string';
 
     public $incrementing = false;
