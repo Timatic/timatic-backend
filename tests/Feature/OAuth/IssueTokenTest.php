@@ -150,3 +150,44 @@ it('refuses an expired code', function () {
         'device_name' => 'Chrome op Mac',
     ])->assertStatus(410);
 });
+
+it('issues a token to the claude code plugin on the loopback port it listened on', function () {
+    $user = User::factory()->create();
+    $redirectUri = 'http://127.0.0.1:53124/callback';
+
+    $code = app(AuthorizationCodeService::class)->issueCode(
+        ApiClient::findOrFail('claude-code'),
+        $user,
+        $this->codeChallenge,
+        $redirectUri,
+    );
+
+    $this->postJson(route('oauth.token.store'), [
+        'client_id' => 'claude-code',
+        'code' => $code,
+        'code_verifier' => $this->codeVerifier,
+        'redirect_uri' => $redirectUri,
+        'device_name' => 'Claude Code op Mac',
+    ])->assertCreated();
+
+    expect(ApiToken::query()->sole()->client_id)->toEqual('claude-code');
+});
+
+it('refuses to claim a loopback code on another port than it was issued for', function () {
+    $code = app(AuthorizationCodeService::class)->issueCode(
+        ApiClient::findOrFail('claude-code'),
+        User::factory()->create(),
+        $this->codeChallenge,
+        'http://127.0.0.1:53124/callback',
+    );
+
+    $this->postJson(route('oauth.token.store'), [
+        'client_id' => 'claude-code',
+        'code' => $code,
+        'code_verifier' => $this->codeVerifier,
+        'redirect_uri' => 'http://127.0.0.1:60000/callback',
+        'device_name' => 'Claude Code op Mac',
+    ])->assertStatus(400);
+
+    expect(ApiToken::query()->count())->toEqual(0);
+});

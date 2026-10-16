@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Models\ApiClient;
+use Closure;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -24,7 +25,17 @@ class AuthorizeClientRequest extends FormRequest
     {
         return [
             'client_id' => ['required', 'string', Rule::in(ApiClient::ids())],
-            'redirect_uri' => ['required', 'string', Rule::in(ApiClient::find($this->string('client_id')->toString())->redirect_uris ?? [])],
+            'redirect_uri' => [
+                'required',
+                'string',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    $client = ApiClient::find($this->string('client_id')->toString());
+
+                    if (! is_string($value) || ! $client?->allowsRedirectUri($value)) {
+                        $fail('The selected redirect uri is invalid.');
+                    }
+                },
+            ],
             'state' => ['required', 'string', 'max:255'],
             'code_challenge' => ['required', 'string', 'regex:/^[A-Za-z0-9\-_]{43}$/'],
             'code_challenge_method' => ['required', 'in:S256'],

@@ -17,6 +17,7 @@ use Illuminate\Support\Collection;
  * @property string $label
  * @property list<string> $redirect_uris
  * @property int $token_lifetime_days
+ * @property bool $sliding_expiration A token of this client expires that many days after it was last used, not after it was issued
  * @property bool $auto_approve
  * @property ?CarbonImmutable $created_at
  * @property ?CarbonImmutable $updated_at
@@ -45,9 +46,31 @@ class ApiClient extends Model
         return $ids->isNotEmpty() ? $ids : throw UnknownApiClientException::noneRegistered();
     }
 
+    /**
+     * A native app such as a command line tool receives its code on a loopback listener, and the
+     * port it can bind is only known at runtime. So a registered loopback uri matches any port, as
+     * RFC 8252 section 7.3 prescribes; everything else about the uri still has to match exactly.
+     */
     public function allowsRedirectUri(string $redirectUri): bool
     {
-        return in_array($redirectUri, $this->redirect_uris, true);
+        if (in_array($redirectUri, $this->redirect_uris, true)) {
+            return true;
+        }
+
+        $withoutPort = self::withoutLoopbackPort($redirectUri);
+
+        return $withoutPort !== null && in_array($withoutPort, $this->redirect_uris, true);
+    }
+
+    /**
+     * Only plain http on the loopback ip literals qualifies. The name localhost is left out on
+     * purpose: it may resolve to something other than this machine.
+     */
+    private static function withoutLoopbackPort(string $redirectUri): ?string
+    {
+        $matched = preg_match('~^(http://(?:127\.0\.0\.1|\[::1\])):\d{1,5}(/[^?#]*)$~', $redirectUri, $parts);
+
+        return $matched === 1 ? $parts[1].$parts[2] : null;
     }
 
     protected function casts(): array
@@ -55,6 +78,7 @@ class ApiClient extends Model
         return [
             'redirect_uris' => 'array',
             'auto_approve' => 'boolean',
+            'sliding_expiration' => 'boolean',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',
         ];

@@ -12,7 +12,8 @@ class ApiClientSeeder extends Seeder
 {
     /**
      * The first party clients every deployment runs. Their redirect uris come from the environment,
-     * so re-run this after changing APP_FRONTEND_URL or EXTENSION_IDS.
+     * so re-run this after changing APP_FRONTEND_URL or EXTENSION_IDS. A migration that adds a
+     * client runs this as well.
      */
     public function run(): void
     {
@@ -36,6 +37,16 @@ class ApiClientSeeder extends Seeder
             'token_lifetime_days' => 30,
             // Asking a user to consent to Timatic on behalf of Timatic is noise.
             'auto_approve' => true,
+        ]);
+
+        ApiClient::updateOrCreate(['id' => 'claude-code'], [
+            'label' => 'Claude Code plugin',
+            // The plugin listens on whichever loopback port is free; see ApiClient::allowsRedirectUri.
+            'redirect_uris' => ['http://127.0.0.1/callback'],
+            'token_lifetime_days' => 90,
+            // Its hooks run unattended, so a token that expires mid use would silently stop tracking.
+            'sliding_expiration' => true,
+            'auto_approve' => false,
         ]);
     }
 }
