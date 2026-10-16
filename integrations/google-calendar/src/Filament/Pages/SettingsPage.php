@@ -66,7 +66,7 @@ class SettingsPage extends Page implements HasTable
                 ->helperText(__('integrations.title_helper')),
             Callout::make('Users connect their Google Calendar themselves.')
                 ->info()
-                ->description('Signing in to Timatic no longer asks for calendar access. A user grants it separately, so only those who want their calendar read are asked. The table below shows all currently connected users.'),
+                ->description('A user can grant calendar access in the web app. The table below shows all currently connected users.'),
         ])->statePath('data');
     }
 
