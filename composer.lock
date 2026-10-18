@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7f4edd503ccc3309e1351e80f952b416",
+    "content-hash": "39723117d3ccd6385c950aa6f8c9574b",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -11300,6 +11300,36 @@
                 }
             },
             "description": "Rework integration for Timatic",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "timatic/topdesk-integration",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "integrations/topdesk",
+                "reference": "e5302cb27a6bd905c699105cd2cce980f1e2a66b"
+            },
+            "require": {
+                "php": "^8.4",
+                "saloonphp/saloon": "^4.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Timatic\\Topdesk\\ServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Timatic\\Topdesk\\": "src/"
+                }
+            },
+            "description": "TOPdesk ticket provider integration for Timatic",
             "transport-options": {
                 "relative": true
             }

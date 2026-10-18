@@ -19,7 +19,7 @@ afterEach(fn () => MockClient::destroyGlobal());
 
 it('calls both the incident and change providers for a topdesk integration', function () {
     Integration::create([
-        'name' => 'TOPdesk',
+        'title' => 'TOPdesk',
         'type' => 'topdesk',
         'config' => ['base_url' => 'https://acme.topdesk.net', 'username' => 'u', 'api_token' => 't'],
     ]);
@@ -59,7 +59,7 @@ it('calls both the incident and change providers for a topdesk integration', fun
 
 it('fetches change details with progress trail actions and resolves the customer', function () {
     Integration::create([
-        'name' => 'TOPdesk',
+        'title' => 'TOPdesk',
         'type' => 'topdesk',
         'config' => ['base_url' => 'https://acme.topdesk.net', 'username' => 'u', 'api_token' => 't'],
     ]);
@@ -102,7 +102,7 @@ it('fetches change details with progress trail actions and resolves the customer
 
 it('maps a change number to the customer of its branch', function () {
     Integration::create([
-        'name' => 'TOPdesk',
+        'title' => 'TOPdesk',
         'type' => 'topdesk',
         'config' => ['base_url' => 'https://acme.topdesk.net', 'username' => 'u', 'api_token' => 't'],
     ]);
