@@ -55,5 +55,6 @@ class ServiceProvider extends BaseServiceProvider
 
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../resources/views', self::INTEGRATION_TYPE);
+        $this->loadTranslationsFrom(__DIR__.'/../resources/lang', self::INTEGRATION_TYPE);
     }
 }

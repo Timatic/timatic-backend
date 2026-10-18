@@ -43,7 +43,7 @@ class SettingsPage extends Page
         $record = $this->getRecord();
 
         return [
-            NavigationItem::make('Settings')
+            NavigationItem::make(__('topdesk::topdesk.settings.nav_label'))
                 ->url(SettingsPage::getUrl(['record' => $record]))
                 ->isActiveWhen(fn () => request()->url() === SettingsPage::getUrl(['record' => $record])),
         ];
@@ -70,47 +70,47 @@ class SettingsPage extends Page
     {
         return $form->schema([
             TextInput::make('title')
-                ->label('Integration title')
+                ->label(__('topdesk::topdesk.settings.field_title'))
                 ->autocomplete(false)
                 ->helperText(__('integrations.title_helper')),
 
-            Section::make('Connection details')
+            Section::make(__('topdesk::topdesk.settings.section_connection'))
                 ->schema([
                     TextInput::make('base_url')
-                        ->label('TOPdesk URL')
+                        ->label(__('topdesk::topdesk.settings.field_base_url'))
                         ->placeholder('https://company.topdesk.net')
                         ->url()
                         ->required(),
 
                     TextInput::make('username')
-                        ->label('Username')
+                        ->label(__('topdesk::topdesk.settings.field_username'))
                         ->required(),
 
                     TextInput::make('api_token')
-                        ->label('Application password')
+                        ->label(__('topdesk::topdesk.settings.field_api_token'))
                         ->password()
                         ->revealable()
                         ->required(),
                 ]),
 
-            Section::make('Advanced')
+            Section::make(__('topdesk::topdesk.settings.section_advanced'))
                 ->schema([
                     TextInput::make('branch_match_field')
-                        ->label('Branch match field')
+                        ->label(__('topdesk::topdesk.settings.field_branch_match_field'))
                         ->default('clientReferenceNumber')
-                        ->helperText('TOPdesk branch field compared against the Timatic customer external ID.')
+                        ->helperText(__('topdesk::topdesk.settings.field_branch_match_field_helper'))
                         ->required(),
 
                     TextInput::make('incident_key_pattern')
-                        ->label('Incident key pattern')
+                        ->label(__('topdesk::topdesk.settings.field_incident_key_pattern'))
                         ->default('[A-Z]+\s?\d+')
-                        ->helperText('Regex pattern used to detect incident numbers in text (e.g. IMX\d+ or I\s\d+).')
+                        ->helperText(__('topdesk::topdesk.settings.field_incident_key_pattern_helper'))
                         ->required(),
 
                     TextInput::make('change_key_pattern')
-                        ->label('Change key pattern')
+                        ->label(__('topdesk::topdesk.settings.field_change_key_pattern'))
                         ->default('[A-Z]+\s?\d+')
-                        ->helperText('Regex pattern used to detect change numbers in text (e.g. C\s\d+).')
+                        ->helperText(__('topdesk::topdesk.settings.field_change_key_pattern_helper'))
                         ->required(),
                 ]),
         ])->statePath('data');
@@ -120,7 +120,7 @@ class SettingsPage extends Page
     {
         return [
             Action::make('delete')
-                ->label('Delete')
+                ->label(__('topdesk::topdesk.settings.action_delete'))
                 ->color('danger')
                 ->requiresConfirmation()
                 ->action(function (): void {
@@ -129,7 +129,7 @@ class SettingsPage extends Page
                 }),
 
             Action::make('save')
-                ->label('Save')
+                ->label(__('topdesk::topdesk.settings.action_save'))
                 ->action(function (): void {
                     $data = $this->form->getState();
 
@@ -147,7 +147,7 @@ class SettingsPage extends Page
                         'config' => $config,
                     ]);
 
-                    Notification::make()->title('Settings saved.')->success()->send();
+                    Notification::make()->title(__('topdesk::topdesk.settings.notification_saved'))->success()->send();
                 }),
         ];
     }
