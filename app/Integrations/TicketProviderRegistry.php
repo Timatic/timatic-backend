@@ -3,31 +3,39 @@
 namespace App\Integrations;
 
 use App\Integrations\Contracts\TicketProviderInterface;
-use InvalidArgumentException;
 
 class TicketProviderRegistry
 {
-    /** @var array<string, class-string<TicketProviderInterface>> */
+    /** @var array<string, list<class-string<TicketProviderInterface>>> */
     private array $classes = [];
 
     /** @param class-string<TicketProviderInterface> $providerClass */
     public function register(string $type, string $providerClass): void
     {
-        $this->classes[$type] = $providerClass;
+        $this->classes[$type][] = $providerClass;
     }
 
-    /** @param array<string, mixed> $config */
-    public function makeProvider(string $type, array $config): TicketProviderInterface
+    /**
+     * @param  array<string, mixed>  $config
+     * @return list<TicketProviderInterface>
+     */
+    public function makeProviders(string $type, array $config): array
     {
-        $class = $this->classes[$type]
-            ?? throw new InvalidArgumentException("Integration type [{$type}] is not registered.");
-
-        return $class::fromConfig($config);
+        return array_map(
+            fn (string $class): TicketProviderInterface => $class::fromConfig($config),
+            $this->classes[$type] ?? [],
+        );
     }
 
-    /** @return array<string, class-string<TicketProviderInterface>> */
-    public function all(): array
+    /** @return list<string> */
+    public function registeredTypes(): array
     {
-        return $this->classes;
+        return array_keys($this->classes);
+    }
+
+    /** @return list<class-string<TicketProviderInterface>> */
+    public function providerClasses(): array
+    {
+        return array_merge([], ...array_values($this->classes));
     }
 }
