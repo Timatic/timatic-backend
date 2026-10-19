@@ -78,9 +78,18 @@ request here authenticates as the app installation. `OAuthService` handles the u
 | `create` branch / tag | `branch_created` / `tag_created` |
 | `repository` created, deleted, archived, unarchived, publicized, privatized, edited, renamed, transferred | `repository_{action}` |
 
-Commit events match the Timatic user by commit author email and learn `users.github_login` from
-`commits[].author.username`. Every other delivery matches on `sender.login`, so a user without a known login
-produces no events until their first push.
+## People
+
+`UserMatcher` links GitHub identities to Timatic users in the package's own tables: one login per user
+(`github_user_logins`) and any number of commit emails (`github_commit_emails`). A commit's author is
+found by, in order:
+
+1. a linked commit email,
+2. a linked login (`commits[].author.username`),
+3. the Timatic account email.
+
+A match links the commit's email and, if the user has none yet, its login. Every other delivery matches on
+`sender.login` only, so a user without a known login produces no events until their first push.
 
 Note: `repository` with action `created` rarely arrives. Unless the app is installed on "All repositories",
 no installation covers a brand-new repository yet, so GitHub sends nothing. `deleted` behaves the same once
@@ -91,7 +100,7 @@ access is gone.
 `TicketProvider` offers GitHub issues in the time entry form, keyed as `owner/repo#123`:
 
 - With a customer selected, open issues from that customer's mapped repositories.
-- Without a customer, open issues the user is involved in (`involves:{github_login}`), so a user without a
+- Without a customer, open issues the user is involved in (`involves:{login}`), so a user without a
   known login sees none.
 - With a search term, `/search/issues` scoped to the mapped repositories. A term shaped like
   `owner/repo#123` is looked up directly.

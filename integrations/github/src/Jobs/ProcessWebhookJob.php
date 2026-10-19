@@ -14,6 +14,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Carbon;
 use Timatic\GitHub\Models\RepositoryMapping;
 use Timatic\GitHub\ServiceProvider;
+use Timatic\GitHub\UserMatcher;
 
 class ProcessWebhookJob implements ShouldQueue
 {
@@ -264,19 +265,11 @@ class ProcessWebhookJob implements ShouldQueue
     /** @param array<string, mixed> $commit */
     private function createEventFromCommit(array $commit, ?string $branchName, TicketService $ticketService): void
     {
-        $email = $commit['author']['email'] ?? null;
-
-        if (! is_string($email)) {
-            return;
-        }
-
-        $user = User::where('email', $email)->first();
+        $user = $this->commitAuthor($commit);
 
         if ($user === null) {
             return;
         }
-
-        $this->learnGithubLogin($user, $commit);
 
         $timestamp = $commit['timestamp'] ?? null;
 
@@ -329,8 +322,7 @@ class ProcessWebhookJob implements ShouldQueue
     /** @param non-empty-list<array<string, mixed>> $knownCommits */
     private function createRebaseEvent(array $knownCommits, ?string $branchName): void
     {
-        $email = $knownCommits[0]['author']['email'] ?? null;
-        $user = is_string($email) ? User::where('email', $email)->first() : null;
+        $user = $this->commitAuthor($knownCommits[0]);
 
         if ($user === null) {
             return;
@@ -375,14 +367,13 @@ class ProcessWebhookJob implements ShouldQueue
      */
     private function isKnownCommit(array $commit, bool $forced): bool
     {
-        $email = $commit['author']['email'] ?? null;
         $timestamp = $commit['timestamp'] ?? null;
 
-        if (! is_string($email) || ! is_string($timestamp)) {
+        if (! is_string($timestamp)) {
             return false;
         }
 
-        $user = User::where('email', $email)->first();
+        $user = $this->commitAuthor($commit);
 
         if ($user === null) {
             return false;
@@ -414,25 +405,22 @@ class ProcessWebhookJob implements ShouldQueue
     }
 
     /** @param array<string, mixed> $commit */
-    private function learnGithubLogin(User $user, array $commit): void
+    private function commitAuthor(array $commit): ?User
     {
-        if ($user->github_login !== null) {
-            return;
-        }
-
+        $email = $commit['author']['email'] ?? null;
         $login = $commit['author']['username'] ?? null;
 
-        if (is_string($login)) {
-            $user->github_login = $login;
-            $user->save();
-        }
+        return app(UserMatcher::class)->forCommitAuthor(
+            is_string($email) ? $email : null,
+            is_string($login) ? $login : null,
+        );
     }
 
     private function senderUser(): ?User
     {
         $login = $this->payload['sender']['login'] ?? null;
 
-        return is_string($login) ? User::where('github_login', $login)->first() : null;
+        return app(UserMatcher::class)->forLogin(is_string($login) ? $login : null);
     }
 
     private function findTicket(TicketService $ticketService, string ...$texts): ?Ticket

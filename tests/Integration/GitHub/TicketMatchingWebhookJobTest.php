@@ -9,6 +9,7 @@ use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
 use Timatic\GitHub\Jobs\ProcessWebhookJob;
 use Timatic\GitHub\Models\RepositoryMapping;
+use Timatic\GitHub\Models\UserLogin;
 use Timatic\GitHub\Requests\GetIssueRequest;
 
 afterEach(function () {
@@ -58,7 +59,8 @@ it('resolves a bare issue reference in a commit message against the delivering r
 it('resolves a fully qualified issue key in a branch name', function () {
     EventFacade::fake();
     Cache::put('github.installation_token.4242', 'ghs_installation_token');
-    User::factory()->create(['github_login' => 'octocat']);
+    $user = User::factory()->create();
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
     $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
     RepositoryMapping::create([
         'integration_id' => $integration->id,

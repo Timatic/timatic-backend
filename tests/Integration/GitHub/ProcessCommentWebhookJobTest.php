@@ -5,10 +5,12 @@ use App\Models\Event;
 use App\Models\User;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Timatic\GitHub\Jobs\ProcessWebhookJob;
+use Timatic\GitHub\Models\UserLogin;
 
 it('creates an issue_commented event for a comment on an issue', function () {
     EventFacade::fake();
-    User::factory()->create(['github_login' => 'octocat']);
+    $user = User::factory()->create();
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
     $payload = [
         'action' => 'created',
         'sender' => ['login' => 'octocat'],
@@ -27,7 +29,8 @@ it('creates an issue_commented event for a comment on an issue', function () {
 
 it('creates a pr_commented event for a comment on a pull request', function () {
     EventFacade::fake();
-    User::factory()->create(['github_login' => 'octocat']);
+    $user = User::factory()->create();
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
     $payload = [
         'action' => 'created',
         'sender' => ['login' => 'octocat'],
@@ -47,7 +50,8 @@ it('creates a pr_commented event for a comment on a pull request', function () {
 
 it('ignores an edited comment', function () {
     EventFacade::fake();
-    User::factory()->create(['github_login' => 'octocat']);
+    $user = User::factory()->create();
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
     $payload = [
         'action' => 'edited',
         'sender' => ['login' => 'octocat'],

@@ -27,7 +27,6 @@ use Spatie\Permission\Traits\HasRoles;
  * @property ?string $family_name
  * @property ?string $full_name
  * @property ?string $bitbucket_account_id
- * @property ?string $github_login
  * @property ?Carbon $created_at
  * @property ?Carbon $updated_at
  * @property ?Carbon $deleted_at
@@ -52,7 +51,6 @@ class User extends \Illuminate\Foundation\Auth\User implements FilamentUser, Has
         'family_name',
         'team_id',
         'bitbucket_account_id',
-        'github_login',
     ];
 
     /** @var array<int, DerivedPermission> */

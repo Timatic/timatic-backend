@@ -155,13 +155,15 @@ final class TicketProvider implements TicketProviderInterface
      */
     private function searchIssuesInvolving(?User $user, Collection $repositories): Collection
     {
-        if ($user?->github_login === null) {
+        $login = $user === null ? null : app(UserMatcher::class)->loginOf($user);
+
+        if ($login === null) {
             return new Collection;
         }
 
         return $this->runSearchPerInstallation(
             $repositories,
-            fn (Collection $group) => 'is:issue is:open involves:'.$user->github_login.' '.$this->repositoryQualifiers($group),
+            fn (Collection $group) => 'is:issue is:open involves:'.$login.' '.$this->repositoryQualifiers($group),
         );
     }
 
