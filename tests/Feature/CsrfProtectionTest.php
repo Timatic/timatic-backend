@@ -35,6 +35,14 @@ it('accepts a provider webhook post without a csrf token', function () {
     $response->assertStatus(403);
 });
 
+it('accepts a github webhook post without a csrf token', function () {
+    $integration = Integration::factory()->create(['type' => 'github']);
+
+    $response = $this->post(route('github.webhook', $integration->id), []);
+
+    $response->assertStatus(403);
+});
+
 it('accepts an api post without a csrf token', function () {
     $response = $this->postJson(route('entries.store'), []);
 
