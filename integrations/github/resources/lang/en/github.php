@@ -60,4 +60,8 @@ return [
         'install_another_intro' => 'Installed the app on another organisation? Install it on GitHub and reload this page afterwards.',
         'install_another_action' => 'Install the app on another organisation',
     ],
+    'integration' => [
+        'label' => 'GitHub',
+        'instructions' => "Your commits, pull requests and reviews show up as suggestions. Commits are matched to you by the email address of the commit author, so commit with the same email address you use in Timatic. Other activity is matched by your GitHub username, which Timatic learns from your first matched commit.\n\nMention the ticket number in the branch name, commit message or pull request title to link the suggestion to that ticket.",
+    ],
 ];
