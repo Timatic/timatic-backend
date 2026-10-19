@@ -35,13 +35,13 @@ class SettingsPage extends Page
 
     public function getTitle(): string
     {
-        return __('github::github.settings.page_title', ['name' => $this->getIntegration()->name]);
+        return __('github::github.settings.page_title', ['title' => $this->getIntegration()->display_title]);
     }
 
     public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
-        $this->form->fill(['name' => $this->getIntegration()->name]);
+        $this->form->fill(['title' => $this->getIntegration()->title]);
 
         if (session('github_success')) {
             Notification::make()->title(session('github_success'))->success()->send();
@@ -100,9 +100,10 @@ class SettingsPage extends Page
         }
 
         return $form->schema([
-            TextInput::make('name')
-                ->label(__('github::github.common.field_name'))
-                ->required(),
+            TextInput::make('title')
+                ->label(__('github::github.common.field_title'))
+                ->autocomplete(false)
+                ->helperText(__('integrations.title_helper')),
             Callout::make(__('github::github.settings.callout_connected_title'))
                 ->success()
                 ->description(__('github::github.settings.callout_connected_description', [
@@ -165,8 +166,8 @@ class SettingsPage extends Page
                 ->label(__('github::github.common.action_save'))
                 ->action(function (): void {
                     $data = $this->form->getState();
-                    $this->getIntegration()->update(['name' => $data['name']]);
-                    Notification::make()->title(__('github::github.common.notification_name_changed'))->success()->send();
+                    $this->getIntegration()->update(['title' => $data['title']]);
+                    Notification::make()->title(__('github::github.common.notification_title_changed'))->success()->send();
                 })
                 ->visible($this->hasInstallations($config)),
         ];

@@ -20,7 +20,7 @@ it('shows the not configured callout when the app credentials are missing', func
     config()->set('github.app_id', null);
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
 
     Livewire::test(SettingsPage::class, ['record' => $integration->id])
         ->assertSuccessful()
@@ -34,7 +34,7 @@ it('offers the connect action when no user token is stored', function () {
     config()->set('github.private_key', 'private-key');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
 
     Livewire::test(SettingsPage::class, ['record' => $integration->id])
         ->assertSuccessful()
@@ -50,7 +50,7 @@ it('adopts every installation the connected user can reach', function () {
     config()->set('github.private_key', 'private-key');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => [
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => [
         'access_token' => 'ghu_user_token',
         'expires_at' => null,
     ]]);
@@ -82,7 +82,7 @@ it('shows a proxy routing line per adopted installation', function () {
     config()->set('timatic.tenant_slug', 'klant1');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => [
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => [
         'access_token' => 'ghu_user_token',
         'expires_at' => null,
         'installations' => [['id' => 4242, 'account' => 'acme'], ['id' => 5353, 'account' => 'octocat']],
@@ -100,7 +100,7 @@ it('clears the connection on disconnect', function () {
     config()->set('github.private_key', 'private-key');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => [
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => [
         'access_token' => 'ghu_user_token',
         'expires_at' => null,
         'installations' => [['id' => 4242, 'account' => 'acme']],

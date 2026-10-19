@@ -13,14 +13,14 @@ return [
         'action_disconnect' => 'Verbinding verwijderen',
         'action_save' => 'Opslaan',
         'action_refresh' => 'Vernieuwen',
-        'field_name' => 'Naam',
-        'notification_name_changed' => 'Naam gewijzigd.',
+        'field_title' => 'Titel',
+        'notification_title_changed' => 'Titel gewijzigd.',
         'connection_expired_title' => 'GitHub verbinding niet beschikbaar',
         'connection_expired_body' => 'Verbind GitHub opnieuw via Instellingen, of controleer de app installatie op GitHub.',
     ],
 
     'settings' => [
-        'page_title' => ':name (GitHub) — Instellingen',
+        'page_title' => ':title (GitHub) — Instellingen',
         'nav_label' => 'Instellingen',
         'callout_connected_title' => 'Verbonden',
         'callout_connected_description' => 'Verbonden met :accounts. Voeg dit toe aan GITHUB_INSTALLATIONS in de auth proxy zodat events hier terechtkomen: :routing',
@@ -39,7 +39,7 @@ return [
     ],
 
     'repository_mapping' => [
-        'page_title' => ':name (GitHub) — Repository mapping',
+        'page_title' => ':title (GitHub) — Repository mapping',
         'nav_label' => 'Repository mapping',
         'no_credentials_heading' => 'Geen installatie gevonden',
         'no_credentials_description' => 'Verbind GitHub en installeer de app op een organisatie voordat je repositories kunt koppelen.',
@@ -50,5 +50,16 @@ return [
         'empty_description' => 'Klik op "Vernieuwen" om repositories op te halen uit GitHub.',
         'filter_archived' => 'Gearchiveerd',
         'filter_unmapped' => 'Alleen niet gekoppeld',
+    ],
+    'consent' => [
+        'subtitle' => 'GitHub integratie',
+        'connect_intro' => 'Klik op de knop hieronder om GitHub te verbinden met Timatic voor :tenant. U wordt doorgestuurd naar GitHub om toestemming te verlenen.',
+        'connect_action' => 'Verbinden met GitHub',
+        'just_connected' => 'GitHub succesvol verbonden.',
+        'install_intro' => 'De Timatic app is nog niet geïnstalleerd op uw organisatie. Installeer de app op GitHub en herlaad daarna deze pagina.',
+        'install_action' => 'App installeren op GitHub',
+        'connected' => 'GitHub is verbonden voor :accounts. Timatic rondt de configuratie verder af.',
+        'install_another_intro' => 'Heeft u de app op nog een organisatie geïnstalleerd? Installeer deze op GitHub en herlaad daarna deze pagina.',
+        'install_another_action' => 'App installeren op nog een organisatie',
     ],
 ];

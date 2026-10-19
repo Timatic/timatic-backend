@@ -4,6 +4,7 @@ namespace Timatic\GitHub;
 
 use App\DataTransferObjects\Ticket;
 use App\DataTransferObjects\TicketAction;
+use App\DataTransferObjects\TicketMapping;
 use App\Integrations\Contracts\TicketProviderInterface;
 use App\Models\Customer;
 use App\Models\User;
@@ -97,6 +98,27 @@ final class TicketProvider implements TicketProviderInterface
             ->dto();
 
         return $this->mapToTicket($issue, $this->mapComments($comments));
+    }
+
+    public function findMappingByTicketKey(string $key): ?TicketMapping
+    {
+        [$owner, $repository, $number] = $this->splitKey($key);
+
+        if ($owner === '' || $repository === '' || $number === 0) {
+            return null;
+        }
+
+        $mapping = RepositoryMapping::query()
+            ->where('repository_full_name', $owner.'/'.$repository)
+            ->when(isset($this->config['integration_id']), fn ($query) => $query->where('integration_id', $this->config['integration_id']))
+            ->active()
+            ->first();
+
+        if ($mapping?->customer_id === null) {
+            return null;
+        }
+
+        return new TicketMapping($mapping->customer_id, $mapping->budget_id);
     }
 
     /**

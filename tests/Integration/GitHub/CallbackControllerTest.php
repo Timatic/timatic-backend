@@ -18,7 +18,7 @@ it('returns an admin to the settings page after connecting', function () {
     config()->set('github.client_id', 'Iv1.client');
     config()->set('github.client_secret', 'client-secret');
     Filament::setCurrentPanel('admin');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     parse_str(parse_url(app(OAuthService::class)->buildAuthorizationUrl($integration), PHP_URL_QUERY), $query);
     Http::fake(['github.com/login/oauth/access_token' => Http::response(['access_token' => 'ghu_user_token'])]);
     MockClient::global([
@@ -38,7 +38,7 @@ it('returns an admin to the settings page after connecting', function () {
 it('returns a delegate to the share link page after connecting', function () {
     config()->set('github.client_id', 'Iv1.client');
     config()->set('github.client_secret', 'client-secret');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     $integration->generateShareToken();
     parse_str(parse_url(app(OAuthService::class)->buildAuthorizationUrl($integration), PHP_URL_QUERY), $query);
     $integration->update(['config' => array_merge($integration->config, ['delegate_return_token' => $integration->share_token])]);
@@ -60,7 +60,7 @@ it('returns a delegate to the share link page after connecting', function () {
 it('reports a refused authorization on the settings page', function () {
     config()->set('github.client_id', 'Iv1.client');
     Filament::setCurrentPanel('admin');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     parse_str(parse_url(app(OAuthService::class)->buildAuthorizationUrl($integration), PHP_URL_QUERY), $query);
 
     $this->get(route('github.oauth.callback', [

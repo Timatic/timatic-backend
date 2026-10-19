@@ -19,7 +19,7 @@ afterEach(function () {
 it('builds an authorization url without scopes', function () {
     config()->set('github.client_id', 'Iv1.client');
     config()->set('app.auth_proxy_url', 'https://auth.timatic.app');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
 
     $url = app(OAuthService::class)->buildAuthorizationUrl($integration);
 
@@ -34,7 +34,7 @@ it('builds an authorization url without scopes', function () {
 it('stores the tokens and the connecting github login', function () {
     config()->set('github.client_id', 'Iv1.client');
     config()->set('github.client_secret', 'client-secret');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     $state = app(OAuthService::class)->buildAuthorizationUrl($integration);
     parse_str(parse_url($state, PHP_URL_QUERY), $query);
     Http::fake(['github.com/login/oauth/access_token' => Http::response([
@@ -64,7 +64,7 @@ it('stores the tokens and the connecting github login', function () {
 it('stores a non-expiring token without an expiry', function () {
     config()->set('github.client_id', 'Iv1.client');
     config()->set('github.client_secret', 'client-secret');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     parse_str(parse_url(app(OAuthService::class)->buildAuthorizationUrl($integration), PHP_URL_QUERY), $query);
     Http::fake(['github.com/login/oauth/access_token' => Http::response(['access_token' => 'ghu_user_token'])]);
     MockClient::global([
@@ -83,7 +83,7 @@ it('stores a non-expiring token without an expiry', function () {
 
 it('rejects a callback whose nonce does not match', function () {
     config()->set('github.client_id', 'Iv1.client');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     parse_str(parse_url(app(OAuthService::class)->buildAuthorizationUrl($integration), PHP_URL_QUERY), $query);
     $integration->update(['config' => ['oauth_nonce' => 'another-nonce']]);
 
@@ -93,7 +93,7 @@ it('rejects a callback whose nonce does not match', function () {
 it('fails when github answers the token request with an error', function () {
     config()->set('github.client_id', 'Iv1.client');
     config()->set('github.client_secret', 'client-secret');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     parse_str(parse_url(app(OAuthService::class)->buildAuthorizationUrl($integration), PHP_URL_QUERY), $query);
     Http::fake(['github.com/login/oauth/access_token' => Http::response(['error' => 'bad_verification_code'])]);
 
@@ -103,7 +103,7 @@ it('fails when github answers the token request with an error', function () {
 it('refreshes an expired user token', function () {
     config()->set('github.client_id', 'Iv1.client');
     config()->set('github.client_secret', 'client-secret');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => [
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => [
         'access_token' => 'ghu_old',
         'refresh_token' => 'ghr_old',
         'expires_at' => now()->subMinute()->timestamp,
@@ -121,7 +121,7 @@ it('refreshes an expired user token', function () {
 });
 
 it('leaves a token without expiry untouched', function () {
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => [
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => [
         'access_token' => 'ghu_user_token',
         'expires_at' => null,
     ]]);
@@ -136,7 +136,7 @@ it('leaves a token without expiry untouched', function () {
 it('disconnects when the refresh token is rejected', function () {
     config()->set('github.client_id', 'Iv1.client');
     config()->set('github.client_secret', 'client-secret');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => [
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => [
         'access_token' => 'ghu_old',
         'refresh_token' => 'ghr_old',
         'expires_at' => now()->subMinute()->timestamp,
@@ -150,7 +150,7 @@ it('disconnects when the refresh token is rejected', function () {
 });
 
 it('clears every oauth key on disconnect', function () {
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => [
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => [
         'access_token' => 'ghu_user_token',
         'refresh_token' => 'ghr_refresh_token',
         'expires_at' => now()->addHour()->timestamp,

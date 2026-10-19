@@ -11,7 +11,7 @@ afterEach(function () {
 
 it('offers the github connect button to a delegate without a token', function () {
     config()->set('github.app_slug', 'timatic');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     $integration->generateShareToken();
 
     $this->get(route('github.delegate.show', $integration->share_token))
@@ -21,7 +21,7 @@ it('offers the github connect button to a delegate without a token', function ()
 
 it('adopts every installation the delegate can reach', function () {
     config()->set('github.app_slug', 'timatic');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => [
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => [
         'access_token' => 'ghu_user_token',
         'expires_at' => null,
     ]]);
@@ -48,7 +48,7 @@ it('adopts every installation the delegate can reach', function () {
 
 it('points the delegate at the app installation page when nothing is installed yet', function () {
     config()->set('github.app_slug', 'timatic');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => [
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => [
         'access_token' => 'ghu_user_token',
         'expires_at' => null,
     ]]);
@@ -64,7 +64,7 @@ it('points the delegate at the app installation page when nothing is installed y
 
 it('keeps the stored installations when GitHub cannot be reached', function () {
     config()->set('github.app_slug', 'timatic');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => [
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => [
         'access_token' => 'ghu_user_token',
         'expires_at' => null,
         'installations' => [['id' => 4242, 'account' => 'acme']],
