@@ -14,7 +14,7 @@ class EventTypeFactory extends Factory
     public function definition(): array
     {
         return [
-            'id' => $this->faker->text(8),
+            'id' => $this->faker->unique()->lexify('????????'),
             'name' => $this->faker->words(2, true),
             'weight' => 1,
         ];

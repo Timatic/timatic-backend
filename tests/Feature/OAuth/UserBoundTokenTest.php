@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\ApiClient;
 use App\Models\ApiToken;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
@@ -84,11 +85,19 @@ it('revokes the token it is called with', function () {
 it('pushes the expiry of a token forward on use when its client slides', function () {
     $this->travelTo(now()->startOfMinute());
 
+    ApiClient::query()->create([
+        'id' => 'sliding-app',
+        'label' => 'Sliding app',
+        'redirect_uris' => ['http://127.0.0.1/callback'],
+        'token_lifetime_days' => 90,
+        'sliding_expiration' => true,
+    ]);
+
     /** @var ApiToken $apiToken */
     $apiToken = ApiToken::query()->create([
         'user_id' => User::factory()->create()->id,
-        'client_id' => 'claude-code',
-        'title' => 'Claude Code op Mac',
+        'client_id' => 'sliding-app',
+        'title' => 'Laptop',
         'key' => hash('sha512', 'plain-text-token'),
         'expires_at' => now()->addDays(90),
     ]);
@@ -120,10 +129,18 @@ it('keeps the expiry of a token whose client does not slide', function () {
 });
 
 it('lets a sliding token lapse once it lies unused for its lifetime', function () {
+    ApiClient::query()->create([
+        'id' => 'sliding-app',
+        'label' => 'Sliding app',
+        'redirect_uris' => ['http://127.0.0.1/callback'],
+        'token_lifetime_days' => 90,
+        'sliding_expiration' => true,
+    ]);
+
     ApiToken::query()->create([
         'user_id' => User::factory()->create()->id,
-        'client_id' => 'claude-code',
-        'title' => 'Claude Code op Mac',
+        'client_id' => 'sliding-app',
+        'title' => 'Laptop',
         'key' => hash('sha512', 'plain-text-token'),
         'expires_at' => now()->addDays(90),
     ]);
