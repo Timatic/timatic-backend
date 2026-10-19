@@ -69,6 +69,9 @@ class RepositoryMappingPage extends Page implements HasTable
             NavigationItem::make(__('github::github.repository_mapping.nav_label'))
                 ->url(RepositoryMappingPage::getUrl(['record' => $record]))
                 ->isActiveWhen(fn () => request()->url() === RepositoryMappingPage::getUrl(['record' => $record])),
+            NavigationItem::make(__('github::github.people.nav_label'))
+                ->url(PeoplePage::getUrl(['record' => $record]))
+                ->isActiveWhen(fn () => request()->url() === PeoplePage::getUrl(['record' => $record])),
         ];
     }
 

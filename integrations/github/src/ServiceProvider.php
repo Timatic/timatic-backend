@@ -7,6 +7,7 @@ use App\Integrations\SuggestionIntegrationRegistry;
 use App\Integrations\TicketProviderRegistry;
 use App\Models\Integration;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
+use Timatic\GitHub\Filament\Pages\PeoplePage;
 use Timatic\GitHub\Filament\Pages\RepositoryMappingPage;
 use Timatic\GitHub\Filament\Pages\SettingsPage;
 
@@ -20,6 +21,7 @@ class ServiceProvider extends BaseServiceProvider
             $types->register('github', [
                 'github.repositories' => RepositoryMappingPage::class,
                 'github.settings' => SettingsPage::class,
+                'github.people' => PeoplePage::class,
             ])->requiresConfig(['github.client_id', 'github.client_secret', 'github.app_id', 'github.private_key'])->landingPage(function (Integration $integration): string {
                 $installations = app(InstallationService::class)->stored($integration->config ?? []);
 
