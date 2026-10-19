@@ -89,7 +89,8 @@ found by, in order:
 3. the Timatic account email.
 
 A match links the commit's email and, if the user has none yet, its login. Every other delivery matches on
-`sender.login` only, so a user without a known login produces no events until their first push.
+`sender.login` only, so a user without a known login produces no events until their first push. Admins
+correct or complete the links on the integration's People page.
 
 Note: `repository` with action `created` rarely arrives. Unless the app is installed on "All repositories",
 no installation covers a brand-new repository yet, so GitHub sends nothing. `deleted` behaves the same once
