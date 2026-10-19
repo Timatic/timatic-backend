@@ -7,7 +7,9 @@ use App\Models\Integration;
 use App\Models\User;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Timatic\GitHub\Jobs\ProcessWebhookJob;
+use Timatic\GitHub\Models\CommitEmail;
 use Timatic\GitHub\Models\RepositoryMapping;
+use Timatic\GitHub\Models\UserLogin;
 
 it('creates a commit_pushed event carrying the mapped customer', function () {
     EventFacade::fake();
@@ -49,7 +51,7 @@ it('creates a commit_pushed event carrying the mapped customer', function () {
 
 it('learns the github login of the commit author', function () {
     EventFacade::fake();
-    $user = User::factory()->create(['email' => 'dev@example.com', 'github_login' => null]);
+    $user = User::factory()->create(['email' => 'dev@example.com']);
     $payload = [
         'ref' => 'refs/heads/main',
         'repository' => ['full_name' => 'acme/api'],
@@ -63,7 +65,28 @@ it('learns the github login of the commit author', function () {
 
     new ProcessWebhookJob($payload, null, 'push')->handle(app(TicketService::class));
 
-    expect($user->refresh()->github_login)->toBe('octocat');
+    expect(UserLogin::query()->where('user_id', $user->id)->value('login'))->toBe('octocat');
+});
+
+it('attributes a commit from another email address to the user with that github login', function () {
+    EventFacade::fake();
+    $user = User::factory()->create(['email' => 'dev@example.com']);
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
+    $payload = [
+        'ref' => 'refs/heads/main',
+        'repository' => ['full_name' => 'acme/api'],
+        'commits' => [[
+            'id' => 'abc123',
+            'message' => 'fix login',
+            'timestamp' => '2026-09-05T09:38:30+00:00',
+            'author' => ['email' => 'Dev@Home.example', 'username' => 'octocat'],
+        ]],
+    ];
+
+    new ProcessWebhookJob($payload, null, 'push')->handle(app(TicketService::class));
+
+    expect(Event::query()->sole()->user_id)->toBe($user->id)
+        ->and(CommitEmail::query()->where('email', 'dev@home.example')->value('user_id'))->toBe($user->id);
 });
 
 it('ignores a commit whose author is not a Timatic user', function () {

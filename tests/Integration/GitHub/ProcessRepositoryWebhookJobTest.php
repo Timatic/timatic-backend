@@ -5,10 +5,12 @@ use App\Models\Event;
 use App\Models\User;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Timatic\GitHub\Jobs\ProcessWebhookJob;
+use Timatic\GitHub\Models\UserLogin;
 
 it('creates a repository_renamed event naming both repositories', function () {
     EventFacade::fake();
-    User::factory()->create(['github_login' => 'octocat']);
+    $user = User::factory()->create();
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
     $payload = [
         'action' => 'renamed',
         'sender' => ['login' => 'octocat'],
@@ -26,7 +28,8 @@ it('creates a repository_renamed event naming both repositories', function () {
 
 it('creates an event per repository action', function (string $action) {
     EventFacade::fake();
-    User::factory()->create(['github_login' => 'octocat']);
+    $user = User::factory()->create();
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
     $payload = [
         'action' => $action,
         'sender' => ['login' => 'octocat'],
@@ -40,7 +43,8 @@ it('creates an event per repository action', function (string $action) {
 
 it('ignores a repository action Timatic does not track', function () {
     EventFacade::fake();
-    User::factory()->create(['github_login' => 'octocat']);
+    $user = User::factory()->create();
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
     $payload = [
         'action' => 'starred',
         'sender' => ['login' => 'octocat'],
@@ -54,7 +58,8 @@ it('ignores a repository action Timatic does not track', function () {
 
 it('does not duplicate a redelivered repository event', function () {
     EventFacade::fake();
-    User::factory()->create(['github_login' => 'octocat']);
+    $user = User::factory()->create();
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
     $payload = [
         'action' => 'archived',
         'sender' => ['login' => 'octocat'],
@@ -69,7 +74,8 @@ it('does not duplicate a redelivered repository event', function () {
 
 it('creates a branch_created event for a new branch', function () {
     EventFacade::fake();
-    User::factory()->create(['github_login' => 'octocat']);
+    $user = User::factory()->create();
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
     $payload = [
         'ref' => 'feature/login',
         'ref_type' => 'branch',
@@ -87,7 +93,8 @@ it('creates a branch_created event for a new branch', function () {
 
 it('creates a tag_created event for a new tag', function () {
     EventFacade::fake();
-    User::factory()->create(['github_login' => 'octocat']);
+    $user = User::factory()->create();
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
     $payload = [
         'ref' => 'v1.2.0',
         'ref_type' => 'tag',

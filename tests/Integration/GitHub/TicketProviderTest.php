@@ -8,6 +8,7 @@ use App\Models\User;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
 use Timatic\GitHub\Models\RepositoryMapping;
+use Timatic\GitHub\Models\UserLogin;
 use Timatic\GitHub\Requests\GetIssueCommentsRequest;
 use Timatic\GitHub\Requests\GetIssueRequest;
 use Timatic\GitHub\Requests\GetIssuesRequest;
@@ -92,7 +93,8 @@ it('searches issues within the mapped repositories', function () {
 
 it('searches issues the user is involved in when no customer is given', function () {
     Cache::put('github.installation_token.4242', 'ghs_installation_token');
-    $user = User::factory()->create(['github_login' => 'octocat']);
+    $user = User::factory()->create();
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
     $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     RepositoryMapping::create([
         'integration_id' => $integration->id,

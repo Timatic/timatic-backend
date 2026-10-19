@@ -5,10 +5,12 @@ use App\Models\Event;
 use App\Models\User;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Timatic\GitHub\Jobs\ProcessWebhookJob;
+use Timatic\GitHub\Models\UserLogin;
 
 it('creates a pr_opened event when a pull request is opened', function () {
     EventFacade::fake();
-    $user = User::factory()->create(['github_login' => 'octocat']);
+    $user = User::factory()->create();
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
     $payload = [
         'action' => 'opened',
         'sender' => ['login' => 'octocat'],
@@ -34,7 +36,8 @@ it('creates a pr_opened event when a pull request is opened', function () {
 
 it('creates a pr_merged event when a merged pull request closes', function () {
     EventFacade::fake();
-    User::factory()->create(['github_login' => 'octocat']);
+    $user = User::factory()->create();
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
     $payload = [
         'action' => 'closed',
         'sender' => ['login' => 'octocat'],
@@ -55,7 +58,8 @@ it('creates a pr_merged event when a merged pull request closes', function () {
 
 it('creates a pr_declined event when an unmerged pull request closes', function () {
     EventFacade::fake();
-    User::factory()->create(['github_login' => 'octocat']);
+    $user = User::factory()->create();
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
     $payload = [
         'action' => 'closed',
         'sender' => ['login' => 'octocat'],
@@ -90,7 +94,8 @@ it('ignores a pull request event from an unknown github user', function () {
 
 it('maps a submitted review to its approval state', function () {
     EventFacade::fake();
-    User::factory()->create(['github_login' => 'octocat']);
+    $user = User::factory()->create();
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
     $payload = [
         'action' => 'submitted',
         'sender' => ['login' => 'octocat'],
@@ -114,7 +119,8 @@ it('maps a submitted review to its approval state', function () {
 
 it('creates a pr_commented event for a review comment', function () {
     EventFacade::fake();
-    User::factory()->create(['github_login' => 'octocat']);
+    $user = User::factory()->create();
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
     $payload = [
         'action' => 'created',
         'sender' => ['login' => 'octocat'],
