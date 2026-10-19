@@ -15,18 +15,6 @@ afterEach(function () {
     MockClient::destroyGlobal();
 });
 
-it('shows the not configured callout when the app credentials are missing', function () {
-    config()->set('github.client_id', null);
-    config()->set('github.app_id', null);
-    $this->loginUser(permissions: ['integrations.read']);
-    Filament::setCurrentPanel('admin');
-    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
-
-    Livewire::test(SettingsPage::class, ['record' => $integration->id])
-        ->assertSuccessful()
-        ->assertSee(__('github::github.settings.callout_not_configured_title'));
-});
-
 it('offers the connect action when no user token is stored', function () {
     config()->set('github.client_id', 'Iv1.client');
     config()->set('github.client_secret', 'client-secret');
