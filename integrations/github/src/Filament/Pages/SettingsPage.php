@@ -7,6 +7,7 @@ use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Models\Integration;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Navigation\NavigationItem;
 use Filament\Notifications\Notification;
@@ -122,6 +123,9 @@ class SettingsPage extends Page
                         $this->redirect(static::getUrl(['record' => $this->getRecord()]));
                     })
                     ->visible($this->hasTokens($config)),
+
+                DeleteAction::make()
+                    ->successRedirectUrl(IntegrationResource::getUrl('index')),
             ]),
 
             Action::make('install_app')
