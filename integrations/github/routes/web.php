@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 use Timatic\GitHub\Http\Controllers\CallbackController;
 use Timatic\GitHub\Http\Controllers\DelegateController;
@@ -16,6 +17,7 @@ Route::middleware('web')->group(function () {
         ->name('github.oauth.callback');
 
     Route::post('integrations/github/webhook/{integration}', WebhookController::class)
+        ->withoutMiddleware(ValidateCsrfToken::class)
         ->name('github.webhook');
 
     Route::get('integrations/github/connect/{token}', [DelegateController::class, 'show'])
