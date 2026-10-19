@@ -75,14 +75,6 @@ class SettingsPage extends Page
     {
         $config = $this->getRecord()->config ?? [];
 
-        if (! $this->isConfigured()) {
-            return $form->schema([
-                Callout::make(__('github::github.settings.callout_not_configured_title'))
-                    ->danger()
-                    ->description(__('github::github.settings.callout_not_configured_description')),
-            ])->statePath('data');
-        }
-
         if (! $this->hasTokens($config)) {
             return $form->schema([
                 Callout::make(__('github::github.settings.callout_disconnected_title'))
@@ -160,7 +152,7 @@ class SettingsPage extends Page
             Action::make('connect')
                 ->label(__('github::github.settings.action_connect'))
                 ->url(route('github.oauth.redirect', $this->getRecord()))
-                ->visible($this->isConfigured() && ! $this->hasTokens($config)),
+                ->visible(! $this->hasTokens($config)),
 
             Action::make('save')
                 ->label(__('github::github.common.action_save'))
@@ -197,18 +189,10 @@ class SettingsPage extends Page
             ->implode(',');
     }
 
-    private function isConfigured(): bool
-    {
-        return filled(config('github.client_id'))
-            && filled(config('github.client_secret'))
-            && filled(config('github.app_id'))
-            && filled(config('github.private_key'));
-    }
-
     /** @param array<string, mixed> $config */
     private function hasTokens(array $config): bool
     {
-        return $this->isConfigured() && filled($config['access_token'] ?? null);
+        return filled($config['access_token'] ?? null);
     }
 
     /** @param array<string, mixed> $config */

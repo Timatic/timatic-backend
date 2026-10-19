@@ -26,8 +26,6 @@ return [
         'callout_connected_description' => 'Connected to :accounts. Add this to GITHUB_INSTALLATIONS in the auth proxy so events are routed here: :routing',
         'callout_no_installations_title' => 'App not installed yet',
         'callout_no_installations_description' => 'OAuth connected, but the app is not installed on any organisation yet. Install it on GitHub and use "Refresh installations".',
-        'callout_not_configured_title' => 'Not configured',
-        'callout_not_configured_description' => 'The environment variables GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, GITHUB_APP_ID and GITHUB_PRIVATE_KEY are not set.',
         'callout_disconnected_title' => 'Not connected',
         'callout_disconnected_description' => 'Click "Connect to GitHub" to establish a connection.',
         'action_connect' => 'Connect to GitHub',

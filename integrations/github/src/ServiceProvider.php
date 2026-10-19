@@ -19,7 +19,7 @@ class ServiceProvider extends BaseServiceProvider
             $types->register('github', [
                 'github.repositories' => RepositoryMappingPage::class,
                 'github.settings' => SettingsPage::class,
-            ])->landingPage(function (Integration $integration): string {
+            ])->requiresConfig(['github.client_id', 'github.client_secret', 'github.app_id', 'github.private_key'])->landingPage(function (Integration $integration): string {
                 $installations = app(InstallationService::class)->stored($integration->config ?? []);
 
                 return $installations === [] ? SettingsPage::class : RepositoryMappingPage::class;

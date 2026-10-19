@@ -26,8 +26,6 @@ return [
         'callout_connected_description' => 'Verbonden met :accounts. Voeg dit toe aan GITHUB_INSTALLATIONS in de auth proxy zodat events hier terechtkomen: :routing',
         'callout_no_installations_title' => 'App nog niet geïnstalleerd',
         'callout_no_installations_description' => 'OAuth verbonden, maar de app is nog niet op een organisatie geïnstalleerd. Installeer de app op GitHub en klik daarna op "Installaties vernieuwen".',
-        'callout_not_configured_title' => 'Niet geconfigureerd',
-        'callout_not_configured_description' => 'De omgevingsvariabelen GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, GITHUB_APP_ID en GITHUB_PRIVATE_KEY zijn niet ingesteld.',
         'callout_disconnected_title' => 'Niet verbonden',
         'callout_disconnected_description' => 'Klik op "Verbinden met GitHub" om verbinding te maken.',
         'action_connect' => 'Verbinden met GitHub',
