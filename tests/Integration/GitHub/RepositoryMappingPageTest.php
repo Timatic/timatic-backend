@@ -25,7 +25,7 @@ it('creates a mapping for every repository of the installation', function () {
     config()->set('github.private_key', 'private-key');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
     Cache::put('github.installation_token.4242', 'ghs_installation_token');
     MockClient::global([
         GetInstallationRepositoriesRequest::class => MockResponse::make([
@@ -52,7 +52,7 @@ it('archives a mapping whose repository is no longer accessible', function () {
     config()->set('github.private_key', 'private-key');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
     RepositoryMapping::create([
         'integration_id' => $integration->id,
         'installation_id' => 4242,
@@ -80,7 +80,7 @@ it('warns instead of failing when GitHub rejects the repository request', functi
     config()->set('github.private_key', 'private-key');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
     MockClient::global([
         CreateInstallationTokenRequest::class => MockResponse::make(['message' => 'Bad credentials'], 401),
     ]);
@@ -97,7 +97,7 @@ it('links selected repositories to a customer and budget', function () {
     config()->set('github.private_key', 'private-key');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
     $customer = Customer::factory()->create();
     $budget = Budget::factory()
         ->has(BudgetVersion::factory()->count(1)->state(['effective_to' => null]))
@@ -135,7 +135,7 @@ it('syncs the repositories of every adopted installation', function () {
     config()->set('github.private_key', 'private-key');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => [
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => [
         'installations' => [['id' => 4242, 'account' => 'acme'], ['id' => 5353, 'account' => 'acme-labs']],
     ]]);
     Cache::put('github.installation_token.4242', 'ghs_acme_token');
@@ -166,7 +166,7 @@ it('keeps the mappings of an installation that could not be reached', function (
     config()->set('github.private_key', 'private-key');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => [
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => [
         'installations' => [['id' => 4242, 'account' => 'acme']],
     ]]);
     RepositoryMapping::create([

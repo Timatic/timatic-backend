@@ -8,7 +8,7 @@ use Timatic\GitHub\Models\RepositoryMapping;
 it('dispatches the delivery with the mapping of the delivering repository', function () {
     Bus::fake();
     config()->set('github.webhook_secret', 'webhook-secret');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
     $mapping = RepositoryMapping::create([
         'integration_id' => $integration->id,
         'installation_id' => 4242,
@@ -34,7 +34,7 @@ it('dispatches the delivery with the mapping of the delivering repository', func
 it('dispatches without a mapping when the repository is not linked', function () {
     Bus::fake();
     config()->set('github.webhook_secret', 'webhook-secret');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
     $body = json_encode(['repository' => ['full_name' => 'acme/unmapped']]);
 
     $this->call('POST', route('github.webhook', $integration), [], [], [], [
@@ -51,7 +51,7 @@ it('dispatches without a mapping when the repository is not linked', function ()
 it('ignores an archived mapping', function () {
     Bus::fake();
     config()->set('github.webhook_secret', 'webhook-secret');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
     RepositoryMapping::create([
         'integration_id' => $integration->id,
         'installation_id' => 4242,
@@ -76,7 +76,7 @@ it('ignores an archived mapping', function () {
 it('rejects a delivery with an invalid signature', function () {
     Bus::fake();
     config()->set('github.webhook_secret', 'webhook-secret');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     $body = json_encode(['repository' => ['full_name' => 'acme/api']]);
 
     $this->call('POST', route('github.webhook', $integration), [], [], [], [
@@ -91,7 +91,7 @@ it('rejects a delivery with an invalid signature', function () {
 it('rejects a delivery when no webhook secret is configured', function () {
     Bus::fake();
     config()->set('github.webhook_secret', null);
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     $body = json_encode(['repository' => ['full_name' => 'acme/api']]);
 
     $this->call('POST', route('github.webhook', $integration), [], [], [], [
@@ -106,7 +106,7 @@ it('rejects a delivery when no webhook secret is configured', function () {
 it('acknowledges a ping without dispatching', function () {
     Bus::fake();
     config()->set('github.webhook_secret', 'webhook-secret');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     $body = json_encode(['zen' => 'Keep it logically awesome.', 'hook_id' => 1]);
 
     $this->call('POST', route('github.webhook', $integration), [], [], [], [

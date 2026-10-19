@@ -4,6 +4,7 @@ namespace Timatic\GitHub\Http\Controllers;
 
 use App\Models\Integration;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Timatic\GitHub\Exceptions\GitHubException;
 use Timatic\GitHub\InstallationService;
@@ -11,19 +12,28 @@ use Timatic\GitHub\OAuthService;
 
 class DelegateController
 {
-    public function show(string $token): View
+    public function show(Request $request, string $token): View
     {
         $integration = Integration::where('share_token', $token)->firstOrFail();
 
-        if (filled(($integration->config ?? [])['access_token'] ?? null)) {
-            $integration = $this->refreshInstallations($integration);
+        if (! $this->isConnected($integration)) {
+            return view('github::consent.connect', [
+                'integration' => $integration,
+            ]);
         }
 
-        return view('github::delegate.show', [
-            'integration' => $integration,
-            'accounts' => app(InstallationService::class)->stored($integration->config ?? []),
+        $integration = $this->refreshInstallations($integration);
+
+        if ($this->isConfigured($integration)) {
+            return view('github::consent.connected', [
+                'accounts' => app(InstallationService::class)->stored($integration->config ?? []),
+                'installUrl' => app(OAuthService::class)->installUrl(),
+            ]);
+        }
+
+        return view('github::consent.install', [
             'installUrl' => app(OAuthService::class)->installUrl(),
-            'configured' => $this->isConfigured($integration),
+            'justConnected' => $request->has('connected'),
         ]);
     }
 
@@ -55,6 +65,11 @@ class DelegateController
         }
 
         return $integration->refresh();
+    }
+
+    private function isConnected(Integration $integration): bool
+    {
+        return filled(($integration->config ?? [])['access_token'] ?? null);
     }
 
     private function isConfigured(Integration $integration): bool

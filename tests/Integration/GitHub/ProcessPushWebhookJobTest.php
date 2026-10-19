@@ -13,7 +13,7 @@ it('creates a commit_pushed event carrying the mapped customer', function () {
     EventFacade::fake();
     $user = User::factory()->create(['email' => 'dev@example.com']);
     $customer = Customer::factory()->create();
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     $mapping = RepositoryMapping::create([
         'integration_id' => $integration->id,
         'installation_id' => 4242,

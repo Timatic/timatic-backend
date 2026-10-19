@@ -13,14 +13,14 @@ return [
         'action_disconnect' => 'Remove connection',
         'action_save' => 'Save',
         'action_refresh' => 'Refresh',
-        'field_name' => 'Name',
-        'notification_name_changed' => 'Name updated.',
+        'field_title' => 'Title',
+        'notification_title_changed' => 'Title updated.',
         'connection_expired_title' => 'GitHub connection unavailable',
         'connection_expired_body' => 'Reconnect GitHub via Settings, or check the app installation on GitHub.',
     ],
 
     'settings' => [
-        'page_title' => ':name (GitHub) — Settings',
+        'page_title' => ':title (GitHub) — Settings',
         'nav_label' => 'Settings',
         'callout_connected_title' => 'Connected',
         'callout_connected_description' => 'Connected to :accounts. Add this to GITHUB_INSTALLATIONS in the auth proxy so events are routed here: :routing',
@@ -39,7 +39,7 @@ return [
     ],
 
     'repository_mapping' => [
-        'page_title' => ':name (GitHub) — Repository mapping',
+        'page_title' => ':title (GitHub) — Repository mapping',
         'nav_label' => 'Repository mapping',
         'no_credentials_heading' => 'No installation found',
         'no_credentials_description' => 'Connect GitHub and install the app on an organisation before linking repositories.',
@@ -50,5 +50,16 @@ return [
         'empty_description' => 'Click "Refresh" to fetch repositories from GitHub.',
         'filter_archived' => 'Archived',
         'filter_unmapped' => 'Unmapped only',
+    ],
+    'consent' => [
+        'subtitle' => 'GitHub integration',
+        'connect_intro' => 'Click the button below to connect GitHub to Timatic for :tenant. You will be redirected to GitHub to grant permission.',
+        'connect_action' => 'Connect to GitHub',
+        'just_connected' => 'GitHub connected successfully.',
+        'install_intro' => 'The Timatic app is not installed on your organisation yet. Install the app on GitHub and reload this page afterwards.',
+        'install_action' => 'Install the app on GitHub',
+        'connected' => 'GitHub is connected for :accounts. Timatic will finish the configuration.',
+        'install_another_intro' => 'Installed the app on another organisation? Install it on GitHub and reload this page afterwards.',
+        'install_another_action' => 'Install the app on another organisation',
     ],
 ];

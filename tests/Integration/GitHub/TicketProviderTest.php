@@ -21,7 +21,7 @@ afterEach(function () {
 it('lists open issues of the repositories mapped to the customer', function () {
     Cache::put('github.installation_token.4242', 'ghs_installation_token');
     $customer = Customer::factory()->create();
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     RepositoryMapping::create([
         'integration_id' => $integration->id,
         'installation_id' => 4242,
@@ -70,7 +70,7 @@ it('lists open issues of the repositories mapped to the customer', function () {
 
 it('searches issues within the mapped repositories', function () {
     Cache::put('github.installation_token.4242', 'ghs_installation_token');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     RepositoryMapping::create([
         'integration_id' => $integration->id,
         'installation_id' => 4242,
@@ -93,7 +93,7 @@ it('searches issues within the mapped repositories', function () {
 it('searches issues the user is involved in when no customer is given', function () {
     Cache::put('github.installation_token.4242', 'ghs_installation_token');
     $user = User::factory()->create(['github_login' => 'octocat']);
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     RepositoryMapping::create([
         'integration_id' => $integration->id,
         'installation_id' => 4242,
@@ -119,7 +119,7 @@ it('returns the ticket for a repository issue key with its mapping', function ()
     $budget = Budget::factory()
         ->has(BudgetVersion::factory()->count(1)->state(['effective_to' => null]))
         ->create(['customer_id' => $customer->id]);
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     RepositoryMapping::create([
         'integration_id' => $integration->id,
         'installation_id' => 4242,
@@ -154,7 +154,7 @@ it('returns the ticket for a repository issue key with its mapping', function ()
 
 it('returns nothing for an issue key GitHub does not know', function () {
     Cache::put('github.installation_token.4242', 'ghs_installation_token');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     MockClient::global([
         GetIssueRequest::class => MockResponse::make(['message' => 'Not Found'], 404),
     ]);
@@ -167,7 +167,7 @@ it('returns nothing for an issue key GitHub does not know', function () {
 
 it('returns nothing for a key that points at a pull request', function () {
     Cache::put('github.installation_token.4242', 'ghs_installation_token');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     MockClient::global([
         GetIssueRequest::class => MockResponse::make([
             'number' => 43,
@@ -188,7 +188,7 @@ it('returns nothing for a key that points at a pull request', function () {
 
 it('returns the comments of an issue as chronological actions', function () {
     Cache::put('github.installation_token.4242', 'ghs_installation_token');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     MockClient::global([
         GetIssueRequest::class => MockResponse::make([
             'number' => 42,
@@ -214,7 +214,7 @@ it('returns the comments of an issue as chronological actions', function () {
 });
 
 it('returns nothing while no installation is linked', function () {
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
 
     $provider = TicketProvider::fromConfig(['integration_id' => $integration->id]);
 
@@ -231,7 +231,7 @@ it('matches a repository issue key in text but not a bare issue number', functio
 it('searches each installation with its own repositories', function () {
     Cache::put('github.installation_token.4242', 'ghs_acme_token');
     Cache::put('github.installation_token.5353', 'ghs_labs_token');
-    $integration = Integration::create(['name' => 'GitHub', 'type' => 'github', 'config' => []]);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     RepositoryMapping::create([
         'integration_id' => $integration->id,
         'installation_id' => 4242,
@@ -258,4 +258,23 @@ it('searches each installation with its own repositories', function () {
     $mockClient->assertSentCount(2);
     $mockClient->assertSent(fn ($request) => $request->query()->get('q') === 'is:issue safari repo:acme/api');
     $mockClient->assertSent(fn ($request) => $request->query()->get('q') === 'is:issue safari repo:acme-labs/site');
+});
+
+it('finds the customer and budget an issue key is mapped to', function () {
+    $budget = Budget::factory()->create();
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
+    RepositoryMapping::create([
+        'integration_id' => $integration->id,
+        'installation_id' => 4242,
+        'owner_login' => 'acme',
+        'repository_name' => 'api',
+        'repository_full_name' => 'acme/api',
+        'customer_id' => $budget->customer_id,
+        'budget_id' => $budget->id,
+    ]);
+
+    $mapping = TicketProvider::fromConfig(['integration_id' => $integration->id])->findMappingByTicketKey('acme/api#42');
+
+    expect($mapping?->customer_id)->toBe($budget->customer_id)
+        ->and($mapping?->budget_id)->toBe($budget->id);
 });
