@@ -11,11 +11,8 @@ Create a GitHub App (organisation settings → Developer settings → GitHub App
   subdomains, register the parent domain (`https://timatic.app/integrations/github/callback`) and enable
   wildcard matching, so every `admin.{tenant}.timatic.app` receives the callback directly.
 - **Expire user authorization tokens**: enabled (recommended — the code also handles it disabled)
-- **Webhook URL**: `https://auth.timatic.app/integrations/github/webhook`
-- **Webhook secret**: the value of `GITHUB_WEBHOOK_SECRET`, shared with the auth proxy
-- **Repository permissions**: Metadata read, Contents read, Issues read, Pull requests read
-- **Subscribe to events**: Push, Pull request, Pull request review, Pull request review comment,
-  Issue comment, Repository, Create
+- **Webhook**: inactive. Every mapped repository gets its own webhook instead, see below
+- **Repository permissions**: Metadata read, Contents read, Issues read, Pull requests read, Webhooks read & write
 - Generate a private key and put its PEM contents in `GITHUB_PRIVATE_KEY` (newlines as `\n`)
 
 ## Env
@@ -26,7 +23,6 @@ GITHUB_CLIENT_SECRET=
 GITHUB_APP_ID=
 GITHUB_APP_SLUG=
 GITHUB_PRIVATE_KEY=
-GITHUB_WEBHOOK_SECRET=
 ```
 
 ## Installations
@@ -41,17 +37,16 @@ lapses. Only discovering new installations needs a valid user token.
 Every organisation the connecting user can see is adopted, including their personal account. Those
 repositories appear as unmapped rows until a customer is linked, and produce no events while unmapped.
 
-## Webhook routing
+## Webhooks
 
-A GitHub App has a single webhook URL, so deliveries for every tenant arrive at the auth proxy. The proxy is
-stateless and routes on the payload's `installation.id` using a hand-maintained map, so **each adopted
-installation needs its own entry** in `GITHUB_INSTALLATIONS`:
+Linking a repository to a customer creates a webhook on that repository, pointing at this instance's
+`/integrations/github/webhook/{integration}`. Unlinking it deletes the webhook again, so unmapped repositories
+send nothing. Every integration signs its webhooks with its own secret, generated on first use and stored in
+`Integration.config`.
 
-```
-GITHUB_INSTALLATIONS={installation_id}:{tenant}:{integration_id},{installation_id}:{tenant}:{integration_id}
-```
-
-The settings page prints the complete comma-joined value to paste.
+Creating the webhook fails until the organisation accepts the app's **Webhooks** permission; the mapping page
+then names the repositories whose webhook could not be created. Assign them again once the permission is
+accepted.
 
 ## Tokens
 

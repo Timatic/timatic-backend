@@ -23,7 +23,7 @@ return [
         'page_title' => ':title (GitHub) — Instellingen',
         'nav_label' => 'Instellingen',
         'callout_connected_title' => 'Verbonden',
-        'callout_connected_description' => 'Verbonden met :accounts. Voeg dit toe aan GITHUB_INSTALLATIONS in de auth proxy zodat events hier terechtkomen: :routing',
+        'callout_connected_description' => 'Verbonden met :accounts.',
         'callout_no_installations_title' => 'App nog niet geïnstalleerd',
         'callout_no_installations_description' => 'OAuth verbonden, maar de app is nog niet op een organisatie geïnstalleerd. Installeer de app op GitHub en klik daarna op "Installaties vernieuwen".',
         'callout_disconnected_title' => 'Niet verbonden',
@@ -48,6 +48,8 @@ return [
         'empty_description' => 'Klik op "Vernieuwen" om repositories op te halen uit GitHub.',
         'filter_archived' => 'Gearchiveerd',
         'filter_unmapped' => 'Alleen niet gekoppeld',
+        'webhook_failed_title' => 'Webhook niet bijgewerkt',
+        'webhook_failed_body' => 'GitHub weigerde de webhook van :repositories bij te werken. Controleer of de organisatie de Webhooks-permissie van de app heeft geaccepteerd.',
     ],
     'people' => [
         'page_title' => ':title (GitHub) — Personen',

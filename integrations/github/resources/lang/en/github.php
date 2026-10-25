@@ -23,7 +23,7 @@ return [
         'page_title' => ':title (GitHub) — Settings',
         'nav_label' => 'Settings',
         'callout_connected_title' => 'Connected',
-        'callout_connected_description' => 'Connected to :accounts. Add this to GITHUB_INSTALLATIONS in the auth proxy so events are routed here: :routing',
+        'callout_connected_description' => 'Connected to :accounts.',
         'callout_no_installations_title' => 'App not installed yet',
         'callout_no_installations_description' => 'OAuth connected, but the app is not installed on any organisation yet. Install it on GitHub and use "Refresh installations".',
         'callout_disconnected_title' => 'Not connected',
@@ -48,6 +48,8 @@ return [
         'empty_description' => 'Click "Refresh" to fetch repositories from GitHub.',
         'filter_archived' => 'Archived',
         'filter_unmapped' => 'Unmapped only',
+        'webhook_failed_title' => 'Webhook not updated',
+        'webhook_failed_body' => 'GitHub refused to update the webhook of :repositories. Check that the organisation accepted the app\'s Webhooks permission.',
     ],
     'people' => [
         'page_title' => ':title (GitHub) — People',

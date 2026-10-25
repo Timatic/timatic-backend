@@ -13,7 +13,7 @@ class WebhookController extends Controller
 {
     public function __invoke(Request $request, Integration $integration): Response
     {
-        if (! $this->signatureIsValid($request)) {
+        if (! $this->signatureIsValid($request, $integration)) {
             abort(403);
         }
 
@@ -35,13 +35,9 @@ class WebhookController extends Controller
         return response('', 200);
     }
 
-    /**
-     * The secret belongs to the app, not to a single integration, since the app
-     * signs every delivery with the same secret before the proxy forwards it.
-     */
-    private function signatureIsValid(Request $request): bool
+    private function signatureIsValid(Request $request, Integration $integration): bool
     {
-        $secret = (string) config('github.webhook_secret');
+        $secret = (string) ($integration->config['webhook_secret'] ?? '');
         $signature = $request->header('X-Hub-Signature-256');
 
         if ($secret === '' || $signature === null) {

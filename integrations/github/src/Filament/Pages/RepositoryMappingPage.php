@@ -28,6 +28,7 @@ use Timatic\GitHub\DataTransferObjects\GitHubRepositoryPage;
 use Timatic\GitHub\Exceptions\GitHubException;
 use Timatic\GitHub\InstallationService;
 use Timatic\GitHub\Models\RepositoryMapping;
+use Timatic\GitHub\RepositoryWebhookService;
 use Timatic\GitHub\Requests\GetInstallationRepositoriesRequest;
 
 class RepositoryMappingPage extends Page implements HasTable
@@ -135,10 +136,30 @@ class RepositoryMappingPage extends Page implements HasTable
                             ->placeholder(__('github::github.common.no_budget')),
                     ])
                     ->action(function (Collection $records, array $data): void {
-                        $records->each->update([
-                            'customer_id' => $data['customer_id'] ?: null,
-                            'budget_id' => $data['budget_id'] ?: null,
-                        ]);
+                        $failedRepositories = [];
+
+                        /** @var RepositoryMapping $mapping */
+                        foreach ($records as $mapping) {
+                            $mapping->update([
+                                'customer_id' => $data['customer_id'] ?: null,
+                                'budget_id' => $data['budget_id'] ?: null,
+                            ]);
+
+                            try {
+                                app(RepositoryWebhookService::class)->sync($mapping);
+                            } catch (GitHubException $e) {
+                                $failedRepositories[] = $mapping->repository_full_name;
+                            }
+                        }
+
+                        if ($failedRepositories !== []) {
+                            Notification::make()
+                                ->title(__('github::github.repository_mapping.webhook_failed_title'))
+                                ->body(__('github::github.repository_mapping.webhook_failed_body', ['repositories' => implode(', ', $failedRepositories)]))
+                                ->danger()
+                                ->persistent()
+                                ->send();
+                        }
                     })
                     ->deselectRecordsAfterCompletion(),
             ])

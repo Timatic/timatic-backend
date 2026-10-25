@@ -62,12 +62,11 @@ it('adopts every installation the connected user can reach', function () {
     ]);
 });
 
-it('shows a proxy routing line per adopted installation', function () {
+it('shows the accounts of every adopted installation', function () {
     config()->set('github.client_id', 'Iv1.client');
     config()->set('github.client_secret', 'client-secret');
     config()->set('github.app_id', '123456');
     config()->set('github.private_key', 'private-key');
-    config()->set('timatic.tenant_slug', 'klant1');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
     $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => [
@@ -78,7 +77,7 @@ it('shows a proxy routing line per adopted installation', function () {
 
     Livewire::test(SettingsPage::class, ['record' => $integration->id])
         ->assertSuccessful()
-        ->assertSee('4242:klant1:'.$integration->id.',5353:klant1:'.$integration->id);
+        ->assertSee(__('github::github.settings.callout_connected_description', ['accounts' => 'acme, octocat']));
 });
 
 it('clears the connection on disconnect', function () {

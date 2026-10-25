@@ -12,6 +12,8 @@ use Tests\Concerns\LoginUser;
 use Timatic\GitHub\Filament\Pages\RepositoryMappingPage;
 use Timatic\GitHub\Models\RepositoryMapping;
 use Timatic\GitHub\Requests\CreateInstallationTokenRequest;
+use Timatic\GitHub\Requests\CreateRepositoryWebhookRequest;
+use Timatic\GitHub\Requests\DeleteRepositoryWebhookRequest;
 use Timatic\GitHub\Requests\GetInstallationRepositoriesRequest;
 
 uses(LoginUser::class);
@@ -117,6 +119,7 @@ it('links selected repositories to a customer and budget', function () {
                 ['id' => 1, 'name' => 'api', 'full_name' => 'acme/api', 'owner' => ['login' => 'acme'], 'archived' => false],
             ],
         ]),
+        CreateRepositoryWebhookRequest::class => MockResponse::make(['id' => 987654], 201),
     ]);
 
     Livewire::test(RepositoryMappingPage::class, ['record' => $integration->id])
@@ -127,7 +130,47 @@ it('links selected repositories to a customer and budget', function () {
 
     expect($mapping->refresh())
         ->customer_id->toBe($customer->id)
-        ->budget_id->toBe($budget->id);
+        ->budget_id->toBe($budget->id)
+        ->webhook_id->toBe(987654)
+        ->and($integration->refresh()->config['webhook_secret'])->toBeString();
+});
+
+it('removes the webhook of a repository that is no longer linked', function () {
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
+    $mapping = RepositoryMapping::create([
+        'integration_id' => $integration->id,
+        'installation_id' => 4242,
+        'owner_login' => 'acme',
+        'repository_name' => 'api',
+        'repository_full_name' => 'acme/api',
+        'customer_id' => Customer::factory()->create()->id,
+        'webhook_id' => 987654,
+    ]);
+    Cache::put('github.installation_token.4242', 'ghs_installation_token');
+    $mockClient = MockClient::global([
+        GetInstallationRepositoriesRequest::class => MockResponse::make([
+            'total_count' => 1,
+            'repositories' => [
+                ['id' => 1, 'name' => 'api', 'full_name' => 'acme/api', 'owner' => ['login' => 'acme'], 'archived' => false],
+            ],
+        ]),
+        DeleteRepositoryWebhookRequest::class => MockResponse::make('', 204),
+    ]);
+
+    Livewire::test(RepositoryMappingPage::class, ['record' => $integration->id])
+        ->removeTableFilter('unmapped')
+        ->callTableBulkAction('assign', [$mapping->id], [
+            'customer_id' => null,
+            'budget_id' => null,
+        ]);
+
+    $mockClient->assertSent(fn ($request) => $request instanceof DeleteRepositoryWebhookRequest
+        && $request->resolveEndpoint() === '/repos/acme/api/hooks/987654');
+    expect($mapping->refresh())
+        ->customer_id->toBeNull()
+        ->webhook_id->toBeNull();
 });
 
 it('syncs the repositories of every adopted installation', function () {

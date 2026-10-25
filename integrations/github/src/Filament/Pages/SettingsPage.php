@@ -104,7 +104,6 @@ class SettingsPage extends Page
                 ->success()
                 ->description(__('github::github.settings.callout_connected_description', [
                     'accounts' => implode(', ', $this->installations($config)),
-                    'routing' => $this->proxyRoutingLine($config),
                 ])),
         ])->statePath('data');
     }
@@ -177,23 +176,6 @@ class SettingsPage extends Page
     private function installations(array $config): array
     {
         return app(InstallationService::class)->stored($config);
-    }
-
-    /**
-     * The auth proxy routes deliveries by installation, using a hand-maintained map.
-     *
-     * @param  array<string, mixed>  $config
-     */
-    private function proxyRoutingLine(array $config): string
-    {
-        return collect($this->installations($config))
-            ->keys()
-            ->map(fn (int $installationId) => implode(':', [
-                $installationId,
-                config('timatic.tenant_slug'),
-                $this->getRecord()->getKey(),
-            ]))
-            ->implode(',');
     }
 
     /** @param array<string, mixed> $config */

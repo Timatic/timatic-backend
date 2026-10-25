@@ -17,7 +17,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $repository_full_name
  * @property ?int $customer_id
  * @property ?int $budget_id
+ * @property ?int $webhook_id
  * @property bool $is_archived
+ * @property-read Integration $integration
  */
 class RepositoryMapping extends Model
 {
@@ -31,6 +33,7 @@ class RepositoryMapping extends Model
         'repository_full_name',
         'customer_id',
         'budget_id',
+        'webhook_id',
         'is_archived',
     ];
 
@@ -39,6 +42,7 @@ class RepositoryMapping extends Model
     {
         return [
             'installation_id' => 'int',
+            'webhook_id' => 'int',
             'is_archived' => 'bool',
         ];
     }
