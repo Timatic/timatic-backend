@@ -136,6 +136,7 @@ class RepositoryMappingPage extends Page implements HasTable
                             ->placeholder(__('github::github.common.no_budget')),
                     ])
                     ->action(function (Collection $records, array $data): void {
+                        $webhookService = app(RepositoryWebhookService::class);
                         $failedRepositories = [];
 
                         /** @var RepositoryMapping $mapping */
@@ -146,7 +147,7 @@ class RepositoryMappingPage extends Page implements HasTable
                             ]);
 
                             try {
-                                app(RepositoryWebhookService::class)->sync($mapping);
+                                $webhookService->sync($mapping);
                             } catch (GitHubException $e) {
                                 $failedRepositories[] = $mapping->repository_full_name;
                             }
