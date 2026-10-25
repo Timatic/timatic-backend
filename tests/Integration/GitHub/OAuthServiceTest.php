@@ -3,6 +3,7 @@
 use App\Models\Integration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\URL;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
 use Timatic\GitHub\Exceptions\GitHubException;
@@ -18,7 +19,7 @@ afterEach(function () {
 
 it('builds an authorization url without scopes', function () {
     config()->set('github.client_id', 'Iv1.client');
-    config()->set('app.auth_proxy_url', 'https://auth.timatic.app');
+    URL::forceRootUrl('https://admin.acme.timatic.app');
     $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
 
     $url = app(OAuthService::class)->buildAuthorizationUrl($integration);
@@ -26,7 +27,7 @@ it('builds an authorization url without scopes', function () {
     parse_str(parse_url($url, PHP_URL_QUERY), $query);
     expect($url)->toStartWith('https://github.com/login/oauth/authorize?')
         ->and($query['client_id'])->toBe('Iv1.client')
-        ->and($query['redirect_uri'])->toBe('https://auth.timatic.app/integrations/github/callback')
+        ->and($query['redirect_uri'])->toBe('https://admin.acme.timatic.app/integrations/github/callback')
         ->and($query)->not->toHaveKey('scope')
         ->and($integration->refresh()->config['oauth_nonce'])->toBeString();
 });

@@ -210,7 +210,6 @@ class OAuthService
     private function buildStateJwt(int $integrationId, string $nonce): string
     {
         return JWT::encode([
-            'tenant' => config('timatic.tenant_slug'),
             'integration_id' => $integrationId,
             'nonce' => $nonce,
         ], $this->jwtKey(), 'HS256');
@@ -233,8 +232,12 @@ class OAuthService
         return str_starts_with($key, 'base64:') ? base64_decode(substr($key, 7)) : $key;
     }
 
+    /**
+     * Tenants share one GitHub App whose callback URL has wildcard matching enabled,
+     * so every tenant subdomain can receive the callback directly.
+     */
     private function redirectUri(): string
     {
-        return rtrim(config('app.auth_proxy_url'), '/').'/integrations/github/callback';
+        return route('github.oauth.callback');
     }
 }

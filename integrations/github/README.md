@@ -7,7 +7,9 @@ offered as tickets.
 
 Create a GitHub App (organisation settings → Developer settings → GitHub Apps) and configure:
 
-- **Callback URL**: `https://auth.timatic.app/integrations/github/callback`
+- **Callback URL**: `https://{your-domain}/integrations/github/callback`. When tenants share one app on
+  subdomains, register the parent domain (`https://timatic.app/integrations/github/callback`) and enable
+  wildcard matching, so every `admin.{tenant}.timatic.app` receives the callback directly.
 - **Expire user authorization tokens**: enabled (recommended — the code also handles it disabled)
 - **Webhook URL**: `https://auth.timatic.app/integrations/github/webhook`
 - **Webhook secret**: the value of `GITHUB_WEBHOOK_SECRET`, shared with the auth proxy
