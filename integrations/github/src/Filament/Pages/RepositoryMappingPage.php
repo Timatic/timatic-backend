@@ -22,6 +22,7 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Timatic\GitHub\Connector;
 use Timatic\GitHub\DataTransferObjects\GitHubRepository;
 use Timatic\GitHub\DataTransferObjects\GitHubRepositoryPage;
@@ -113,55 +114,22 @@ class RepositoryMappingPage extends Page implements HasTable
                     ->label(__('github::github.repository_mapping.filter_archived'))
                     ->default(false),
             ])
+            ->recordActions([
+                Action::make('assign')
+                    ->label(__('github::github.common.assign_action'))
+                    ->fillForm(fn (RepositoryMapping $record): array => [
+                        'customer_id' => $record->customer_id,
+                        'budget_id' => $record->budget_id,
+                    ])
+                    ->schema($this->assignmentSchema())
+                    ->action(fn (RepositoryMapping $record, array $data) => $this->assign(new Collection([$record]), $data)),
+            ])
+            ->recordAction('assign')
             ->bulkActions([
                 BulkAction::make('assign')
                     ->label(__('github::github.common.assign_action'))
-                    ->form([
-                        Select::make('customer_id')
-                            ->label(__('github::github.common.customer_label'))
-                            ->options(Customer::orderBy('name')->pluck('name', 'id'))
-                            ->searchable()
-                            ->nullable()
-                            ->placeholder(__('github::github.common.no_customer'))
-                            ->live(),
-                        Select::make('budget_id')
-                            ->label(__('github::github.common.budget_label'))
-                            ->options(fn ($get) => Budget::query()
-                                ->when($get('customer_id'), fn ($q, $id) => $q->where('customer_id', $id))
-                                ->get()
-                                ->mapWithKeys(fn (Budget $budget) => [$budget->id => $budget->getTitle()])
-                            )
-                            ->searchable()
-                            ->nullable()
-                            ->placeholder(__('github::github.common.no_budget')),
-                    ])
-                    ->action(function (Collection $records, array $data): void {
-                        $webhookService = app(RepositoryWebhookService::class);
-                        $failedRepositories = [];
-
-                        /** @var RepositoryMapping $mapping */
-                        foreach ($records as $mapping) {
-                            $mapping->update([
-                                'customer_id' => $data['customer_id'] ?: null,
-                                'budget_id' => $data['budget_id'] ?: null,
-                            ]);
-
-                            try {
-                                $webhookService->sync($mapping);
-                            } catch (GitHubException $e) {
-                                $failedRepositories[] = $mapping->repository_full_name;
-                            }
-                        }
-
-                        if ($failedRepositories !== []) {
-                            Notification::make()
-                                ->title(__('github::github.repository_mapping.webhook_failed_title'))
-                                ->body(__('github::github.repository_mapping.webhook_failed_body', ['repositories' => implode(', ', $failedRepositories)]))
-                                ->danger()
-                                ->persistent()
-                                ->send();
-                        }
-                    })
+                    ->schema($this->assignmentSchema())
+                    ->action(fn (Collection $records, array $data) => $this->assign($records, $data))
                     ->deselectRecordsAfterCompletion(),
             ])
             ->heading(__('github::github.repository_mapping.table_heading'))
@@ -179,6 +147,63 @@ class RepositoryMappingPage extends Page implements HasTable
                     $this->resetTable();
                 }),
         ];
+    }
+
+    /** @return array<int, Select> */
+    private function assignmentSchema(): array
+    {
+        return [
+            Select::make('customer_id')
+                ->label(__('github::github.common.customer_label'))
+                ->options(Customer::orderBy('name')->pluck('name', 'id'))
+                ->searchable()
+                ->nullable()
+                ->placeholder(__('github::github.common.no_customer'))
+                ->live(),
+            Select::make('budget_id')
+                ->label(__('github::github.common.budget_label'))
+                ->options(fn ($get) => Budget::query()
+                    ->when($get('customer_id'), fn ($q, $id) => $q->where('customer_id', $id))
+                    ->get()
+                    ->mapWithKeys(fn (Budget $budget) => [$budget->id => $budget->getTitle()])
+                )
+                ->searchable()
+                ->nullable()
+                ->placeholder(__('github::github.common.no_budget')),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, covariant Model>  $mappings
+     * @param  array<string, mixed>  $data
+     */
+    private function assign(Collection $mappings, array $data): void
+    {
+        $webhookService = app(RepositoryWebhookService::class);
+        $failedRepositories = [];
+
+        /** @var RepositoryMapping $mapping */
+        foreach ($mappings as $mapping) {
+            $mapping->update([
+                'customer_id' => $data['customer_id'] ?: null,
+                'budget_id' => $data['budget_id'] ?: null,
+            ]);
+
+            try {
+                $webhookService->sync($mapping);
+            } catch (GitHubException $e) {
+                $failedRepositories[] = $mapping->repository_full_name;
+            }
+        }
+
+        if ($failedRepositories !== []) {
+            Notification::make()
+                ->title(__('github::github.repository_mapping.webhook_failed_title'))
+                ->body(__('github::github.repository_mapping.webhook_failed_body', ['repositories' => implode(', ', $failedRepositories)]))
+                ->danger()
+                ->persistent()
+                ->send();
+        }
     }
 
     private function hasInstallations(): bool

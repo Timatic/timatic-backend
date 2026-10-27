@@ -4,6 +4,7 @@ use App\Models\Budget;
 use App\Models\BudgetVersion;
 use App\Models\Customer;
 use App\Models\Integration;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
 use Saloon\Http\Faking\MockClient;
@@ -133,6 +134,40 @@ it('links selected repositories to a customer and budget', function () {
         ->budget_id->toBe($budget->id)
         ->webhook_id->toBe(987654)
         ->and($integration->refresh()->config['webhook_secret'])->toBeString();
+});
+
+it('links a single repository from its row', function () {
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
+    $customer = Customer::factory()->create();
+    $mapping = RepositoryMapping::create([
+        'integration_id' => $integration->id,
+        'installation_id' => 4242,
+        'owner_login' => 'acme',
+        'repository_name' => 'api',
+        'repository_full_name' => 'acme/api',
+    ]);
+    Cache::put('github.installation_token.4242', 'ghs_installation_token');
+    MockClient::global([
+        GetInstallationRepositoriesRequest::class => MockResponse::make([
+            'total_count' => 1,
+            'repositories' => [
+                ['id' => 1, 'name' => 'api', 'full_name' => 'acme/api', 'owner' => ['login' => 'acme'], 'archived' => false],
+            ],
+        ]),
+        CreateRepositoryWebhookRequest::class => MockResponse::make(['id' => 987654], 201),
+    ]);
+
+    Livewire::test(RepositoryMappingPage::class, ['record' => $integration->id])
+        ->callAction(TestAction::make('assign')->table($mapping), [
+            'customer_id' => $customer->id,
+            'budget_id' => null,
+        ]);
+
+    expect($mapping->refresh())
+        ->customer_id->toBe($customer->id)
+        ->webhook_id->toBe(987654);
 });
 
 it('removes the webhook of a repository that is no longer linked', function () {
