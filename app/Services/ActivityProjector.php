@@ -101,6 +101,16 @@ class ActivityProjector
         $newActivity = $this->activityFromEvent($event);
         $newActivityPartsWithoutOverlap = $this->reduceOverlap($newActivity);
         $this->activities->push(...$newActivityPartsWithoutOverlap);
+
+        // Fully covered, the event has no time of its own left, but it still underlines the work of
+        // the same customer that covers it.
+        if ($newActivityPartsWithoutOverlap === [] && $event->customer_id !== null) {
+            $this->activities
+                ->first(fn (Activity $activity) => $activity->customer_id === $event->customer_id
+                    && $activity->started_at->lt($event->ended_at)
+                    && $activity->ended_at->gt($event->effectiveStart()))
+                ?->events->push($event);
+        }
     }
 
     /**

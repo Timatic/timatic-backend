@@ -301,7 +301,7 @@ test('the higher-weight group keeps its period and the lower one is trimmed', fu
         ->and($lightActivity->ended_at)->toEqual(Carbon::parse('2026-07-16 00:20'));
 });
 
-test('a group fully covered by a dominant group is dropped', function () {
+test('a group fully covered by a dominant group of the same customer hands its events to that group', function () {
     $covering = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
@@ -324,8 +324,9 @@ test('a group fully covered by a dominant group is dropped', function () {
     $activities = (new ActivityProjector)->project(collect([$covering, $covered]), collect());
 
     expect($activities)->toHaveCount(1)
-        ->and($activities[0]->events)->toHaveCount(1)
-        ->and($activities[0]->events->first())->toBe($covering);
+        ->and($activities[0]->events->all())->toBe([$covering, $covered])
+        ->and($activities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
+        ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:30'));
 });
 
 test('a covered group of another customer stays unattached instead of mixing customers', function () {
