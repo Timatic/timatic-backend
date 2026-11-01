@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Exceptions\ConflictingSuggestionFieldException;
 use Carbon\Carbon;
 use Database\Factories\EntrySuggestionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -54,6 +55,33 @@ class EntrySuggestion extends Model
             'id' => 'integer',
             'is_internal' => 'bool',
         ];
+    }
+
+    /**
+     * Fields still unknown are taken from the activity, so the suggestion
+     * becomes more specific with every activity added.
+     *
+     * @throws ConflictingSuggestionFieldException
+     */
+    public function addActivity(Activity $activity): void
+    {
+        foreach (['customer_id', 'budget_id', 'ticket_number'] as $definingField) {
+            if ($this->{$definingField} !== null && $activity->{$definingField} !== null && $this->{$definingField} !== $activity->{$definingField}) {
+                throw ConflictingSuggestionFieldException::between($definingField, $this->{$definingField}, $activity->{$definingField});
+            }
+        }
+
+        $activities = $this->relationLoaded('activities') ? $this->activities : collect();
+        $this->setRelation('activities', $activities->push($activity)->sortBy('started_at')->values());
+
+        $this->user_id ??= $activity->user_id;
+        $this->is_internal ??= $activity->is_internal;
+        $this->customer_id ??= $activity->customer_id;
+        $this->budget_id ??= $activity->budget_id;
+
+        $this->ticket_id ??= $activity->ticket_id;
+        $this->ticket_number ??= $activity->ticket_number;
+        $this->ticket_type ??= $activity->ticket_type;
     }
 
     /**

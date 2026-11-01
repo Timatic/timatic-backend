@@ -23,73 +23,111 @@ class SuggestionProjector
         CarbonInterface $date,
         Collection $previousSequenceBookings = new Collection,
     ): Collection {
-        return $this->buildGroups($activities)
-            ->map(fn (Collection $group) => $this->suggestionFromActivities($group, $date, $previousSequenceBookings))
+        return $this->buildSuggestions($activities, $date)
+            ->each(function (EntrySuggestion $suggestion) use ($previousSequenceBookings) {
+                if ($suggestion->customer_id === null) {
+                    $this->bookLikePreviousEntryOfSequence($suggestion, $previousSequenceBookings);
+                }
+            })
             ->reject(fn (EntrySuggestion $suggestion) => $this->isDismissed($suggestion, $dismissedSuggestions))
             ->values();
     }
 
     /**
      * @param  Collection<int, Activity>  $activities
-     * @return Collection<int, Collection<int, Activity>>
+     * @return Collection<int, EntrySuggestion>
      */
-    private function buildGroups(Collection $activities): Collection
+    private function buildSuggestions(Collection $activities, CarbonInterface $date): Collection
     {
         [$customerActivities, $customerlessActivities] = $activities
             ->partition(fn (Activity $activity) => $activity->customer_id !== null)
             ->all();
 
-        $customerlessGroups = $customerlessActivities->map(fn (Activity $activity) => collect([$activity]));
+        $customerlessSuggestions = $customerlessActivities->map(fn (Activity $activity) => $this->suggestionStartingWith($activity, $date));
 
-        $customerGroups = $customerActivities
+        $customerSuggestions = $customerActivities
             ->groupBy('customer_id')
-            ->flatMap(fn (Collection $activitiesOfCustomer) => $this->chainIntoGroups($activitiesOfCustomer));
+            ->flatMap(fn (Collection $activitiesOfCustomer) => $this->chainIntoSuggestions($activitiesOfCustomer, $date));
 
-        return $customerlessGroups->concat($customerGroups)->values();
+        return $this->mergeSuggestionsSharingAnEvent($customerlessSuggestions->concat($customerSuggestions));
     }
 
     /**
-     * Walks the customer's activities in chronological order, attaching each
-     * one to the preceding group when it chains onto that group.
+     * An event split into several activities (e.g. carved up by overlapping
+     * work) must still end up in a single suggestion.
+     *
+     * @param  Collection<int, EntrySuggestion>  $suggestions
+     * @return Collection<int, EntrySuggestion>
+     */
+    private function mergeSuggestionsSharingAnEvent(Collection $suggestions): Collection
+    {
+        return $suggestions->reduce(function (Collection $mergedSuggestions, EntrySuggestion $suggestion) {
+            $eventIds = $suggestion->activities->flatMap->events->pluck('id');
+
+            $suggestionSharingAnEvent = $mergedSuggestions->first(
+                fn (EntrySuggestion $mergedSuggestion) => $mergedSuggestion->activities
+                    ->flatMap->events
+                    ->pluck('id')
+                    ->intersect($eventIds)
+                    ->isNotEmpty()
+            );
+
+            if ($suggestionSharingAnEvent === null) {
+                $mergedSuggestions->push($suggestion);
+            } else {
+                $suggestion->activities->each(fn (Activity $activity) => $suggestionSharingAnEvent->addActivity($activity));
+            }
+
+            return $mergedSuggestions;
+        }, collect())->values();
+    }
+
+    /**
+     * Walks the customer's activities in chronological order, adding each
+     * one to the preceding suggestion when it chains onto that suggestion.
      *
      * @param  Collection<int, Activity>  $activities
-     * @return Collection<int, Collection<int, Activity>>
+     * @return Collection<int, EntrySuggestion>
      */
-    private function chainIntoGroups(Collection $activities): Collection
+    private function chainIntoSuggestions(Collection $activities, CarbonInterface $date): Collection
     {
-        $groups = collect();
-        $currentGroup = null;
+        $suggestions = collect();
+        $currentSuggestion = null;
 
         foreach ($activities->sortBy('started_at') as $activity) {
-            if ($currentGroup !== null && $this->canChainOnto($activity, $currentGroup)) {
-                $currentGroup->push($activity);
+            if ($currentSuggestion !== null && $this->canChainOnto($activity, $currentSuggestion)) {
+                $currentSuggestion->addActivity($activity);
 
                 continue;
             }
 
-            $currentGroup = collect([$activity]);
-            $groups->push($currentGroup);
+            $currentSuggestion = $this->suggestionStartingWith($activity, $date);
+            $suggestions->push($currentSuggestion);
         }
 
-        return $groups;
+        return $suggestions;
     }
 
-    /**
-     * @param  Collection<int, Activity>  $group
-     */
-    private function canChainOnto(Activity $activity, Collection $group): bool
+    private function suggestionStartingWith(Activity $activity, CarbonInterface $date): EntrySuggestion
     {
-        $representative = $this->representative($group);
+        $suggestion = new EntrySuggestion;
+        $suggestion->date = $date->toDateString();
+        $suggestion->addActivity($activity);
 
-        if ($representative->is_internal !== $activity->is_internal) {
+        return $suggestion;
+    }
+
+    private function canChainOnto(Activity $activity, EntrySuggestion $suggestion): bool
+    {
+        if ($suggestion->is_internal !== $activity->is_internal) {
             return false;
         }
 
-        if (! $this->compatible($representative->budget_id, $activity->budget_id)) {
+        if (! $this->compatible($suggestion->budget_id, $activity->budget_id)) {
             return false;
         }
 
-        if (! $this->compatible($representative->ticket_number, $activity->ticket_number)) {
+        if (! $this->compatible($suggestion->ticket_number, $activity->ticket_number)) {
             return false;
         }
 
@@ -106,22 +144,6 @@ class SuggestionProjector
     }
 
     /**
-     * The activity whose fields best represent the group: the earliest
-     * activity with both a ticket and a budget, else the earliest ticketed
-     * activity, else the earliest activity overall.
-     *
-     * @param  Collection<int, Activity>  $group
-     */
-    private function representative(Collection $group): Activity
-    {
-        $sorted = $group->sortBy('started_at');
-
-        return $sorted->first(fn (Activity $activity) => $activity->ticket_number !== null && $activity->budget_id !== null)
-            ?? $sorted->first(fn (Activity $activity) => $activity->ticket_number !== null)
-            ?? $sorted->firstOrFail();
-    }
-
-    /**
      * @param  Collection<int, EntrySuggestion>  $dismissedSuggestions
      */
     private function isDismissed(EntrySuggestion $suggestion, Collection $dismissedSuggestions): bool
@@ -133,42 +155,15 @@ class SuggestionProjector
     }
 
     /**
-     * @param  Collection<int, Activity>  $activities
-     * @param  Collection<int, PreviousSequenceBooking>  $previousSequenceBookings
-     */
-    private function suggestionFromActivities(Collection $activities, CarbonInterface $date, Collection $previousSequenceBookings): EntrySuggestion
-    {
-        $template = $this->representative($activities);
-
-        $suggestion = new EntrySuggestion;
-        $suggestion->user_id = $template->user_id;
-        $suggestion->budget_id = $template->budget_id;
-        $suggestion->ticket_id = $template->ticket_id;
-        $suggestion->ticket_number = $template->ticket_number;
-        $suggestion->ticket_type = $template->ticket_type;
-        $suggestion->customer_id = $template->customer_id;
-        $suggestion->is_internal = $template->is_internal;
-        $suggestion->date = $date->toDateString();
-        $suggestion->setRelation('activities', $activities->sortBy('started_at')->values());
-
-        if ($suggestion->customer_id === null) {
-            $this->bookLikePreviousEntryOfSequence($suggestion, $activities, $previousSequenceBookings);
-        }
-
-        return $suggestion;
-    }
-
-    /**
      * A suggestion without a customer of its own takes the customer and budget
      * from the last entry booked on an earlier occurrence of the same sequence,
      * e.g. the previous instance of a recurring meeting.
      *
-     * @param  Collection<int, Activity>  $activities
      * @param  Collection<int, PreviousSequenceBooking>  $previousSequenceBookings
      */
-    private function bookLikePreviousEntryOfSequence(EntrySuggestion $suggestion, Collection $activities, Collection $previousSequenceBookings): void
+    private function bookLikePreviousEntryOfSequence(EntrySuggestion $suggestion, Collection $previousSequenceBookings): void
     {
-        $previousBooking = $activities
+        $previousBooking = $suggestion->activities
             ->filter(fn (Activity $activity) => $activity->relationLoaded('events'))
             ->flatMap(fn (Activity $activity) => $activity->events)
             ->map(fn (Event $event) => $previousSequenceBookings

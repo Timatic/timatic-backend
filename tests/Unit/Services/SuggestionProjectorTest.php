@@ -178,6 +178,64 @@ test('a budgetless activity chains onto a budgeted activity of the same ticket, 
         ->and($suggestions[0]->budget_id)->toBe(7);
 });
 
+test('a ticketed activity and a budgeted activity chain into a suggestion with both ticket and budget', function () {
+    $ticketed = new Activity;
+    $ticketed->user_id = 1;
+    $ticketed->customer_id = 'customerX';
+    $ticketed->budget_id = null;
+    $ticketed->ticket_number = 'TIC-1';
+    $ticketed->is_internal = false;
+    $ticketed->started_at = Carbon::parse('2026-07-16 09:00', 'Europe/Amsterdam');
+    $ticketed->ended_at = Carbon::parse('2026-07-16 09:30', 'Europe/Amsterdam');
+    $budgeted = new Activity;
+    $budgeted->user_id = 1;
+    $budgeted->customer_id = 'customerX';
+    $budgeted->budget_id = 7;
+    $budgeted->ticket_number = null;
+    $budgeted->is_internal = false;
+    $budgeted->started_at = Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam');
+    $budgeted->ended_at = Carbon::parse('2026-07-16 11:00', 'Europe/Amsterdam');
+
+    $suggestions = (new SuggestionProjector)->project(
+        collect([$ticketed, $budgeted]),
+        collect(),
+        Carbon::parse('2026-07-16', 'Europe/Amsterdam'),
+    );
+
+    expect($suggestions)->toHaveCount(1)
+        ->and($suggestions[0]->ticket_number)->toBe('TIC-1')
+        ->and($suggestions[0]->budget_id)->toBe(7);
+});
+
+test('a suggestion takes the ticket id and type from a later activity on the same ticket', function () {
+    $ticketNumberOnly = new Activity;
+    $ticketNumberOnly->user_id = 1;
+    $ticketNumberOnly->customer_id = 'customerX';
+    $ticketNumberOnly->ticket_number = 'TIC-1';
+    $ticketNumberOnly->is_internal = false;
+    $ticketNumberOnly->started_at = Carbon::parse('2026-07-16 09:00', 'Europe/Amsterdam');
+    $ticketNumberOnly->ended_at = Carbon::parse('2026-07-16 09:30', 'Europe/Amsterdam');
+    $fullTicket = new Activity;
+    $fullTicket->user_id = 1;
+    $fullTicket->customer_id = 'customerX';
+    $fullTicket->ticket_id = '10001';
+    $fullTicket->ticket_number = 'TIC-1';
+    $fullTicket->ticket_type = 'jira';
+    $fullTicket->is_internal = false;
+    $fullTicket->started_at = Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam');
+    $fullTicket->ended_at = Carbon::parse('2026-07-16 11:00', 'Europe/Amsterdam');
+
+    $suggestions = (new SuggestionProjector)->project(
+        collect([$ticketNumberOnly, $fullTicket]),
+        collect(),
+        Carbon::parse('2026-07-16', 'Europe/Amsterdam'),
+    );
+
+    expect($suggestions)->toHaveCount(1)
+        ->and($suggestions[0]->ticket_id)->toBe('10001')
+        ->and($suggestions[0]->ticket_type)->toBe('jira');
+});
+
 test('activities with conflicting budgets do not chain even without ticket numbers', function () {
     $first = new Activity;
     $first->user_id = 1;
@@ -267,6 +325,32 @@ test('customerless activities never bundle with each other', function () {
     );
 
     expect($suggestions)->toHaveCount(2);
+});
+
+test('customerless parts of one split event bundle into one suggestion', function () {
+    $event = new Event;
+    $event->id = 1;
+    $first = new Activity;
+    $first->user_id = 1;
+    $first->is_internal = false;
+    $first->started_at = Carbon::parse('2026-07-16 09:00', 'Europe/Amsterdam');
+    $first->ended_at = Carbon::parse('2026-07-16 09:30', 'Europe/Amsterdam');
+    $first->setRelation('events', collect([$event]));
+    $second = new Activity;
+    $second->user_id = 1;
+    $second->is_internal = false;
+    $second->started_at = Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam');
+    $second->ended_at = Carbon::parse('2026-07-16 10:30', 'Europe/Amsterdam');
+    $second->setRelation('events', collect([$event]));
+
+    $suggestions = (new SuggestionProjector)->project(
+        collect([$first, $second]),
+        collect(),
+        Carbon::parse('2026-07-16', 'Europe/Amsterdam'),
+    );
+
+    expect($suggestions)->toHaveCount(1)
+        ->and($suggestions[0]->activities)->toHaveCount(2);
 });
 
 test('a ticketless activity bundles with the nearest activity of the same customer', function () {
