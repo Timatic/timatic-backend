@@ -41,5 +41,6 @@ class ServiceProvider extends BaseServiceProvider
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'jira');
         $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'jira');
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+        $this->loadRoutesFrom(__DIR__.'/../routes/api.php');
     }
 }
