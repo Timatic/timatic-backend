@@ -11,7 +11,7 @@ use Timatic\Jira\Models\ProjectMapping;
 uses(LoginUser::class);
 uses(RefreshDatabase::class);
 
-it('lists the customer and budget every Jira project is mapped to', function () {
+it('lists the customer and budget every active Jira project is mapped to', function () {
     // Given
     $this->loginUser();
     /** @var Budget $budget */
@@ -22,6 +22,12 @@ it('lists the customer and budget every Jira project is mapped to', function () 
         'project_name' => 'Pionect',
         'customer_id' => $budget->customer_id,
         'budget_id' => $budget->id,
+    ]);
+    ProjectMapping::query()->create([
+        'integration_id' => $mapping->integration_id,
+        'project_key' => 'OLD',
+        'project_name' => 'Archived project',
+        'is_archived' => true,
     ]);
 
     // When
@@ -37,6 +43,5 @@ it('lists the customer and budget every Jira project is mapped to', function () 
             'projectName' => 'Pionect',
             'customerId' => $budget->customer_id,
             'budgetId' => $budget->id,
-            'isArchived' => false,
         ]);
 });

@@ -13,6 +13,6 @@ class ProjectMappingController extends Controller
 {
     public function index(): JsonApiResourceCollection
     {
-        return ProjectMappingResource::collection(ProjectMapping::query()->orderBy('project_key')->get());
+        return ProjectMappingResource::collection(ProjectMapping::query()->active()->orderBy('project_key')->get());
     }
 }

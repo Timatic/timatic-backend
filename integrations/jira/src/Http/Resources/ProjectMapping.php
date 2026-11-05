@@ -19,7 +19,6 @@ class ProjectMapping extends JsonApiResource
             'projectName' => $this->project_name,
             'customerId' => $this->customer_id,
             'budgetId' => $this->budget_id,
-            'isArchived' => $this->is_archived,
         ];
     }
 
