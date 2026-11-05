@@ -36,6 +36,7 @@ class UserController extends Controller implements HasMiddleware
             ->allowedIncludes([
                 'team',
                 'permissions',
+                'roles',
             ])
             ->jsonPaginate();
 
@@ -54,7 +55,21 @@ class UserController extends Controller implements HasMiddleware
             $user->save();
         }
 
-        return new Resources\User($user);
+        // Handle roles relationship if provided
+        $roles = $request->relationships('roles');
+        if ($roles !== null && isset($roles['data'])) {
+            $roleIds = array_map(fn ($r) => (int) $r['id'], $roles['data']);
+            $user->syncRoles($roleIds);
+        }
+
+        // Handle permissions relationship if provided
+        $permissions = $request->relationships('permissions');
+        if ($permissions !== null && isset($permissions['data'])) {
+            $permissionIds = array_map(fn ($p) => (int) $p['id'], $permissions['data']);
+            $user->syncPermissions($permissionIds);
+        }
+
+        return new Resources\User($user->load(['team', 'roles', 'permissions']));
     }
 
     public function show(User $user): Resources\User
@@ -74,7 +89,21 @@ class UserController extends Controller implements HasMiddleware
             $user->save();
         }
 
-        return new Resources\User($user);
+        // Handle roles relationship if provided
+        $roles = $request->relationships('roles');
+        if ($roles !== null && isset($roles['data'])) {
+            $roleIds = array_map(fn ($r) => (int) $r['id'], $roles['data']);
+            $user->syncRoles($roleIds);
+        }
+
+        // Handle permissions relationship if provided
+        $permissions = $request->relationships('permissions');
+        if ($permissions !== null && isset($permissions['data'])) {
+            $permissionIds = array_map(fn ($p) => (int) $p['id'], $permissions['data']);
+            $user->syncPermissions($permissionIds);
+        }
+
+        return new Resources\User($user->load(['team', 'roles', 'permissions']));
     }
 
     public function destroy(User $user, ResponseFactory $responseFactory): Response

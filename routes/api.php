@@ -29,6 +29,8 @@ use App\Http\Controllers\GetDailyProgressController;
 use App\Http\Controllers\GetTimeSpentTotalsController;
 use App\Http\Controllers\GetUserCustomerHoursAggregatesController;
 use App\Http\Controllers\OvertimeController;
+use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ShowCurrentUserController;
 use App\Http\Controllers\SuggestionIntegrationController;
 use App\Http\Controllers\TeamController;
@@ -87,6 +89,10 @@ Route::middleware([
     Route::apiResource('users', UserController::class);
 
     Route::apiResource('teams', TeamController::class);
+
+    Route::apiResource('permissions', PermissionController::class);
+
+    Route::apiResource('roles', RoleController::class);
 
     Route::apiResource('corrections', CorrectionController::class)->only('store', 'update');
 
