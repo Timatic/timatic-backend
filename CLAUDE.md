@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## New ideas → GitHub Issue first
+
+When the user brings up a new idea that falls outside the current task (e.g. a refactor during a feature), the first response is to propose a GitHub Issue for it instead of starting on it. Draft a title and short description, create it with `gh issue create` once the user agrees, then return to the current task. Only work on the idea right away when the user explicitly says so.
+
 ## Commands
 
 ```bash
