@@ -20,6 +20,7 @@ it('creates a role with its permissions', function () {
             'permissions' => ['data' => [['type' => 'permissions', 'id' => (string) $permission->id]]],
         ],
     ])->assertCreated()
+        ->assertJsonPath('data.id', (string) Role::findByName('auditor', 'web')->id)
         ->assertJsonPath('data.attributes.name', 'auditor');
 
     expect(Role::findByName('auditor', 'web')->hasPermissionTo('budgets.read'))->toBeTrue();

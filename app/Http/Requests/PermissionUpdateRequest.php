@@ -6,7 +6,6 @@ use App\Http\Requests\Traits\ValidatedAttributes;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Permission;
-use Webmozart\Assert\Assert;
 
 class PermissionUpdateRequest extends FormRequest
 {
@@ -22,9 +21,9 @@ class PermissionUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        $permission = $this->route('permission');
-
-        Assert::isInstanceOf($permission, Permission::class);
+        $permissionId = $this->route('permission') instanceof Permission
+            ? $this->route('permission')->id
+            : null;
 
         return [
             'data.type' => ['required', 'string', 'in:permissions'],
@@ -33,7 +32,7 @@ class PermissionUpdateRequest extends FormRequest
                 'string',
                 'max:255',
                 Rule::unique('permissions', 'name')
-                    ->ignore($permission->id),
+                    ->ignore($permissionId),
             ],
         ];
     }

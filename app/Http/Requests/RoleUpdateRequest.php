@@ -6,7 +6,6 @@ use App\Http\Requests\Traits\ValidatedAttributes;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
-use Webmozart\Assert\Assert;
 
 class RoleUpdateRequest extends FormRequest
 {
@@ -22,9 +21,9 @@ class RoleUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        $role = $this->route('role');
-
-        Assert::isInstanceOf($role, Role::class);
+        $roleId = $this->route('role') instanceof Role
+            ? $this->route('role')->id
+            : null;
 
         return [
             'data.type' => ['required', 'string', 'in:roles'],
@@ -33,7 +32,7 @@ class RoleUpdateRequest extends FormRequest
                 'string',
                 'max:255',
                 Rule::unique('roles', 'name')
-                    ->ignore($role->id),
+                    ->ignore($roleId),
             ],
             // Permissions relationship (optional, for syncing)
             'data.relationships.permissions.data' => ['nullable', 'array'],
