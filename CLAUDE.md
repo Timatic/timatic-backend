@@ -55,9 +55,11 @@ Source (integration) → Event → Activity (grouped) → EntrySuggestion → En
 
 All third-party integrations (Jira, Bitbucket, …) are path-based Composer packages under `/integrations/{name}/`. Each package:
 
-1. Has a `ServiceProvider` that registers in two registries:
-   - `IntegrationTypeRegistry` — maps type string to Filament UI pages
-   - `TicketProviderRegistry` — maps type string to `TicketProviderInterface` implementation
+1. Has a `ServiceProvider` that registers in `IntegrationTypeRegistry` (type string → Filament UI pages) plus one registry per capability it supplies. Each capability lives in `app/Integrations/{Capability}/` with its interface, registry and service; package classes are named after the capability:
+   - `Tickets/` — `TicketProviderRegistry` → `TicketProvider implements TicketProviderInterface`
+   - `Git/` — `GitProviderRegistry` → `GitProvider implements GitProviderInterface`
+   - `Exports/` — `ExportProviderRegistry` → `ExportProvider implements ExportProviderInterface`
+   - `Suggestions/` — `SuggestionProviderRegistry` → `SuggestionProvider implements SuggestionProviderInterface`
 2. Implements OAuth 2.0 via a `{Name}OAuthService` (tokens stored encrypted in `Integration.config`)
 3. Has a mapping model (e.g. `JiraProjectMapping`) linking provider resources to Timatic customers/budgets
 4. Uses Saloon for API requests

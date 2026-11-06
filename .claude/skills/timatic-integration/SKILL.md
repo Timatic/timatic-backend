@@ -10,7 +10,7 @@ Ask user:
 3. **OAuth provider endpoints** — authorization URL, token URL, required scopes *(OAuth only)*
 4. **Primary resource to map** — e.g. repositories, boards, projects (what customers/budgets link to)
 5. **Map to budgets?** — Jira maps only to customers; some integrations also need budget mapping
-6. **Ticket provider?** — Integration also supply tickets/issues to time-entry form? If yes, implement `TicketProviderInterface`
+6. **Ticket provider?** — Integration also supply tickets/issues to time-entry form? If yes, implement `App\Integrations\Tickets\TicketProviderInterface`
 
 ---
 
@@ -133,19 +133,19 @@ $types->register('{name}', [
 $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
 $this->mergeConfigFrom(__DIR__.'/../config/{name}.php', '{name}');
-// optional: $ticketProviders->register('{name}', {Name}TicketProvider::class);
+// optional: $ticketProviders->register('{name}', TicketProvider::class);
 ```
 
 ---
 
 ## Optional: TicketProvider
 
-Integration should supply tickets to time-entry form? Implement `TicketProviderInterface`:
+Integration should supply tickets to time-entry form? Add `src/TicketProvider.php` implementing `App\Integrations\Tickets\TicketProviderInterface`. Other capabilities follow the same shape: `GitProvider`, `ExportProvider`, `SuggestionProvider`, each implementing the interface in `app/Integrations/{Git,Exports,Suggestions}/`.
 ```php
 public function fetchTickets(?Customer $customer, ?string $search, ?User $user): Collection;
 public static function fromConfig(array $config): static;
 ```
-Register in ServiceProvider boot: `$ticketProviders->register('{name}', {Name}TicketProvider::class)`.
+Register in ServiceProvider boot: `$ticketProviders->register('{name}', TicketProvider::class)`.
 
 ---
 
