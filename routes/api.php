@@ -28,6 +28,7 @@ use App\Http\Controllers\GetBudgetTimeSpentTotalsController;
 use App\Http\Controllers\GetDailyProgressController;
 use App\Http\Controllers\GetTimeSpentTotalsController;
 use App\Http\Controllers\GetUserCustomerHoursAggregatesController;
+use App\Http\Controllers\GitRepositoryMappingController;
 use App\Http\Controllers\OvertimeController;
 use App\Http\Controllers\ShowCurrentUserController;
 use App\Http\Controllers\SuggestionIntegrationController;
@@ -102,5 +103,7 @@ Route::middleware([
 
     Route::get('tickets', [TicketController::class, 'index'])->name('tickets.index');
     Route::get('tickets/{key}', [TicketController::class, 'show'])->name('tickets.show');
+
+    Route::get('git-repository-mappings', [GitRepositoryMappingController::class, 'index'])->name('git-repository-mappings.index');
 
 });
