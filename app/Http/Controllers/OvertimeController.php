@@ -9,28 +9,15 @@ use App\Models\Overtime;
 use App\Models\OvertimeType;
 use App\Models\User;
 use App\QueryFilters\DateFilterCallback;
-use Carbon\Carbon;
-use Exception;
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Routing\Controllers\HasMiddleware;
-use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Gate;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\AllowedInclude;
 use Spatie\QueryBuilder\Includes\IncludedRelationship;
 use Spatie\QueryBuilder\QueryBuilder;
 
-class OvertimeController extends Controller implements HasMiddleware
+class OvertimeController extends Controller
 {
-    public static function middleware(): array
-    {
-        return [
-            new Middleware('can:overtimes.mark-as-exported', only: ['markAsExported']),
-        ];
-    }
-
     public function index(OvertimeCollectionRequest $request): AnonymousResourceCollection
     {
         $query = Overtime::query()
@@ -66,31 +53,5 @@ class OvertimeController extends Controller implements HasMiddleware
             ->jsonPaginate();
 
         return Resources\Overtime::collection($overtimes);
-    }
-
-    /**
-     * @throws AuthorizationException
-     * @throws Exception
-     */
-    public function approve(Overtime $overtime, Request $request): Resources\Overtime
-    {
-        /** @var User $user */
-        $user = $request->user();
-
-        assert(! is_null($user->id));
-
-        Gate::authorize('approve', [$overtime]);
-
-        $overtime->approve($user->id);
-
-        return new Resources\Overtime($overtime);
-    }
-
-    public function markAsExported(Overtime $overtime): Resources\Overtime
-    {
-        $overtime->exported_at = Carbon::now();
-        $overtime->save();
-
-        return new Resources\Overtime($overtime);
     }
 }

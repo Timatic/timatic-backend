@@ -11,6 +11,7 @@
 |
 */
 
+use App\Http\Controllers\ApproveOvertimeController;
 use App\Http\Controllers\Auth\Token\IssueTokenController;
 use App\Http\Controllers\Auth\Token\RevokeTokenController;
 use App\Http\Controllers\BudgetController;
@@ -29,6 +30,8 @@ use App\Http\Controllers\GetDailyProgressController;
 use App\Http\Controllers\GetTimeSpentTotalsController;
 use App\Http\Controllers\GetUserCustomerHoursAggregatesController;
 use App\Http\Controllers\GitRepositoryMappingController;
+use App\Http\Controllers\MarkEntryAsInvoicedController;
+use App\Http\Controllers\MarkOvertimeAsExportedController;
 use App\Http\Controllers\OvertimeController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
@@ -73,13 +76,17 @@ Route::middleware([
     Route::get('suggestion-integrations', SuggestionIntegrationController::class)->name('suggestion-integrations.index');
 
     Route::apiResource('entries', EntryController::class);
-    Route::post('entries/{entry}/mark-as-invoiced', [EntryController::class, 'markAsInvoiced'])->name('entry.mark-as-invoiced');
+    Route::post('entries/{entry}/mark-as-invoiced', MarkEntryAsInvoicedController::class)
+        ->middleware('can:entries.mark-as-invoiced')
+        ->name('entry.mark-as-invoiced');
 
     Route::apiResource('overtimes', OvertimeController::class)->only('index');
 
-    Route::post('overtimes/{overtime}/approve', [OvertimeController::class, 'approve'])->name('overtime.approve');
+    Route::post('overtimes/{overtime}/approve', ApproveOvertimeController::class)->name('overtime.approve');
 
-    Route::post('overtimes/{overtime}/mark-as-exported', [OvertimeController::class, 'markAsExported'])->name('overtime.mark-as-exported');
+    Route::post('overtimes/{overtime}/mark-as-exported', MarkOvertimeAsExportedController::class)
+        ->middleware('can:overtimes.mark-as-exported')
+        ->name('overtime.mark-as-exported');
 
     Route::apiResource('events', EventController::class)->only('store');
 

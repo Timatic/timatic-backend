@@ -12,7 +12,6 @@ use App\Models\User;
 use App\QueryFilters\DateFilterCallback;
 use App\QueryFilters\TextFilterCallback;
 use App\Services\EntryEnricher;
-use Carbon\Carbon;
 use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -36,7 +35,6 @@ class EntryController extends Controller implements HasMiddleware
             new Middleware('can:create,App\Models\Entry', only: ['create', 'store']),
             new Middleware('can:update,entry', only: ['edit', 'update']),
             new Middleware('can:delete,entry', only: ['destroy']),
-            new Middleware('can:entries.mark-as-invoiced', only: ['markAsInvoiced']),
         ];
     }
 
@@ -134,19 +132,6 @@ class EntryController extends Controller implements HasMiddleware
         $entry->save();
 
         $entryEnricher->enrichFromRequest($entry, $request);
-
-        return new EntryResource($entry);
-    }
-
-    public function markAsInvoiced(
-        Entry $entry
-    ): EntryResource {
-        if ($entry->is_internal) {
-            abort(422, 'Cannot invoice internal entry.');
-        }
-
-        $entry->invoiced_at = Carbon::now();
-        $entry->save();
 
         return new EntryResource($entry);
     }
