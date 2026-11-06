@@ -5,12 +5,12 @@ namespace App\Http\Controllers;
 use App\Http\Requests\RoleCreateRequest;
 use App\Http\Requests\RoleUpdateRequest;
 use App\Http\Resources;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Arr;
 use Spatie\Permission\Models\Role;
 use Spatie\QueryBuilder\QueryBuilder;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class RoleController extends Controller implements HasMiddleware
 {

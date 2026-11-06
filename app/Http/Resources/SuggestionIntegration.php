@@ -6,7 +6,6 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /**
  * @mixin \App\DataTransferObjects\SuggestionIntegration

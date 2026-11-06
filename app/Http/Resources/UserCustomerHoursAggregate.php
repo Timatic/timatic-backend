@@ -4,7 +4,6 @@ namespace App\Http\Resources;
 
 use App\Models\UserCustomerHoursRecord;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /**
  * @mixin UserCustomerHoursRecord

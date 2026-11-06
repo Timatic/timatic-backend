@@ -95,3 +95,17 @@ it('returns budgets filtered on show to customer', function () {
             ],
         ]);
 });
+
+it('includes the current period of a budget', function () {
+    $this->loginUser(permissions: ['budgets.read']);
+
+    $budget = BudgetVersion::factory()->create()->budget;
+    $budget->update(['renewal_frequency' => 'monthly']);
+
+    $response = $this->get('budgets?include=currentPeriod')->assertSuccessful();
+
+    $periodId = $response->json('data.0.relationships.currentPeriod.data.id');
+
+    expect($response->json('data.0.relationships.currentPeriod.data.type'))->toBe('periods')
+        ->and(collect($response->json('included'))->where('type', 'periods')->pluck('id')->all())->toBe([$periodId]);
+});

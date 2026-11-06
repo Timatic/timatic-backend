@@ -4,8 +4,7 @@ namespace App\Http\Resources;
 
 use App\DataTransferObjects\DerivedPermission;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\JsonApi\JsonApiResource;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Http\Resources\Json\ResourceCollection;
 
 /**
  * @mixin \App\Models\User
@@ -38,17 +37,16 @@ class User extends JsonApiResource
     ];
 
     /**
-     * @return array<string, class-string|callable>
+     * @return array<string, \Closure(): ResourceCollection>
      */
-    public function toRelationships(Request $request): array
+    public function toCustomRelationships(Request $request): array
     {
-        return array_merge($this->relationships, [
-            'permissions' => fn () => new EloquentCollection(
+        return [
+            'permissions' => fn () => Permission::collection(
                 $this->getAllPermissions()
                     ->map(fn ($permission) => new DerivedPermission($permission->name))
                     ->merge($this->derivedPermissions)
-                    ->all()
             ),
-        ]);
+        ];
     }
 }

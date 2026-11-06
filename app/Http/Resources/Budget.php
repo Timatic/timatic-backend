@@ -3,7 +3,6 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 use Illuminate\Http\Resources\MissingValue;
 
 /**
@@ -49,11 +48,11 @@ class Budget extends JsonApiResource
     ];
 
     /**
-     * @return array<string, class-string|callable>
+     * @return array<string, \Closure(): (Period|MissingValue)>
      */
-    public function toRelationships(Request $request): array
+    public function toCustomRelationships(Request $request): array
     {
-        return array_merge($this->relationships, [
+        return [
             'currentPeriod' => function () {
                 $period = $this->resource->getCurrentPeriodRelationData();
 
@@ -64,6 +63,6 @@ class Budget extends JsonApiResource
 
                 return $period ? Period::make($period) : new MissingValue;
             },
-        ]);
+        ];
     }
 }

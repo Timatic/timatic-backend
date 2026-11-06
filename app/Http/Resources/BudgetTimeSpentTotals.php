@@ -4,7 +4,6 @@ namespace App\Http\Resources;
 
 use App\DataTransferObjects\BudgetTimeSpentTotal;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /**
  * @mixin BudgetTimeSpentTotal

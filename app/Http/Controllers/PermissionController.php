@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\PermissionCreateRequest;
 use App\Http\Resources;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Spatie\Permission\Models\Permission;
 use Spatie\QueryBuilder\QueryBuilder;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class PermissionController extends Controller implements HasMiddleware
 {

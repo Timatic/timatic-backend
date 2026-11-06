@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Timatic\Jira\Http\Resources;
 
+use App\Http\Resources\JsonApiResource;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /**
  * @mixin \Timatic\Jira\Models\ProjectMapping
  */
 class ProjectMapping extends JsonApiResource
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function toAttributes(Request $request): array
     {
         return [

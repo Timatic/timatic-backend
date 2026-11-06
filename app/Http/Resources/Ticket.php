@@ -4,8 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\Customer as CustomerModel;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\JsonApi\JsonApiRequest;
-use Illuminate\Http\Resources\JsonApi\JsonApiResource;
+use Illuminate\Http\Resources\Json\ResourceCollection;
 
 /**
  * @mixin \App\DataTransferObjects\Ticket
@@ -39,74 +38,13 @@ class Ticket extends JsonApiResource
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<string, \Closure(): (Customer|ResourceCollection|null)>
      */
-    protected function resolveResourceObject(JsonApiRequest $request): array
+    public function toCustomRelationships(Request $request): array
     {
-        $object = parent::resolveResourceObject($request);
-        $included = $request->sparseIncluded() ?? [];
-
-        if (in_array('actions', $included) && $this->resource->actions->isNotEmpty()) {
-            $object['relationships']['actions'] = [
-                'data' => $this->resource->actions->map(fn ($a) => [
-                    'id' => $a->id,
-                    'type' => 'actions',
-                ])->values()->all(),
-            ];
-        }
-
-        if (in_array('customers', $included) && $this->resource->customer_id !== null) {
-            $customer = CustomerModel::query()->find($this->resource->customer_id);
-            if ($customer instanceof CustomerModel) {
-                $object['relationships']['customers'] = [
-                    'data' => ['id' => (string) $customer->id, 'type' => 'customers'],
-                ];
-            }
-        }
-
-        return $object;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function with($request): array
-    {
-        $with = parent::with($request);
-
-        if (! ($request instanceof JsonApiRequest)) {
-            return $with;
-        }
-
-        $included = $request->sparseIncluded() ?? [];
-        $items = [];
-
-        if (in_array('actions', $included)) {
-            foreach ($this->resource->actions as $action) {
-                $items[] = [
-                    'id' => $action->id,
-                    'type' => 'actions',
-                    'attributes' => TicketAction::make($action)->toAttributes($request),
-                ];
-            }
-        }
-
-        if (in_array('customers', $included) && $this->resource->customer_id !== null) {
-            $customer = CustomerModel::query()->find($this->resource->customer_id);
-            if ($customer instanceof CustomerModel) {
-                $customerResource = Customer::make($customer);
-                $items[] = [
-                    'id' => $customerResource->resolveResourceIdentifier($request),
-                    'type' => $customerResource->resolveResourceType($request),
-                    'attributes' => $customerResource->toAttributes($request),
-                ];
-            }
-        }
-
-        if (! empty($items)) {
-            $with['included'] = array_merge($with['included'] ?? [], $items);
-        }
-
-        return $with;
+        return [
+            'customers' => fn () => ($customer = CustomerModel::query()->find($this->customer_id)) ? Customer::make($customer) : null,
+            'actions' => fn () => TicketAction::collection($this->actions),
+        ];
     }
 }

@@ -5,7 +5,6 @@ namespace App\Http\Resources;
 use App\DataTransferObjects\DerivedPermission;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\JsonApi\JsonApiResource;
 
 /**
  * @mixin DerivedPermission|\Spatie\Permission\Models\Permission
