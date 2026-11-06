@@ -1,5 +1,6 @@
 <?php
 
+use App\Integrations\TicketProviderRegistry;
 use App\Integrations\TicketService;
 use App\Models\Event;
 use App\Models\Integration;
@@ -11,6 +12,7 @@ use Timatic\GitHub\Jobs\ProcessWebhookJob;
 use Timatic\GitHub\Models\RepositoryMapping;
 use Timatic\GitHub\Models\UserLogin;
 use Timatic\GitHub\Requests\GetIssueRequest;
+use Timatic\GitHub\TicketProvider;
 
 afterEach(function () {
     MockClient::destroyGlobal();
@@ -18,6 +20,7 @@ afterEach(function () {
 
 it('resolves a bare issue reference in a commit message against the delivering repository', function () {
     EventFacade::fake();
+    app(TicketProviderRegistry::class)->register('github', TicketProvider::class);
     Cache::put('github.installation_token.4242', 'ghs_installation_token');
     User::factory()->create(['email' => 'dev@example.com']);
     $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
@@ -58,6 +61,7 @@ it('resolves a bare issue reference in a commit message against the delivering r
 
 it('resolves a fully qualified issue key in a branch name', function () {
     EventFacade::fake();
+    app(TicketProviderRegistry::class)->register('github', TicketProvider::class);
     Cache::put('github.installation_token.4242', 'ghs_installation_token');
     $user = User::factory()->create();
     UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
@@ -112,4 +116,42 @@ it('leaves an event without a ticket when nothing references one', function () {
     expect(Event::sole())
         ->ticket_number->toBeNull()
         ->ticket_id->toBeNull();
+});
+
+it('leaves an issue reference unresolved while GitHub tickets are disabled', function () {
+    // Given
+    EventFacade::fake();
+    Cache::put('github.installation_token.4242', 'ghs_installation_token');
+    $user = User::factory()->create();
+    UserLogin::create(['user_id' => $user->id, 'login' => 'octocat']);
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
+    RepositoryMapping::create([
+        'integration_id' => $integration->id,
+        'installation_id' => 4242,
+        'owner_login' => 'acme',
+        'repository_name' => 'api',
+        'repository_full_name' => 'acme/api',
+    ]);
+    MockClient::global([
+        GetIssueRequest::class => MockResponse::make([
+            'number' => 42,
+            'title' => 'Login fails on Safari',
+            'html_url' => 'https://github.com/acme/api/issues/42',
+            'state' => 'open',
+            'repository_url' => 'https://api.github.com/repos/acme/api',
+            'created_at' => '2026-09-01T10:00:00Z',
+        ]),
+    ]);
+    $payload = [
+        'ref' => 'acme/api#42-login',
+        'ref_type' => 'branch',
+        'sender' => ['login' => 'octocat'],
+        'repository' => ['full_name' => 'acme/api'],
+    ];
+
+    // When
+    new ProcessWebhookJob($payload, null, 'create')->handle(app(TicketService::class));
+
+    // Then
+    expect(Event::sole()->ticket_number)->toBeNull();
 });

@@ -33,12 +33,17 @@ class ServiceProvider extends BaseServiceProvider
 
     public function boot(TicketProviderRegistry $ticketProviders, SuggestionIntegrationRegistry $suggestionIntegrations, GitProviderRegistry $gitProviders): void
     {
-        $ticketProviders->register('github', TicketProvider::class);
+        $this->mergeConfigFrom(__DIR__.'/../config/github.php', 'github');
+
+        // Jira provides the tickets; GitHub only tracks work unless its issues are explicitly enabled
+        if (config('github.tickets_enabled')) {
+            $ticketProviders->register('github', TicketProvider::class);
+        }
+
         $suggestionIntegrations->register('github', SuggestionIntegration::class);
         $gitProviders->register('github', GitProvider::class);
         $this->publishes([__DIR__.'/../resources/icons/github.svg' => public_path('icons/github.svg')], 'source-icons');
 
-        $this->mergeConfigFrom(__DIR__.'/../config/github.php', 'github');
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'github');
         $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'github');
