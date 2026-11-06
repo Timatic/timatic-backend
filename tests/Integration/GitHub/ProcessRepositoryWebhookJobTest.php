@@ -4,7 +4,8 @@ use App\Integrations\TicketService;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Support\Facades\Event as EventFacade;
-use Timatic\GitHub\Jobs\ProcessWebhookJob;
+use Timatic\GitHub\Jobs\ProcessCreateWebhookJob;
+use Timatic\GitHub\Jobs\ProcessRepositoryWebhookJob;
 use Timatic\GitHub\Models\UserLogin;
 
 it('creates a repository_renamed event naming both repositories', function () {
@@ -18,7 +19,7 @@ it('creates a repository_renamed event naming both repositories', function () {
         'changes' => ['repository' => ['name' => ['from' => 'backend']]],
     ];
 
-    new ProcessWebhookJob($payload, null, 'repository', 'renamed')->handle(app(TicketService::class));
+    new ProcessRepositoryWebhookJob($payload, null, 'renamed')->handle(app(TicketService::class));
 
     $event = Event::sole();
     expect($event->event_type_id)->toBe('repository_renamed')
@@ -36,7 +37,7 @@ it('creates an event per repository action', function (string $action) {
         'repository' => ['id' => 1, 'full_name' => 'acme/api', 'updated_at' => '2026-09-05T16:00:00Z'],
     ];
 
-    new ProcessWebhookJob($payload, null, 'repository', $action)->handle(app(TicketService::class));
+    new ProcessRepositoryWebhookJob($payload, null, $action)->handle(app(TicketService::class));
 
     expect(Event::sole()->event_type_id)->toBe('repository_'.$action);
 })->with(['created', 'deleted', 'archived', 'unarchived', 'publicized', 'privatized', 'edited', 'transferred']);
@@ -51,7 +52,7 @@ it('ignores a repository action Timatic does not track', function () {
         'repository' => ['id' => 1, 'full_name' => 'acme/api', 'updated_at' => '2026-09-05T16:00:00Z'],
     ];
 
-    new ProcessWebhookJob($payload, null, 'repository', 'starred')->handle(app(TicketService::class));
+    new ProcessRepositoryWebhookJob($payload, null, 'starred')->handle(app(TicketService::class));
 
     expect(Event::count())->toBe(0);
 });
@@ -66,8 +67,8 @@ it('does not duplicate a redelivered repository event', function () {
         'repository' => ['id' => 1, 'full_name' => 'acme/api', 'updated_at' => '2026-09-05T16:00:00Z'],
     ];
 
-    new ProcessWebhookJob($payload, null, 'repository', 'archived')->handle(app(TicketService::class));
-    new ProcessWebhookJob($payload, null, 'repository', 'archived')->handle(app(TicketService::class));
+    new ProcessRepositoryWebhookJob($payload, null, 'archived')->handle(app(TicketService::class));
+    new ProcessRepositoryWebhookJob($payload, null, 'archived')->handle(app(TicketService::class));
 
     expect(Event::count())->toBe(1);
 });
@@ -83,7 +84,7 @@ it('creates a branch_created event for a new branch', function () {
         'repository' => ['full_name' => 'acme/api'],
     ];
 
-    new ProcessWebhookJob($payload, null, 'create')->handle(app(TicketService::class));
+    new ProcessCreateWebhookJob($payload, null)->handle(app(TicketService::class));
 
     $event = Event::sole();
     expect($event->event_type_id)->toBe('branch_created')
@@ -102,7 +103,7 @@ it('creates a tag_created event for a new tag', function () {
         'repository' => ['full_name' => 'acme/api'],
     ];
 
-    new ProcessWebhookJob($payload, null, 'create')->handle(app(TicketService::class));
+    new ProcessCreateWebhookJob($payload, null)->handle(app(TicketService::class));
 
     expect(Event::sole())
         ->event_type_id->toBe('tag_created')

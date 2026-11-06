@@ -4,7 +4,7 @@ use App\Integrations\TicketService;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Support\Facades\Event as EventFacade;
-use Timatic\GitHub\Jobs\ProcessWebhookJob;
+use Timatic\GitHub\Jobs\ProcessIssueCommentWebhookJob;
 use Timatic\GitHub\Models\UserLogin;
 
 it('creates an issue_commented event for a comment on an issue', function () {
@@ -19,7 +19,7 @@ it('creates an issue_commented event for a comment on an issue', function () {
         'comment' => ['id' => 9001, 'body' => 'Reproduced on 17.4', 'created_at' => '2026-09-05T15:00:00Z'],
     ];
 
-    new ProcessWebhookJob($payload, null, 'issue_comment', 'created')->handle(app(TicketService::class));
+    new ProcessIssueCommentWebhookJob($payload, null, 'created')->handle(app(TicketService::class));
 
     $event = Event::sole();
     expect($event->event_type_id)->toBe('issue_commented')
@@ -43,7 +43,7 @@ it('creates a pr_commented event for a comment on a pull request', function () {
         'comment' => ['id' => 9002, 'body' => 'Ship it', 'created_at' => '2026-09-05T15:30:00Z'],
     ];
 
-    new ProcessWebhookJob($payload, null, 'issue_comment', 'created')->handle(app(TicketService::class));
+    new ProcessIssueCommentWebhookJob($payload, null, 'created')->handle(app(TicketService::class));
 
     expect(Event::sole()->event_type_id)->toBe('pr_commented');
 });
@@ -60,7 +60,7 @@ it('ignores an edited comment', function () {
         'comment' => ['id' => 9001, 'body' => 'Reproduced on 17.4', 'created_at' => '2026-09-05T15:00:00Z'],
     ];
 
-    new ProcessWebhookJob($payload, null, 'issue_comment', 'edited')->handle(app(TicketService::class));
+    new ProcessIssueCommentWebhookJob($payload, null, 'edited')->handle(app(TicketService::class));
 
     expect(Event::count())->toBe(0);
 });

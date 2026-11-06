@@ -6,7 +6,7 @@ use App\Models\Event;
 use App\Models\Integration;
 use App\Models\User;
 use Illuminate\Support\Facades\Event as EventFacade;
-use Timatic\GitHub\Jobs\ProcessWebhookJob;
+use Timatic\GitHub\Jobs\ProcessPushWebhookJob;
 use App\Models\GitCommitEmail;
 use Timatic\GitHub\Models\RepositoryMapping;
 use Timatic\GitHub\Models\UserLogin;
@@ -36,7 +36,7 @@ it('creates a commit_pushed event carrying the mapped customer', function () {
         ]],
     ];
 
-    new ProcessWebhookJob($payload, $mapping, 'push')->handle(app(TicketService::class));
+    new ProcessPushWebhookJob($payload, $mapping)->handle(app(TicketService::class));
 
     $event = Event::sole();
     expect($event->event_type_id)->toBe('commit_pushed')
@@ -63,7 +63,7 @@ it('learns the github login of the commit author', function () {
         ]],
     ];
 
-    new ProcessWebhookJob($payload, null, 'push')->handle(app(TicketService::class));
+    new ProcessPushWebhookJob($payload, null)->handle(app(TicketService::class));
 
     expect(UserLogin::query()->where('user_id', $user->id)->value('login'))->toBe('octocat');
 });
@@ -83,7 +83,7 @@ it('attributes a commit from another email address to the user with that github 
         ]],
     ];
 
-    new ProcessWebhookJob($payload, null, 'push')->handle(app(TicketService::class));
+    new ProcessPushWebhookJob($payload, null)->handle(app(TicketService::class));
 
     expect(Event::query()->sole()->user_id)->toBe($user->id)
         ->and(GitCommitEmail::query()->where('email', 'dev@home.example')->value('user_id'))->toBe($user->id);
@@ -102,7 +102,7 @@ it('ignores a commit whose author is not a Timatic user', function () {
         ]],
     ];
 
-    new ProcessWebhookJob($payload, null, 'push')->handle(app(TicketService::class));
+    new ProcessPushWebhookJob($payload, null)->handle(app(TicketService::class));
 
     expect(Event::count())->toBe(0);
 });
@@ -121,8 +121,8 @@ it('does not create a second event when the same commit is delivered again', fun
         ]],
     ];
 
-    new ProcessWebhookJob($payload, null, 'push')->handle(app(TicketService::class));
-    new ProcessWebhookJob($payload, null, 'push')->handle(app(TicketService::class));
+    new ProcessPushWebhookJob($payload, null)->handle(app(TicketService::class));
+    new ProcessPushWebhookJob($payload, null)->handle(app(TicketService::class));
 
     expect(Event::count())->toBe(1);
 });
@@ -152,8 +152,8 @@ it('records a rebase when a forced push replays known commits with rewritten dat
         ]],
     ];
 
-    new ProcessWebhookJob($original, null, 'push')->handle(app(TicketService::class));
-    new ProcessWebhookJob($forced, null, 'push')->handle(app(TicketService::class));
+    new ProcessPushWebhookJob($original, null)->handle(app(TicketService::class));
+    new ProcessPushWebhookJob($forced, null)->handle(app(TicketService::class));
 
     expect(Event::where('event_type_id', 'commit_pushed')->count())->toBe(1)
         ->and(Event::where('event_type_id', 'rebase')->sole()->title)

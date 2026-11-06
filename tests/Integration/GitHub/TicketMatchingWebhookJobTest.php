@@ -8,7 +8,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
-use Timatic\GitHub\Jobs\ProcessWebhookJob;
+use Timatic\GitHub\Jobs\ProcessCreateWebhookJob;
+use Timatic\GitHub\Jobs\ProcessPushWebhookJob;
 use Timatic\GitHub\Models\RepositoryMapping;
 use Timatic\GitHub\Models\UserLogin;
 use Timatic\GitHub\Requests\GetIssueRequest;
@@ -52,7 +53,7 @@ it('resolves a bare issue reference in a commit message against the delivering r
         ]],
     ];
 
-    new ProcessWebhookJob($payload, $mapping, 'push')->handle(app(TicketService::class));
+    new ProcessPushWebhookJob($payload, $mapping)->handle(app(TicketService::class));
 
     expect(Event::sole())
         ->ticket_number->toBe('acme/api#42')
@@ -90,7 +91,7 @@ it('resolves a fully qualified issue key in a branch name', function () {
         'repository' => ['full_name' => 'acme/api'],
     ];
 
-    new ProcessWebhookJob($payload, null, 'create')->handle(app(TicketService::class));
+    new ProcessCreateWebhookJob($payload, null)->handle(app(TicketService::class));
 
     expect(Event::sole())
         ->event_type_id->toBe('branch_created')
@@ -111,7 +112,7 @@ it('leaves an event without a ticket when nothing references one', function () {
         ]],
     ];
 
-    new ProcessWebhookJob($payload, null, 'push')->handle(app(TicketService::class));
+    new ProcessPushWebhookJob($payload, null)->handle(app(TicketService::class));
 
     expect(Event::sole())
         ->ticket_number->toBeNull()
@@ -150,7 +151,7 @@ it('leaves an issue reference unresolved while GitHub tickets are disabled', fun
     ];
 
     // When
-    new ProcessWebhookJob($payload, null, 'create')->handle(app(TicketService::class));
+    new ProcessCreateWebhookJob($payload, null)->handle(app(TicketService::class));
 
     // Then
     expect(Event::sole()->ticket_number)->toBeNull();

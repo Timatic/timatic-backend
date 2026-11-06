@@ -2,7 +2,8 @@
 
 use App\Models\Integration;
 use Illuminate\Support\Facades\Bus;
-use Timatic\GitHub\Jobs\ProcessWebhookJob;
+use Timatic\GitHub\Jobs\ProcessPullRequestWebhookJob;
+use Timatic\GitHub\Jobs\ProcessPushWebhookJob;
 use Timatic\GitHub\Models\RepositoryMapping;
 
 it('dispatches the delivery with the mapping of the delivering repository', function () {
@@ -23,9 +24,8 @@ it('dispatches the delivery with the mapping of the delivering repository', func
         'CONTENT_TYPE' => 'application/json',
     ], $body)->assertOk();
 
-    Bus::assertDispatched(ProcessWebhookJob::class, function (ProcessWebhookJob $job) use ($mapping) {
+    Bus::assertDispatched(ProcessPullRequestWebhookJob::class, function (ProcessPullRequestWebhookJob $job) use ($mapping) {
         return (new ReflectionProperty($job, 'mapping'))->getValue($job)?->id === $mapping->id
-            && (new ReflectionProperty($job, 'eventName'))->getValue($job) === 'pull_request'
             && (new ReflectionProperty($job, 'action'))->getValue($job) === 'opened';
     });
 });
@@ -41,7 +41,7 @@ it('dispatches without a mapping when the repository is not linked', function ()
         'CONTENT_TYPE' => 'application/json',
     ], $body)->assertOk();
 
-    Bus::assertDispatched(ProcessWebhookJob::class, function (ProcessWebhookJob $job) {
+    Bus::assertDispatched(ProcessPushWebhookJob::class, function (ProcessPushWebhookJob $job) {
         return (new ReflectionProperty($job, 'mapping'))->getValue($job) === null;
     });
 });
@@ -65,7 +65,7 @@ it('ignores an archived mapping', function () {
         'CONTENT_TYPE' => 'application/json',
     ], $body)->assertOk();
 
-    Bus::assertDispatched(ProcessWebhookJob::class, function (ProcessWebhookJob $job) {
+    Bus::assertDispatched(ProcessPushWebhookJob::class, function (ProcessPushWebhookJob $job) {
         return (new ReflectionProperty($job, 'mapping'))->getValue($job) === null;
     });
 });

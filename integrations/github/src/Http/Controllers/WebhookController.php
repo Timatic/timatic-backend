@@ -6,7 +6,13 @@ use App\Models\Integration;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
-use Timatic\GitHub\Jobs\ProcessWebhookJob;
+use Timatic\GitHub\Jobs\ProcessCreateWebhookJob;
+use Timatic\GitHub\Jobs\ProcessIssueCommentWebhookJob;
+use Timatic\GitHub\Jobs\ProcessPullRequestReviewCommentWebhookJob;
+use Timatic\GitHub\Jobs\ProcessPullRequestReviewWebhookJob;
+use Timatic\GitHub\Jobs\ProcessPullRequestWebhookJob;
+use Timatic\GitHub\Jobs\ProcessPushWebhookJob;
+use Timatic\GitHub\Jobs\ProcessRepositoryWebhookJob;
 use Timatic\GitHub\Models\RepositoryMapping;
 
 class WebhookController extends Controller
@@ -17,9 +23,18 @@ class WebhookController extends Controller
             abort(403);
         }
 
-        $eventName = (string) $request->header('X-GitHub-Event', '');
+        $job = match ($request->header('X-GitHub-Event')) {
+            'push' => ProcessPushWebhookJob::class,
+            'pull_request' => ProcessPullRequestWebhookJob::class,
+            'pull_request_review' => ProcessPullRequestReviewWebhookJob::class,
+            'pull_request_review_comment' => ProcessPullRequestReviewCommentWebhookJob::class,
+            'issue_comment' => ProcessIssueCommentWebhookJob::class,
+            'create' => ProcessCreateWebhookJob::class,
+            'repository' => ProcessRepositoryWebhookJob::class,
+            default => null,
+        };
 
-        if ($eventName === 'ping') {
+        if ($job === null) {
             return response('', 200);
         }
 
@@ -30,7 +45,7 @@ class WebhookController extends Controller
             ->active()
             ->first();
 
-        ProcessWebhookJob::dispatch($payload, $mapping, $eventName, $payload['action'] ?? null);
+        $job::dispatch($payload, $mapping, $payload['action'] ?? null);
 
         return response('', 200);
     }
