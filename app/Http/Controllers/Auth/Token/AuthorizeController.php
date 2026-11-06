@@ -6,7 +6,6 @@ namespace App\Http\Controllers\Auth\Token;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AuthorizeClientRequest;
-use App\Models\ApiClient;
 use App\Models\User;
 use App\Services\AuthorizationCodeService;
 use Dedoc\Scramble\Attributes\ExcludeRouteFromDocs;
@@ -31,51 +30,31 @@ class AuthorizeController extends Controller
         $client = $request->client();
 
         if ($client->auto_approve) {
-            return $this->redirectWithCode($client, $request, $user);
+            $code = $this->authorizationCodes->issueCode(
+                $client,
+                $user,
+                $request->codeChallenge(),
+                $request->redirectUri(),
+            );
+
+            return redirect()->away($request->redirectUri().'?'.http_build_query([
+                'code' => $code,
+                'state' => $request->state(),
+            ]));
         }
 
         return view('oauth.authorize', [
             'user' => $user,
             'client' => $client,
-            'approveUrl' => $this->approveUrl($request),
+            'approveUrl' => URL::temporarySignedRoute(
+                'oauth.authorize.approve',
+                now()->addMinutes((int) config('api_clients.consent_lifetime_minutes')),
+                $request->validated(),
+            ),
             'denyUrl' => $request->redirectUri().'?'.http_build_query([
                 'error' => 'access_denied',
                 'state' => $request->state(),
             ]),
         ]);
-    }
-
-    /**
-     * Approving hands out a single use code. The form carries a csrf token; the signed url is
-     * defence in depth, so the approved parameters cannot be swapped for another client's.
-     */
-    #[ExcludeRouteFromDocs]
-    public function approve(AuthorizeClientRequest $request, #[CurrentUser] User $user): RedirectResponse
-    {
-        return $this->redirectWithCode($request->client(), $request, $user);
-    }
-
-    private function redirectWithCode(ApiClient $client, AuthorizeClientRequest $request, User $user): RedirectResponse
-    {
-        $code = $this->authorizationCodes->issueCode(
-            $client,
-            $user,
-            $request->codeChallenge(),
-            $request->redirectUri(),
-        );
-
-        return redirect()->away($request->redirectUri().'?'.http_build_query([
-            'code' => $code,
-            'state' => $request->state(),
-        ]));
-    }
-
-    private function approveUrl(AuthorizeClientRequest $request): string
-    {
-        return URL::temporarySignedRoute(
-            'oauth.authorize.approve',
-            now()->addMinutes((int) config('api_clients.consent_lifetime_minutes')),
-            $request->validated(),
-        );
     }
 }
