@@ -28,7 +28,7 @@ class UserRequest extends FormRequest
             : null;
 
         return [
-            'data.type' => ['string', 'in:users'],
+            'data.type' => ['required', 'string', 'in:users'],
             'data.attributes.externalId' => ['string'],
             'data.attributes.email' => ['string', 'email', Rule::unique('users', 'email')->ignore($userId)],
             'data.attributes.givenName' => ['nullable', 'string', 'max:255'],
