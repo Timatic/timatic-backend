@@ -20,7 +20,9 @@ use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\JsonApi\AnonymousResourceCollection as JsonApiResourceCollection;
 use Illuminate\Routing\Route;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -75,6 +77,19 @@ class AppServiceProvider extends ServiceProvider
             };
 
             return Str::plural(Str::kebab($subject)).'.'.$action;
+        });
+
+        // Keep the camelCase pagination meta the API exposed before the native JsonApiResource
+        JsonApiResourceCollection::macro('paginationInformation', function (Request $request, array $paginated, array $default): array {
+            // Macros are shared by every JsonResource, so leave non JSON:API collections alone
+            if (! $this instanceof JsonApiResourceCollection) { // @phpstan-ignore instanceof.alwaysTrue
+                return $default;
+            }
+
+            return [
+                'links' => array_filter($default['links']),
+                'meta' => Arr::mapWithKeys($default['meta'], fn (mixed $value, string $key) => [Str::camel($key) => $value]),
+            ];
         });
 
         Relation::enforceMorphMap([
