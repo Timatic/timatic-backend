@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\GitCommitEmail;
 use App\Models\Integration;
 use App\Models\User;
 use Filament\Actions\Testing\TestAction;
@@ -7,7 +8,6 @@ use Filament\Facades\Filament;
 use Livewire\Livewire;
 use Tests\Concerns\LoginUser;
 use Timatic\GitHub\Filament\Pages\PeoplePage;
-use App\Models\GitCommitEmail;
 use Timatic\GitHub\Models\UserLogin;
 
 uses(LoginUser::class);

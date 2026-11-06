@@ -2,8 +2,8 @@
 
 namespace Timatic\GitHub;
 
-use App\Models\User;
 use App\Models\GitCommitEmail;
+use App\Models\User;
 use Timatic\GitHub\Models\UserLogin;
 
 /**

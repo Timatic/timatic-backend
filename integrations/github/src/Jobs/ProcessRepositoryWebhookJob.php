@@ -2,7 +2,6 @@
 
 namespace Timatic\GitHub\Jobs;
 
-
 class ProcessRepositoryWebhookJob extends ProcessWebhookJob
 {
     /** @var array<int, string> */

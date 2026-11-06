@@ -3,6 +3,7 @@
 namespace Timatic\GitHub\Filament\Pages;
 
 use App\Filament\Resources\Integrations\IntegrationResource;
+use App\Models\GitCommitEmail;
 use App\Models\Integration;
 use App\Models\User;
 use Filament\Actions\Action;
@@ -17,7 +18,6 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Validation\Rules\Unique;
-use App\Models\GitCommitEmail;
 use Timatic\GitHub\Models\UserLogin;
 
 /**

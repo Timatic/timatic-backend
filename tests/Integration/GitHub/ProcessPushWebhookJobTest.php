@@ -3,11 +3,11 @@
 use App\Integrations\TicketService;
 use App\Models\Customer;
 use App\Models\Event;
+use App\Models\GitCommitEmail;
 use App\Models\Integration;
 use App\Models\User;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Timatic\GitHub\Jobs\ProcessPushWebhookJob;
-use App\Models\GitCommitEmail;
 use Timatic\GitHub\Models\RepositoryMapping;
 use Timatic\GitHub\Models\UserLogin;
 
