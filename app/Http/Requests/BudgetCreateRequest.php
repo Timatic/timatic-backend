@@ -56,6 +56,8 @@ class BudgetCreateRequest extends FormRequest
             'data.attributes.renewalFrequency' => 'in:monthly,yearly',
             'data.relationships.allowedUsers' => '',
             'data.relationships.allowedUsers.data' => 'array',
+            'data.relationships.allowedUsers.data.*.type' => 'required|string|in:users',
+            'data.relationships.allowedUsers.data.*.id' => 'required|string|exists:users,id',
         ];
     }
 }

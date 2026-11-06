@@ -42,6 +42,8 @@ class BudgetUpdateRequest extends FormRequest
             'data.attributes.effectiveFrom' => 'date',
             'data.relationships.allowedUsers' => '',
             'data.relationships.allowedUsers.data' => 'array',
+            'data.relationships.allowedUsers.data.*.type' => 'required|string|in:users',
+            'data.relationships.allowedUsers.data.*.id' => 'required|string|exists:users,id',
         ];
 
         return $this->addPatchOptionalValidation($rules, ['data.type', 'data.attributes']);
