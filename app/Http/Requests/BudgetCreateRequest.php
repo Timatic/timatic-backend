@@ -42,7 +42,7 @@ class BudgetCreateRequest extends FormRequest
                     }
                 },
             ],
-            'data.attributes.initialMinutes' => 'required|numeric',
+            'data.attributes.initialMinutes' => 'required|integer',
             'data.attributes.changeId' => '',
             'data.attributes.contractId' => '',
             'data.attributes.description' => '',

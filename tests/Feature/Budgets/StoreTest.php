@@ -31,7 +31,7 @@ it('stores a budget', function () {
             'showToCustomer' => true,
             'initialMinutes' => $this->faker->numberBetween(100, 1000),
             'budgetTypeId' => 'project',
-            'totalPrice' => $this->faker->numberBetween(100, 10000),
+            'totalPrice' => 1250.5,
             'startedAt' => Carbon::today(timezone: config('timatic.preferred_timezone'))->subMonth(),
             'endedAt' => Carbon::today()->addYear(),
             'isArchived' => false,
@@ -46,7 +46,8 @@ it('stores a budget', function () {
                     'customerId' => (string) $customer->id,
                 ],
             ],
-        ]);
+        ])
+        ->assertJsonPath('data.attributes.totalPrice', 1250.5);
 
     expect(JsonApiResource::$wrap)->toEqual('data');
 

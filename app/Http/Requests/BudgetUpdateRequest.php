@@ -30,7 +30,7 @@ class BudgetUpdateRequest extends FormRequest
             'data.type' => 'required|in:budgets',
             'data.attributes' => 'required|array',
             'data.attributes.title' => 'required',
-            'data.attributes.initialMinutes' => 'required|numeric',
+            'data.attributes.initialMinutes' => 'required|integer',
             'data.attributes.changeId' => '',
             'data.attributes.contractId' => '',
             'data.attributes.description' => '',
