@@ -40,7 +40,7 @@ class EntryUpdateRequest extends FormRequest
             'data.attributes.ticketType' => 'string',
             'data.attributes.ticketTitle' => 'string',
             'data.attributes.ticketNumber' => 'string',
-            'data.attributes.customerId' => 'required|integer|exists:customers,id',
+            'data.attributes.customerId' => 'required|string|exists:customers,id',
             'data.attributes.customerName' => 'string',
             'data.attributes.entryType' => 'required|in:regular,correction,closing_budget_to_profit',
             'data.attributes.budgetId' => 'required_without:data.attributes.isInternal|integer|exists:budgets,id',

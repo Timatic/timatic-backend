@@ -19,7 +19,7 @@ class Budget extends JsonApiResource
 
         return [
             'budgetTypeId' => $this->budget_type_id,
-            'customerId' => $this->customer_id,
+            'customerId' => (string) $this->customer_id,
             'showToCustomer' => $this->show_to_customer,
             'changeId' => $activeVersion->change_id,
             'contractId' => $activeVersion->contract_id,

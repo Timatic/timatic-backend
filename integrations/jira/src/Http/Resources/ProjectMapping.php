@@ -20,7 +20,7 @@ class ProjectMapping extends JsonApiResource
         return [
             'projectKey' => $this->project_key,
             'projectName' => $this->project_name,
-            'customerId' => $this->customer_id,
+            'customerId' => $this->customer_id === null ? null : (string) $this->customer_id,
             'budgetId' => $this->budget_id,
         ];
     }

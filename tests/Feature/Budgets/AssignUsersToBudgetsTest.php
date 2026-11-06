@@ -24,7 +24,7 @@ it('allows a user to be assigned when creating a budget', function () {
         'type' => 'budgets',
         'attributes' => [
             'title' => 'test',
-            'customerId' => $customer->id,
+            'customerId' => (string) $customer->id,
             'showToCustomer' => true,
             'initialMinutes' => fake()->numberBetween(100, 1000),
             'budgetTypeId' => 'project',

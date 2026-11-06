@@ -34,7 +34,7 @@ it('returns the customer and budget a git remote is mapped to', function () {
     expect($response->json('data'))->toHaveCount(1)
         ->and($response->json('data.0.id'))->toBe('bitbucket.org/acme/shop')
         ->and($response->json('data.0.type'))->toBe('git-repository-mappings')
-        ->and($response->json('data.0.attributes.customerId'))->toBe($budget->customer_id)
+        ->and($response->json('data.0.attributes.customerId'))->toBe((string) $budget->customer_id)
         ->and($response->json('data.0.attributes.budgetId'))->toBe($budget->id);
 });
 

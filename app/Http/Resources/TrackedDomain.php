@@ -22,10 +22,10 @@ class TrackedDomain extends JsonApiResource
         return [
             'domain' => $this->domain,
             'path' => $this->path,
-            'customerId' => $this->customer_id,
+            'customerId' => (string) $this->customer_id,
             'budgetId' => $this->budget_id,
             'isInternal' => $this->is_internal,
-            'userId' => $this->user_id,
+            'userId' => $this->user_id === null ? null : (string) $this->user_id,
             'parentId' => $this->parent_id,
             'createdAt' => $this->created_at,
             'updatedAt' => $this->updated_at,

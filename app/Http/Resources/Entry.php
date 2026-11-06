@@ -19,7 +19,7 @@ class Entry extends JsonApiResource
             'ticketNumber' => $this->ticket_number,
             'ticketTitle' => $this->ticket_title,
             'ticketType' => $this->ticket_type,
-            'customerId' => $this->customer_id,
+            'customerId' => (string) $this->customer_id,
             'customerName' => $this->customer_name,
             'hourlyRate' => $this->getHourlyRateBigDecimal()->toFloat(),
             'hadEmergencyShift' => $this->when(

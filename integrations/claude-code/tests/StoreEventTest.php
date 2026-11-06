@@ -28,8 +28,8 @@ it('stores an event from the Claude Code plugin', function () {
             'attributes' => [
                 'sourceId' => 'claude_code',
                 'eventTypeId' => 'claude_question_answered',
-                'userId' => $user->id,
-                'customerId' => $customer->id,
+                'userId' => (string) $user->id,
+                'customerId' => (string) $customer->id,
                 'ticketNumber' => 'TIM-12',
                 'title' => 'Claude Code: timatic-backend',
                 'description' => 'Login form',

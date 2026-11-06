@@ -49,7 +49,7 @@ class BudgetCreateRequest extends FormRequest
             'data.attributes.totalPrice' => 'required|numeric',
             'data.attributes.startedAt' => 'required|date',
             'data.attributes.endedAt' => 'required|date',
-            'data.attributes.customerId' => 'required|integer|exists:customers,id',
+            'data.attributes.customerId' => 'required|string|exists:customers,id',
             'data.attributes.showToCustomer' => 'boolean',
             'data.attributes.budgetTypeId' => 'required|exists:budget_types,id',
             'data.attributes.supervisorUserId' => 'exists:users,id',

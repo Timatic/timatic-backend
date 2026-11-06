@@ -17,9 +17,9 @@ it('stores a tracked domain', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
-                'userId' => $user->id,
+                'userId' => (string) $user->id,
                 'domain' => 'jira.acme.com',
-                'customerId' => $budget->customer_id,
+                'customerId' => (string) $budget->customer_id,
                 'budgetId' => $budget->id,
             ],
         ],
@@ -42,10 +42,10 @@ it('stores a path as a mapping of its own', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
-                'userId' => $user->id,
+                'userId' => (string) $user->id,
                 'domain' => 'gitlab.acme.com',
                 'path' => '/group-a',
-                'customerId' => $budget->customer_id,
+                'customerId' => (string) $budget->customer_id,
                 'budgetId' => $budget->id,
             ],
         ],
@@ -67,9 +67,9 @@ it('refuses a domain that is not a bare host', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
-                'userId' => $user->id,
+                'userId' => (string) $user->id,
                 'domain' => 'https://Gitlab.Acme.com/group-a',
-                'customerId' => $customer->id,
+                'customerId' => (string) $customer->id,
             ],
         ],
     ])->assertJsonValidationErrors('data.attributes.domain');
@@ -84,9 +84,9 @@ it('refuses a www prefix', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
-                'userId' => $user->id,
+                'userId' => (string) $user->id,
                 'domain' => 'www.acme.com',
-                'customerId' => $customer->id,
+                'customerId' => (string) $customer->id,
             ],
         ],
     ])->assertJsonValidationErrors('data.attributes.domain');
@@ -101,10 +101,10 @@ it('refuses a path that is not canonical', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
-                'userId' => $user->id,
+                'userId' => (string) $user->id,
                 'domain' => 'gitlab.acme.com',
                 'path' => '/group-a/',
-                'customerId' => $customer->id,
+                'customerId' => (string) $customer->id,
             ],
         ],
     ])->assertJsonValidationErrors('data.attributes.path');
@@ -121,10 +121,10 @@ it('allows the same domain with a different path', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
-                'userId' => $user->id,
+                'userId' => (string) $user->id,
                 'domain' => 'gitlab.acme.com',
                 'path' => '/group-b',
-                'customerId' => $customer->id,
+                'customerId' => (string) $customer->id,
             ],
         ],
     ])->assertCreated();
@@ -143,10 +143,10 @@ it('refuses the same domain and path twice', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
-                'userId' => $user->id,
+                'userId' => (string) $user->id,
                 'domain' => 'gitlab.acme.com',
                 'path' => '/group-a',
-                'customerId' => $customer->id,
+                'customerId' => (string) $customer->id,
             ],
         ],
     ])->assertJsonValidationErrors('data.attributes.domain');
@@ -162,9 +162,9 @@ it('refuses a budget that belongs to another customer', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
-                'userId' => $user->id,
+                'userId' => (string) $user->id,
                 'domain' => 'jira.acme.com',
-                'customerId' => $otherCustomer->id,
+                'customerId' => (string) $otherCustomer->id,
                 'budgetId' => $budget->id,
             ],
         ],
@@ -181,9 +181,9 @@ it('refuses a domain that is already tracked', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
-                'userId' => $user->id,
+                'userId' => (string) $user->id,
                 'domain' => 'jira.acme.com',
-                'customerId' => $customer->id,
+                'customerId' => (string) $customer->id,
             ],
         ],
     ])->assertJsonValidationErrors('data.attributes.domain');
@@ -198,9 +198,9 @@ it('refuses a user without the create permission', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
-                'userId' => $user->id,
+                'userId' => (string) $user->id,
                 'domain' => 'jira.acme.com',
-                'customerId' => $customer->id,
+                'customerId' => (string) $customer->id,
             ],
         ],
     ])->assertForbidden();
@@ -225,9 +225,9 @@ it('keeps a mapping to the user who made it', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
-                'userId' => $user->id,
+                'userId' => (string) $user->id,
                 'domain' => 'timatic-backend.test',
-                'customerId' => $customer->id,
+                'customerId' => (string) $customer->id,
             ],
         ],
     ])->assertCreated();
@@ -245,7 +245,7 @@ it('refuses a mapping without a user', function () {
             'type' => 'tracked-domains',
             'attributes' => [
                 'domain' => 'jira.acme.com',
-                'customerId' => $customer->id,
+                'customerId' => (string) $customer->id,
             ],
         ],
     ])->assertJsonValidationErrors('data.attributes.userId');
@@ -260,9 +260,9 @@ it('refuses a mapping for somebody else', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
-                'userId' => User::factory()->create()->id,
+                'userId' => (string) User::factory()->create()->id,
                 'domain' => 'jira.acme.com',
-                'customerId' => $customer->id,
+                'customerId' => (string) $customer->id,
             ],
         ],
     ])->assertJsonValidationErrors('data.attributes.userId');
@@ -277,10 +277,10 @@ it('accepts a shared mapping as a mapping of its own', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
-                'userId' => $user->id,
+                'userId' => (string) $user->id,
                 'parentId' => $shared->id,
                 'domain' => 'jira.acme.com',
-                'customerId' => $shared->customer_id,
+                'customerId' => (string) $shared->customer_id,
             ],
         ],
     ])->assertCreated();
@@ -298,10 +298,10 @@ it('refuses to accept a mapping that belongs to somebody', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
-                'userId' => $user->id,
+                'userId' => (string) $user->id,
                 'parentId' => $other->id,
                 'domain' => 'jira.acme.com',
-                'customerId' => $other->customer_id,
+                'customerId' => (string) $other->customer_id,
             ],
         ],
     ])->assertJsonValidationErrors('data.attributes.parentId');
@@ -317,9 +317,9 @@ it('lets two users map the same domain', function () {
         'data' => [
             'type' => 'tracked-domains',
             'attributes' => [
-                'userId' => $user->id,
+                'userId' => (string) $user->id,
                 'domain' => 'jira.acme.com',
-                'customerId' => $customer->id,
+                'customerId' => (string) $customer->id,
             ],
         ],
     ])->assertCreated();

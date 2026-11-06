@@ -15,7 +15,7 @@ class Event extends JsonApiResource
     public function toAttributes(Request $request): array
     {
         return [
-            'userId' => $this->user_id,
+            'userId' => $this->user_id === null ? null : (string) $this->user_id,
             'budgetId' => $this->budget_id,
             'ticketId' => $this->ticket_id,
             'sourceId' => $this->source_id,
@@ -23,7 +23,7 @@ class Event extends JsonApiResource
             'ticketType' => $this->ticket_type,
             'title' => $this->title,
             'description' => $this->description,
-            'customerId' => $this->customer_id,
+            'customerId' => $this->customer_id === null ? null : (string) $this->customer_id,
             'eventTypeId' => $this->event_type_id,
             'startedAt' => $this->started_at,
             'endedAt' => $this->ended_at,

@@ -42,7 +42,7 @@ class TrackedDomainCreateRequest extends FormRequest
                     ->where('user_id', $ownUserId),
             ],
             'data.attributes.path' => ['nullable', 'string', 'max:255', 'regex:#^(/[^?\#\s]*[^/?\#\s])?$#'],
-            'data.attributes.customerId' => ['required', 'integer', 'exists:customers,id'],
+            'data.attributes.customerId' => ['required', 'string', 'exists:customers,id'],
             'data.attributes.budgetId' => [
                 'bail',
                 'nullable',
@@ -66,7 +66,7 @@ class TrackedDomainCreateRequest extends FormRequest
                 },
             ],
             'data.attributes.isInternal' => ['boolean'],
-            'data.attributes.userId' => ['required', 'integer', Rule::in($ownUserId === null ? [] : [$ownUserId])],
+            'data.attributes.userId' => ['required', 'string', Rule::in($ownUserId === null ? [] : [$ownUserId])],
             'data.attributes.parentId' => [
                 'bail',
                 'nullable',

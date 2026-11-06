@@ -27,7 +27,7 @@ it('stores a budget', function () {
         'type' => 'budgets',
         'attributes' => [
             'title' => 'test',
-            'customerId' => $customer->id,
+            'customerId' => (string) $customer->id,
             'showToCustomer' => true,
             'initialMinutes' => $this->faker->numberBetween(100, 1000),
             'budgetTypeId' => 'project',
@@ -43,7 +43,7 @@ it('stores a budget', function () {
                 'type' => 'budgets',
                 'attributes' => [
                     'title' => 'test',
-                    'customerId' => $customer->id,
+                    'customerId' => (string) $customer->id,
                 ],
             ],
         ]);
@@ -243,7 +243,7 @@ it('validates that the title is unique for a customer', function () {
         'type' => 'budgets',
         'attributes' => [
             'title' => 'Test',
-            'customerId' => $customer->id,
+            'customerId' => (string) $customer->id,
             'initialMinutes' => $this->faker->numberBetween(100, 1000),
             'budgetTypeId' => 'project',
             'startedAt' => Carbon::today()->subMonth(),
