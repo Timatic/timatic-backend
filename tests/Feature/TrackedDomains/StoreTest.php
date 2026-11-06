@@ -15,7 +15,7 @@ it('stores a tracked domain', function () {
 
     $response = $this->postJson(route('tracked-domains.store'), [
         'data' => [
-            'type' => 'tracked-domains',
+            'type' => 'trackedDomains',
             'attributes' => [
                 'userId' => (string) $user->id,
                 'domain' => 'jira.acme.com',
@@ -40,7 +40,7 @@ it('stores a path as a mapping of its own', function () {
 
     $this->postJson(route('tracked-domains.store'), [
         'data' => [
-            'type' => 'tracked-domains',
+            'type' => 'trackedDomains',
             'attributes' => [
                 'userId' => (string) $user->id,
                 'domain' => 'gitlab.acme.com',
@@ -65,7 +65,7 @@ it('refuses a domain that is not a bare host', function () {
 
     $this->postJson(route('tracked-domains.store'), [
         'data' => [
-            'type' => 'tracked-domains',
+            'type' => 'trackedDomains',
             'attributes' => [
                 'userId' => (string) $user->id,
                 'domain' => 'https://Gitlab.Acme.com/group-a',
@@ -82,7 +82,7 @@ it('refuses a www prefix', function () {
 
     $this->postJson(route('tracked-domains.store'), [
         'data' => [
-            'type' => 'tracked-domains',
+            'type' => 'trackedDomains',
             'attributes' => [
                 'userId' => (string) $user->id,
                 'domain' => 'www.acme.com',
@@ -99,7 +99,7 @@ it('refuses a path that is not canonical', function () {
 
     $this->postJson(route('tracked-domains.store'), [
         'data' => [
-            'type' => 'tracked-domains',
+            'type' => 'trackedDomains',
             'attributes' => [
                 'userId' => (string) $user->id,
                 'domain' => 'gitlab.acme.com',
@@ -119,7 +119,7 @@ it('allows the same domain with a different path', function () {
 
     $this->postJson(route('tracked-domains.store'), [
         'data' => [
-            'type' => 'tracked-domains',
+            'type' => 'trackedDomains',
             'attributes' => [
                 'userId' => (string) $user->id,
                 'domain' => 'gitlab.acme.com',
@@ -141,7 +141,7 @@ it('refuses the same domain and path twice', function () {
 
     $this->postJson(route('tracked-domains.store'), [
         'data' => [
-            'type' => 'tracked-domains',
+            'type' => 'trackedDomains',
             'attributes' => [
                 'userId' => (string) $user->id,
                 'domain' => 'gitlab.acme.com',
@@ -160,7 +160,7 @@ it('refuses a budget that belongs to another customer', function () {
 
     $this->postJson(route('tracked-domains.store'), [
         'data' => [
-            'type' => 'tracked-domains',
+            'type' => 'trackedDomains',
             'attributes' => [
                 'userId' => (string) $user->id,
                 'domain' => 'jira.acme.com',
@@ -179,7 +179,7 @@ it('refuses a domain that is already tracked', function () {
 
     $this->postJson(route('tracked-domains.store'), [
         'data' => [
-            'type' => 'tracked-domains',
+            'type' => 'trackedDomains',
             'attributes' => [
                 'userId' => (string) $user->id,
                 'domain' => 'jira.acme.com',
@@ -196,7 +196,7 @@ it('refuses a user without the create permission', function () {
 
     $this->postJson(route('tracked-domains.store'), [
         'data' => [
-            'type' => 'tracked-domains',
+            'type' => 'trackedDomains',
             'attributes' => [
                 'userId' => (string) $user->id,
                 'domain' => 'jira.acme.com',
@@ -223,7 +223,7 @@ it('keeps a mapping to the user who made it', function () {
 
     $this->postJson(route('tracked-domains.store'), [
         'data' => [
-            'type' => 'tracked-domains',
+            'type' => 'trackedDomains',
             'attributes' => [
                 'userId' => (string) $user->id,
                 'domain' => 'timatic-backend.test',
@@ -242,7 +242,7 @@ it('refuses a mapping without a user', function () {
 
     $this->postJson(route('tracked-domains.store'), [
         'data' => [
-            'type' => 'tracked-domains',
+            'type' => 'trackedDomains',
             'attributes' => [
                 'domain' => 'jira.acme.com',
                 'customerId' => (string) $customer->id,
@@ -258,7 +258,7 @@ it('refuses a mapping for somebody else', function () {
 
     $this->postJson(route('tracked-domains.store'), [
         'data' => [
-            'type' => 'tracked-domains',
+            'type' => 'trackedDomains',
             'attributes' => [
                 'userId' => (string) User::factory()->create()->id,
                 'domain' => 'jira.acme.com',
@@ -275,7 +275,7 @@ it('accepts a shared mapping as a mapping of its own', function () {
 
     $response = $this->postJson(route('tracked-domains.store'), [
         'data' => [
-            'type' => 'tracked-domains',
+            'type' => 'trackedDomains',
             'attributes' => [
                 'userId' => (string) $user->id,
                 'parentId' => $shared->id,
@@ -296,7 +296,7 @@ it('refuses to accept a mapping that belongs to somebody', function () {
 
     $this->postJson(route('tracked-domains.store'), [
         'data' => [
-            'type' => 'tracked-domains',
+            'type' => 'trackedDomains',
             'attributes' => [
                 'userId' => (string) $user->id,
                 'parentId' => $other->id,
@@ -315,7 +315,7 @@ it('lets two users map the same domain', function () {
 
     $this->postJson(route('tracked-domains.store'), [
         'data' => [
-            'type' => 'tracked-domains',
+            'type' => 'trackedDomains',
             'attributes' => [
                 'userId' => (string) $user->id,
                 'domain' => 'jira.acme.com',

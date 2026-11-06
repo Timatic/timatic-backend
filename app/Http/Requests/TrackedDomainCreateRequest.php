@@ -30,7 +30,7 @@ class TrackedDomainCreateRequest extends FormRequest
         $ownUserId = $user instanceof User ? $user->id : null;
 
         return [
-            'data.type' => ['required', 'in:tracked-domains'],
+            'data.type' => ['required', 'in:trackedDomains'],
             'data.attributes.domain' => [
                 'required',
                 'string',
