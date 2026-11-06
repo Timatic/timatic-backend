@@ -28,6 +28,7 @@ class BudgetUpdateRequest extends FormRequest
     {
         $rules = [
             'data.type' => 'required|in:budgets',
+            'data.id' => ['sometimes', 'string', $this->matchesRouteResourceId()],
             'data.attributes' => 'required|array',
             'data.attributes.title' => 'required',
             'data.attributes.initialMinutes' => 'required|integer',

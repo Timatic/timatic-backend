@@ -29,6 +29,7 @@ class EntryUpdateRequest extends FormRequest
     {
         return $this->addPatchOptionalValidation([
             'data.type' => 'required|in:entries',
+            'data.id' => ['sometimes', 'string', $this->matchesRouteResourceId()],
             'data.attributes.isPaidPerHour' => [
                 Rule::requiredIf(
                     fn () => is_null($this->input('data.attributes.budgetId')) && $this->input('data.attributes.isInternal') == false
