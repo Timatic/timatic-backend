@@ -28,6 +28,7 @@ class CorrectionUpdateRequest extends FormRequest
     {
         return $this->addPatchOptionalValidation([
             'data.type' => ['required', 'in:corrections'],
+            'data.id' => ['sometimes', 'string', $this->matchesRouteResourceId()],
             'data.attributes.newEntryId' => ['integer', 'exists:entries,id'],
         ]);
     }

@@ -22,7 +22,7 @@ class TeamRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'data.type' => ['string', 'in:teams'],
+            'data.type' => ['required', 'string', 'in:teams'],
             'data.attributes.externalId' => ['string'],
             'data.attributes.name' => ['required', 'string'],
         ];

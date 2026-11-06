@@ -49,7 +49,7 @@ class EventRequest extends FormRequest
             'data.type' => ['required', 'in:events'],
             'data.attributes.sourceId' => ['required', 'string', 'exists:'.Source::class.',id'],
             'data.attributes.userId' => [
-                'integer',
+                'string',
                 'exists:'.User::class.',id',
                 'required_without:data.attributes.userExternalId',
             ],
@@ -64,7 +64,7 @@ class EventRequest extends FormRequest
             'data.attributes.ticketType' => [],
             'data.attributes.title' => [],
             'data.attributes.description' => [],
-            'data.attributes.customerId' => ['integer', 'exists:customers,id'],
+            'data.attributes.customerId' => ['string', 'exists:customers,id'],
             'data.attributes.customerExternalId' => ['string'],
             'data.attributes.eventTypeId' => ['required', 'string'],
             'data.attributes.startedAt' => [

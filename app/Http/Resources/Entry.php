@@ -19,7 +19,7 @@ class Entry extends JsonApiResource
             'ticketNumber' => $this->ticket_number,
             'ticketTitle' => $this->ticket_title,
             'ticketType' => $this->ticket_type,
-            'customerId' => $this->customer_id,
+            'customerId' => (string) $this->customer_id,
             'customerName' => $this->customer_name,
             'hourlyRate' => $this->getHourlyRateBigDecimal()->toFloat(),
             'hadEmergencyShift' => $this->when(
@@ -27,7 +27,7 @@ class Entry extends JsonApiResource
                 (bool) $this->had_emergency_shift
             ),
             'budgetId' => $this->budget_id,
-            'isPaidPerHour' => $this->budget_id === null && $this->is_internal === false,
+            'isPaidPerHour' => (bool) ($this->budget_id === null && $this->is_internal === false),
             'minutesSpent' => (int) $this->minutes_spent,
             'userId' => (string) $this->user_id,
             'userEmail' => $this->user_email,

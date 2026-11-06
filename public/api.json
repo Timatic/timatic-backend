@@ -7,7 +7,7 @@
     },
     "servers": [
         {
-            "url": "https://api.app.timatic.test"
+            "url": "https://localhost"
         }
     ],
     "security": [
@@ -21858,6 +21858,7 @@
                     }
                 ],
                 "requestBody": {
+                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
@@ -22169,6 +22170,7 @@
                     }
                 ],
                 "requestBody": {
+                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
@@ -22462,7 +22464,7 @@
                                 ]
                             },
                             "totalPrice": {
-                                "type": "string"
+                                "type": "number"
                             },
                             "startedAt": {
                                 "type": [
@@ -22657,7 +22659,7 @@
                                         "type": "string"
                                     },
                                     "initialMinutes": {
-                                        "type": "number"
+                                        "type": "integer"
                                     },
                                     "changeId": {
                                         "type": "string"
@@ -22680,7 +22682,7 @@
                                         "format": "date-time"
                                     },
                                     "customerId": {
-                                        "type": "integer"
+                                        "type": "string"
                                     },
                                     "showToCustomer": {
                                         "type": "boolean"
@@ -22718,7 +22720,22 @@
                                             "data": {
                                                 "type": "array",
                                                 "items": {
-                                                    "type": "string"
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "users"
+                                                            ]
+                                                        },
+                                                        "id": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "type",
+                                                        "id"
+                                                    ]
                                                 }
                                             }
                                         }
@@ -22800,6 +22817,9 @@
                                     "budgets"
                                 ]
                             },
+                            "id": {
+                                "type": "string"
+                            },
                             "attributes": {
                                 "type": "object",
                                 "properties": {
@@ -22807,7 +22827,7 @@
                                         "type": "string"
                                     },
                                     "initialMinutes": {
-                                        "type": "number"
+                                        "type": "integer"
                                     },
                                     "changeId": {
                                         "type": "string"
@@ -22849,7 +22869,18 @@
                                             "data": {
                                                 "type": "array",
                                                 "items": {
-                                                    "type": "string"
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "users"
+                                                            ]
+                                                        },
+                                                        "id": {
+                                                            "type": "string"
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
@@ -23029,6 +23060,9 @@
                                 "enum": [
                                     "corrections"
                                 ]
+                            },
+                            "id": {
+                                "type": "string"
                             },
                             "attributes": {
                                 "type": "object",
@@ -23216,7 +23250,7 @@
                                 ]
                             },
                             "isPaidPerHour": {
-                                "type": "string"
+                                "type": "boolean"
                             },
                             "minutesSpent": {
                                 "type": "integer"
@@ -23511,7 +23545,7 @@
                                         "type": "string"
                                     },
                                     "customerId": {
-                                        "type": "integer"
+                                        "type": "string"
                                     },
                                     "customerName": {
                                         "type": "string"
@@ -23529,7 +23563,7 @@
                                         "type": "integer"
                                     },
                                     "userId": {
-                                        "type": "integer"
+                                        "type": "string"
                                     },
                                     "userFullName": {
                                         "type": "string"
@@ -23567,11 +23601,7 @@
                                         "format": "date-time"
                                     },
                                     "isInvoiced": {
-                                        "type": "boolean",
-                                        "enum": [
-                                            "true",
-                                            "1"
-                                        ]
+                                        "type": "boolean"
                                     }
                                 },
                                 "required": [
@@ -23722,6 +23752,9 @@
                                     "entries"
                                 ]
                             },
+                            "id": {
+                                "type": "string"
+                            },
                             "attributes": {
                                 "type": "object",
                                 "properties": {
@@ -23744,7 +23777,7 @@
                                         "type": "string"
                                     },
                                     "customerId": {
-                                        "type": "integer"
+                                        "type": "string"
                                     },
                                     "customerName": {
                                         "type": "string"
@@ -23789,11 +23822,7 @@
                                         "format": "date-time"
                                     },
                                     "isInvoiced": {
-                                        "type": "boolean",
-                                        "enum": [
-                                            "true",
-                                            "1"
-                                        ]
+                                        "type": "boolean"
                                     }
                                 }
                             }
@@ -23963,7 +23992,7 @@
                                         "type": "string"
                                     },
                                     "userId": {
-                                        "type": "integer"
+                                        "type": "string"
                                     },
                                     "userExternalId": {
                                         "type": "string"
@@ -23987,7 +24016,7 @@
                                         "type": "string"
                                     },
                                     "customerId": {
-                                        "type": "integer"
+                                        "type": "string"
                                     },
                                     "customerExternalId": {
                                         "type": "string"
@@ -24096,7 +24125,7 @@
                         "type": "object",
                         "properties": {
                             "customerId": {
-                                "type": "integer"
+                                "type": "string"
                             },
                             "budgetId": {
                                 "type": [
@@ -24342,7 +24371,7 @@
                             },
                             "customerId": {
                                 "type": [
-                                    "integer",
+                                    "string",
                                     "null"
                                 ]
                             },
@@ -24508,6 +24537,9 @@
                                 "enum": [
                                     "roles"
                                 ]
+                            },
+                            "id": {
+                                "type": "string"
                             },
                             "attributes": {
                                 "type": "object",
@@ -24716,7 +24748,10 @@
                                     "name"
                                 ]
                             }
-                        }
+                        },
+                        "required": [
+                            "type"
+                        ]
                     }
                 },
                 "required": [
@@ -24760,7 +24795,7 @@
                             },
                             "customerId": {
                                 "type": [
-                                    "integer",
+                                    "string",
                                     "null"
                                 ]
                             },
@@ -24802,7 +24837,7 @@
                                 ]
                             },
                             "customerId": {
-                                "type": "integer"
+                                "type": "string"
                             },
                             "budgetId": {
                                 "type": [
@@ -24815,7 +24850,7 @@
                             },
                             "userId": {
                                 "type": [
-                                    "integer",
+                                    "string",
                                     "null"
                                 ]
                             },
@@ -24910,7 +24945,7 @@
                             "type": {
                                 "type": "string",
                                 "enum": [
-                                    "tracked-domains"
+                                    "trackedDomains"
                                 ]
                             },
                             "attributes": {
@@ -24930,7 +24965,7 @@
                                         "maxLength": 255
                                     },
                                     "customerId": {
-                                        "type": "integer"
+                                        "type": "string"
                                     },
                                     "budgetId": {
                                         "type": [
@@ -24942,10 +24977,7 @@
                                         "type": "boolean"
                                     },
                                     "userId": {
-                                        "type": "integer",
-                                        "enum": [
-                                            ""
-                                        ]
+                                        "type": "string"
                                     },
                                     "parentId": {
                                         "type": [
@@ -25215,15 +25247,21 @@
                                     }
                                 }
                             }
-                        }
+                        },
+                        "required": [
+                            "type"
+                        ]
                     }
                 },
+                "required": [
+                    "data"
+                ],
                 "title": "UserRequest"
             }
         },
         "responses": {
-            "AuthenticationException": {
-                "description": "Unauthenticated",
+            "AuthorizationException": {
+                "description": "Authorization error",
                 "content": {
                     "application/json": {
                         "schema": {
@@ -25241,8 +25279,8 @@
                     }
                 }
             },
-            "AuthorizationException": {
-                "description": "Authorization error",
+            "AuthenticationException": {
+                "description": "Unauthenticated",
                 "content": {
                     "application/json": {
                         "schema": {

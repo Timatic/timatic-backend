@@ -17,7 +17,7 @@ class RoleUpdateRequest extends FormRequest
     }
 
     /**
-     * @return array<string, array<string>>
+     * @return array<string, mixed>
      */
     public function rules(): array
     {
@@ -27,6 +27,7 @@ class RoleUpdateRequest extends FormRequest
 
         return [
             'data.type' => ['required', 'string', 'in:roles'],
+            'data.id' => ['sometimes', 'string', $this->matchesRouteResourceId()],
             'data.attributes.name' => [
                 'required',
                 'string',

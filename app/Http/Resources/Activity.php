@@ -17,7 +17,7 @@ class Activity extends JsonApiResource
         return [
             'sourceId' => $this->source_id,
             'eventTypeId' => $this->event_type_id,
-            'customerId' => $this->customer_id,
+            'customerId' => $this->customer_id === null ? null : (string) $this->customer_id,
             'ticketId' => $this->ticket_id,
             'entrySuggestionId' => $this->entry_suggestion_id,
             'startedAt' => $this->started_at,

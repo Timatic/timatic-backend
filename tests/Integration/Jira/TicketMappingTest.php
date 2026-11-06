@@ -25,7 +25,7 @@ function eventWithTicket(array $attributes): array
             'attributes' => [
                 'sourceId' => Source::factory()->create()->id,
                 'eventTypeId' => EventType::factory()->create()->id,
-                'userId' => User::factory()->create()->id,
+                'userId' => (string) User::factory()->create()->id,
                 'endedAt' => Carbon::now()->subMinute()->toIso8601String(),
                 ...$attributes,
             ],
@@ -61,7 +61,7 @@ it('books an event on the customer and budget its ticket is mapped to', function
 
     $this->postJson(route('events.store'), eventWithTicket([
         'ticketNumber' => 'ACME-12',
-        'customerId' => $sentBudget->customer_id,
+        'customerId' => (string) $sentBudget->customer_id,
         'budgetId' => $sentBudget->id,
     ]))->assertCreated();
 
@@ -85,7 +85,7 @@ it('drops a budget of another customer than the ticket is mapped to', function (
 
     $this->postJson(route('events.store'), eventWithTicket([
         'ticketNumber' => 'ACME-12',
-        'customerId' => $sentBudget->customer_id,
+        'customerId' => (string) $sentBudget->customer_id,
         'budgetId' => $sentBudget->id,
     ]))->assertCreated();
 
@@ -106,7 +106,7 @@ it('keeps the budget sent when it belongs to the customer the ticket is mapped t
 
     $this->postJson(route('events.store'), eventWithTicket([
         'ticketNumber' => 'ACME-12',
-        'customerId' => $sentBudget->customer_id,
+        'customerId' => (string) $sentBudget->customer_id,
         'budgetId' => $sentBudget->id,
     ]))->assertCreated();
 
@@ -125,7 +125,7 @@ it('keeps what the client sent for a ticket that is not mapped', function () {
 
     $this->postJson(route('events.store'), eventWithTicket([
         'ticketNumber' => 'OTHER-12',
-        'customerId' => $sentBudget->customer_id,
+        'customerId' => (string) $sentBudget->customer_id,
         'budgetId' => $sentBudget->id,
     ]))->assertCreated();
 
@@ -148,7 +148,7 @@ it('ignores the mapping of an archived project', function () {
 
     $this->postJson(route('events.store'), eventWithTicket([
         'ticketNumber' => 'ACME-12',
-        'customerId' => $sentCustomer->id,
+        'customerId' => (string) $sentCustomer->id,
     ]))->assertCreated();
 
     expect((int) TimeEvent::query()->sole()->customer_id)->toBe($sentCustomer->id);

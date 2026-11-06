@@ -27,11 +27,11 @@ it('stores a budget', function () {
         'type' => 'budgets',
         'attributes' => [
             'title' => 'test',
-            'customerId' => $customer->id,
+            'customerId' => (string) $customer->id,
             'showToCustomer' => true,
             'initialMinutes' => $this->faker->numberBetween(100, 1000),
             'budgetTypeId' => 'project',
-            'totalPrice' => $this->faker->numberBetween(100, 10000),
+            'totalPrice' => 1250.5,
             'startedAt' => Carbon::today(timezone: config('timatic.preferred_timezone'))->subMonth(),
             'endedAt' => Carbon::today()->addYear(),
             'isArchived' => false,
@@ -43,10 +43,11 @@ it('stores a budget', function () {
                 'type' => 'budgets',
                 'attributes' => [
                     'title' => 'test',
-                    'customerId' => $customer->id,
+                    'customerId' => (string) $customer->id,
                 ],
             ],
-        ]);
+        ])
+        ->assertJsonPath('data.attributes.totalPrice', 1250.5);
 
     expect(JsonApiResource::$wrap)->toEqual('data');
 
@@ -243,7 +244,7 @@ it('validates that the title is unique for a customer', function () {
         'type' => 'budgets',
         'attributes' => [
             'title' => 'Test',
-            'customerId' => $customer->id,
+            'customerId' => (string) $customer->id,
             'initialMinutes' => $this->faker->numberBetween(100, 1000),
             'budgetTypeId' => 'project',
             'startedAt' => Carbon::today()->subMonth(),

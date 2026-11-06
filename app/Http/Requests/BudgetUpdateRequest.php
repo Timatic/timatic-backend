@@ -28,9 +28,10 @@ class BudgetUpdateRequest extends FormRequest
     {
         $rules = [
             'data.type' => 'required|in:budgets',
+            'data.id' => ['sometimes', 'string', $this->matchesRouteResourceId()],
             'data.attributes' => 'required|array',
             'data.attributes.title' => 'required',
-            'data.attributes.initialMinutes' => 'required|numeric',
+            'data.attributes.initialMinutes' => 'required|integer',
             'data.attributes.changeId' => '',
             'data.attributes.contractId' => '',
             'data.attributes.description' => '',
@@ -42,6 +43,8 @@ class BudgetUpdateRequest extends FormRequest
             'data.attributes.effectiveFrom' => 'date',
             'data.relationships.allowedUsers' => '',
             'data.relationships.allowedUsers.data' => 'array',
+            'data.relationships.allowedUsers.data.*.type' => 'required|string|in:users',
+            'data.relationships.allowedUsers.data.*.id' => 'required|string|exists:users,id',
         ];
 
         return $this->addPatchOptionalValidation($rules, ['data.type', 'data.attributes']);

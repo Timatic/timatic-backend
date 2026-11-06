@@ -19,13 +19,13 @@ class Budget extends JsonApiResource
 
         return [
             'budgetTypeId' => $this->budget_type_id,
-            'customerId' => $this->customer_id,
+            'customerId' => (string) $this->customer_id,
             'showToCustomer' => $this->show_to_customer,
             'changeId' => $activeVersion->change_id,
             'contractId' => $activeVersion->contract_id,
             'title' => $activeVersion->title,
             'description' => $activeVersion->description,
-            'totalPrice' => $activeVersion->total_price,
+            'totalPrice' => (float) $activeVersion->total_price,
             'startedAt' => $this->started_at,
             'endedAt' => $this->ended_at,
             'initialMinutes' => $activeVersion->initial_minutes,

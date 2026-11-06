@@ -24,7 +24,7 @@ it('allows a user to be assigned when creating a budget', function () {
         'type' => 'budgets',
         'attributes' => [
             'title' => 'test',
-            'customerId' => $customer->id,
+            'customerId' => (string) $customer->id,
             'showToCustomer' => true,
             'initialMinutes' => fake()->numberBetween(100, 1000),
             'budgetTypeId' => 'project',
@@ -38,7 +38,7 @@ it('allows a user to be assigned when creating a budget', function () {
                 'data' => [
                     [
                         'type' => 'users',
-                        'id' => $user->getAuthIdentifier(),
+                        'id' => (string) $user->getAuthIdentifier(),
                     ],
                 ],
             ],
@@ -52,7 +52,7 @@ it('allows a user to be assigned when creating a budget', function () {
                     'allowedUsers' => [
                         'data' => [
                             [
-                                'id' => $user->getAuthIdentifier(),
+                                'id' => (string) $user->getAuthIdentifier(),
                             ],
                         ],
                     ],
@@ -87,7 +87,7 @@ it('allows the allowedUser relationship to be changed when updating a budget', f
                 'data' => [
                     [
                         'type' => 'users',
-                        'id' => $user->getAuthIdentifier(),
+                        'id' => (string) $user->getAuthIdentifier(),
                     ],
                 ],
             ],
@@ -100,7 +100,7 @@ it('allows the allowedUser relationship to be changed when updating a budget', f
                     'allowedUsers' => [
                         'data' => [
                             [
-                                'id' => $user->getAuthIdentifier(),
+                                'id' => (string) $user->getAuthIdentifier(),
                             ],
                         ],
                     ],
