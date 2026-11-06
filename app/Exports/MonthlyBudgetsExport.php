@@ -3,7 +3,7 @@
 namespace App\Exports;
 
 use App\DataTransferObjects\BudgetMutation;
-use App\Integrations\Contracts\ExportInterface;
+use App\Integrations\Exports\ExportInterface;
 use App\Models\Customer;
 use App\Models\User;
 use App\Services\BudgetUsageService;

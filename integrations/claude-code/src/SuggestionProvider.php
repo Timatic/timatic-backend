@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Timatic\ClaudeCode;
 
-use App\Integrations\Contracts\SuggestionIntegrationInterface;
+use App\Integrations\Suggestions\SuggestionProviderInterface;
 use App\Models\ApiToken;
 use App\Models\User;
 
@@ -12,7 +12,7 @@ use App\Models\User;
  * The Claude Code plugin logs a user's prompts and answers as events. Each user installs it and
  * logs in on their own machine, so it is never switched on for everyone.
  */
-class SuggestionIntegration implements SuggestionIntegrationInterface
+class SuggestionProvider implements SuggestionProviderInterface
 {
     public function sourceId(): string
     {

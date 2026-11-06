@@ -3,7 +3,7 @@
 namespace Timatic\ExactGlobe;
 
 use App\DataTransferObjects\BudgetMutation;
-use App\Integrations\Contracts\ExportInterface;
+use App\Integrations\Exports\ExportInterface;
 use App\Services\BudgetUsageService;
 use Brick\Math\BigDecimal;
 use Illuminate\Support\Carbon;

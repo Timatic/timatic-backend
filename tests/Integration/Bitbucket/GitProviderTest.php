@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\DataTransferObjects\GitRemote;
-use App\Integrations\GitRepositoryService;
+use App\Integrations\Git\GitRepositoryService;
 use App\Models\Budget;
 use App\Models\Customer;
 use App\Models\Integration;

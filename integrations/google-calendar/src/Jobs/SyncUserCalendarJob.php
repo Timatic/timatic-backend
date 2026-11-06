@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Timatic\GoogleCalendar\Jobs;
 
 use App\DataTransferObjects\Ticket;
-use App\Integrations\TicketService;
+use App\Integrations\Tickets\TicketService;
 use App\Models\Event;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;

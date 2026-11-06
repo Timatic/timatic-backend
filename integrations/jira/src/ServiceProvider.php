@@ -3,8 +3,8 @@
 namespace Timatic\Jira;
 
 use App\Integrations\IntegrationTypeRegistry;
-use App\Integrations\SuggestionIntegrationRegistry;
-use App\Integrations\TicketProviderRegistry;
+use App\Integrations\Suggestions\SuggestionProviderRegistry;
+use App\Integrations\Tickets\TicketProviderRegistry;
 use App\Models\Integration;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Timatic\Jira\Filament\Pages\ProjectMappingPage;
@@ -30,10 +30,10 @@ class ServiceProvider extends BaseServiceProvider
         });
     }
 
-    public function boot(TicketProviderRegistry $ticketProviders, SuggestionIntegrationRegistry $suggestionIntegrations): void
+    public function boot(TicketProviderRegistry $ticketProviders, SuggestionProviderRegistry $suggestionProviders): void
     {
         $ticketProviders->register('jira', TicketProvider::class);
-        $suggestionIntegrations->register('jira', SuggestionIntegration::class);
+        $suggestionProviders->register('jira', SuggestionProvider::class);
         $this->publishes([__DIR__.'/../resources/icons/jira.svg' => public_path('icons/jira.svg')], 'source-icons');
 
         $this->mergeConfigFrom(__DIR__.'/../config/jira.php', 'jira');

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Integrations\Contracts;
+namespace App\Integrations\Tickets;
 
 use App\DataTransferObjects\Ticket;
 use App\DataTransferObjects\TicketMapping;

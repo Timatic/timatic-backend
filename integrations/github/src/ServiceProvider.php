@@ -2,10 +2,10 @@
 
 namespace Timatic\GitHub;
 
-use App\Integrations\GitProviderRegistry;
+use App\Integrations\Git\GitProviderRegistry;
 use App\Integrations\IntegrationTypeRegistry;
-use App\Integrations\SuggestionIntegrationRegistry;
-use App\Integrations\TicketProviderRegistry;
+use App\Integrations\Suggestions\SuggestionProviderRegistry;
+use App\Integrations\Tickets\TicketProviderRegistry;
 use App\Models\Integration;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Timatic\GitHub\Filament\Pages\PeoplePage;
@@ -31,7 +31,7 @@ class ServiceProvider extends BaseServiceProvider
         });
     }
 
-    public function boot(TicketProviderRegistry $ticketProviders, SuggestionIntegrationRegistry $suggestionIntegrations, GitProviderRegistry $gitProviders): void
+    public function boot(TicketProviderRegistry $ticketProviders, SuggestionProviderRegistry $suggestionProviders, GitProviderRegistry $gitProviders): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/github.php', 'github');
 
@@ -40,7 +40,7 @@ class ServiceProvider extends BaseServiceProvider
             $ticketProviders->register('github', TicketProvider::class);
         }
 
-        $suggestionIntegrations->register('github', SuggestionIntegration::class);
+        $suggestionProviders->register('github', SuggestionProvider::class);
         $gitProviders->register('github', GitProvider::class);
         $this->publishes([__DIR__.'/../resources/icons/github.svg' => public_path('icons/github.svg')], 'source-icons');
 

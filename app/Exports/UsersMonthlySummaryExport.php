@@ -2,7 +2,7 @@
 
 namespace App\Exports;
 
-use App\Integrations\Contracts\ExportInterface;
+use App\Integrations\Exports\ExportInterface;
 use App\Models\Entry;
 use App\Models\User;
 use App\Queries\HoursPerUserPerMonth;

@@ -5,7 +5,7 @@ namespace Timatic\Jira;
 use App\DataTransferObjects\Ticket;
 use App\DataTransferObjects\TicketAction;
 use App\DataTransferObjects\TicketMapping;
-use App\Integrations\Contracts\TicketProviderInterface;
+use App\Integrations\Tickets\TicketProviderInterface;
 use App\Models\Customer;
 use App\Models\Integration;
 use App\Models\User;

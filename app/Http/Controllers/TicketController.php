@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\TicketCollectionRequest;
 use App\Http\Resources\Ticket as TicketResource;
-use App\Integrations\TicketService;
+use App\Integrations\Tickets\TicketService;
 use App\Models\Customer;
 use App\Models\User;
 use TiMacDonald\JsonApi\JsonApiResourceCollection;

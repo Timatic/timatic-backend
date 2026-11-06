@@ -6,7 +6,7 @@ namespace Timatic\GitHub;
 
 use App\DataTransferObjects\GitRemote;
 use App\DataTransferObjects\GitRepositoryMapping;
-use App\Integrations\Contracts\GitProviderInterface;
+use App\Integrations\Git\GitProviderInterface;
 use Timatic\GitHub\Models\RepositoryMapping;
 
 final class GitProvider implements GitProviderInterface

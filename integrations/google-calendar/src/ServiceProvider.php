@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Timatic\GoogleCalendar;
 
 use App\Integrations\IntegrationTypeRegistry;
-use App\Integrations\SuggestionIntegrationRegistry;
+use App\Integrations\Suggestions\SuggestionProviderRegistry;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Timatic\GoogleCalendar\Commands\SyncGoogleCalendarCommand;
@@ -26,9 +26,9 @@ class ServiceProvider extends BaseServiceProvider
         });
     }
 
-    public function boot(SuggestionIntegrationRegistry $suggestionIntegrations): void
+    public function boot(SuggestionProviderRegistry $suggestionProviders): void
     {
-        $suggestionIntegrations->register('google_calendar', SuggestionIntegration::class);
+        $suggestionProviders->register('google_calendar', SuggestionProvider::class);
         $this->publishes([__DIR__.'/../resources/icons/google_calendar.svg' => public_path('icons/google_calendar.svg')], 'source-icons');
 
         $this->mergeConfigFrom(__DIR__.'/../config/google_calendar.php', 'google_calendar');

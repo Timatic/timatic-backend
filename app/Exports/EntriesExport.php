@@ -3,7 +3,7 @@
 namespace App\Exports;
 
 use App\DataTransferObjects\EntryExportRow;
-use App\Integrations\Contracts\ExportInterface;
+use App\Integrations\Exports\ExportInterface;
 use App\Models\Entry;
 use App\Models\User;
 use Brick\Math\BigDecimal;

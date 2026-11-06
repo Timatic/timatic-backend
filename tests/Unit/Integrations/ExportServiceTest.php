@@ -2,8 +2,8 @@
 
 use App\DataTransferObjects\ExportPeriod;
 use App\Exports\CoreExportProvider;
-use App\Integrations\ExportProviderRegistry;
-use App\Integrations\ExportService;
+use App\Integrations\Exports\ExportProviderRegistry;
+use App\Integrations\Exports\ExportService;
 use App\Models\Integration;
 
 it('throws when providers register duplicate format keys', function () {

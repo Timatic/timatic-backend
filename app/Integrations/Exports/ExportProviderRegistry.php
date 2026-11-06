@@ -1,8 +1,6 @@
 <?php
 
-namespace App\Integrations;
-
-use App\Integrations\Contracts\ExportProviderInterface;
+namespace App\Integrations\Exports;
 
 class ExportProviderRegistry
 {

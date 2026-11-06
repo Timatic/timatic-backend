@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\ExportFormat as ExportFormatResource;
-use App\Integrations\ExportService;
+use App\Integrations\Exports\ExportService;
 use TiMacDonald\JsonApi\JsonApiResourceCollection;
 
 class ExportFormatController extends Controller

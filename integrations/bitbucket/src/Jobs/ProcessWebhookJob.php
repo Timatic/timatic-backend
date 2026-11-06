@@ -3,7 +3,7 @@
 namespace Timatic\Bitbucket\Jobs;
 
 use App\DataTransferObjects\Ticket;
-use App\Integrations\TicketService;
+use App\Integrations\Tickets\TicketService;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Bus\Queueable;

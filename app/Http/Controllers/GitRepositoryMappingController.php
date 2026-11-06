@@ -8,7 +8,7 @@ use App\DataTransferObjects\GitRemote;
 use App\Exceptions\InvalidGitRemoteException;
 use App\Http\Requests\GitRepositoryMappingCollectionRequest;
 use App\Http\Resources\GitRepositoryMapping as GitRepositoryMappingResource;
-use App\Integrations\GitRepositoryService;
+use App\Integrations\Git\GitRepositoryService;
 use TiMacDonald\JsonApi\JsonApiResourceCollection;
 
 class GitRepositoryMappingController extends Controller

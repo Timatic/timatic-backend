@@ -1,10 +1,9 @@
 <?php
 
-namespace App\Integrations;
+namespace App\Integrations\Tickets;
 
 use App\DataTransferObjects\Ticket;
 use App\DataTransferObjects\TicketMapping;
-use App\Integrations\Contracts\TicketProviderInterface;
 use App\Models\Customer;
 use App\Models\Integration;
 use App\Models\User;

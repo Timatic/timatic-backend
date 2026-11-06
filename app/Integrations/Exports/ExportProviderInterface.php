@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Integrations\Contracts;
+namespace App\Integrations\Exports;
 
 use App\DataTransferObjects\ExportFormat;
 use App\DataTransferObjects\ExportPeriod;

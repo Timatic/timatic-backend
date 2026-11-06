@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Timatic\ClaudeCode;
 
-use App\Integrations\SuggestionIntegrationRegistry;
+use App\Integrations\Suggestions\SuggestionProviderRegistry;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 
 class ServiceProvider extends BaseServiceProvider
@@ -18,9 +18,9 @@ class ServiceProvider extends BaseServiceProvider
 
     public const EVENT_TYPE_QUESTION_ANSWERED = 'claude_question_answered';
 
-    public function boot(SuggestionIntegrationRegistry $suggestionIntegrations): void
+    public function boot(SuggestionProviderRegistry $suggestionProviders): void
     {
-        $suggestionIntegrations->register('claude_code', SuggestionIntegration::class);
+        $suggestionProviders->register('claude_code', SuggestionProvider::class);
         $this->publishes([__DIR__.'/../resources/icons/claude_code.svg' => public_path('icons/claude_code.svg')], 'source-icons');
 
         $this->mergeConfigFrom(__DIR__.'/../config/claude_code.php', 'claude_code');

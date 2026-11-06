@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Timatic\GoogleCalendar;
 
-use App\Integrations\Contracts\SuggestionIntegrationInterface;
+use App\Integrations\Suggestions\SuggestionProviderInterface;
 use App\Models\Integration;
 use App\Models\User;
 use Illuminate\Support\Facades\URL;
 use Timatic\GoogleCalendar\Models\GoogleCalendarConnection;
 
-class SuggestionIntegration implements SuggestionIntegrationInterface
+class SuggestionProvider implements SuggestionProviderInterface
 {
     public function sourceId(): string
     {
