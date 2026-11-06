@@ -10,6 +10,7 @@ use App\Services\EntryLockedDateService;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Config\Repository;
 use Illuminate\Contracts\Auth\Access\Authorizable;
+use UnexpectedValueException;
 
 class EntryPolicy
 {
@@ -84,7 +85,9 @@ class EntryPolicy
             return $user->can('entries.create_for_others');
         }
 
-        assert($user instanceof User);
+        if (! $user instanceof User) {
+            throw new UnexpectedValueException('Only users and api tokens can create entries.');
+        }
 
         if ($entry->budget !== null && ! $this->userCanCreateEntriesForBudget($user, $entry->budget)) {
             return false;

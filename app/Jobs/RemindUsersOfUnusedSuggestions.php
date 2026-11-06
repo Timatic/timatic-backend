@@ -47,9 +47,7 @@ class RemindUsersOfUnusedSuggestions implements ShouldQueue
                 $content = $this->getContentOfReminderWithoutTickets($suggestions, $config);
             }
 
-            /** @var ?User $user */
-            $user = User::query()->find($userId);
-            assert(! is_null($user) && ! is_null($user->external_id));
+            $user = User::query()->findOrFail($userId);
 
             Mail::to($user->email)->send(
                 new UnusedSuggestionsMail(content: $content)

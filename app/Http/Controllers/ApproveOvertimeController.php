@@ -23,8 +23,6 @@ class ApproveOvertimeController
         /** @var User $user */
         $user = $request->user();
 
-        assert(! is_null($user->id));
-
         Gate::authorize('approve', [$overtime]);
 
         $overtime->approve($user->id);

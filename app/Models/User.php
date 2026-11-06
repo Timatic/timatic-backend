@@ -19,10 +19,10 @@ use Spatie\Permission\Traits\HasPermissions;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
- * @property ?int $id
+ * @property int $id
  * @property ?int $team_id
  * @property ?string $external_id
- * @property ?string $email
+ * @property string $email
  * @property ?string $given_name
  * @property ?string $family_name
  * @property ?string $full_name

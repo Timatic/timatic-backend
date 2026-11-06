@@ -45,9 +45,6 @@ class MonthlyBudgetsExport implements ExportInterface
      */
     public function map(BudgetMutation $row): array
     {
-        assert(! is_null($row->budget->ended_at));
-        assert(! is_null($row->budget->customer));
-
         $accountManagerName = '';
         if ($row->accountManager) {
             $accountManagerName = $row->accountManager->given_name.' '.$row->accountManager->family_name;
@@ -61,7 +58,7 @@ class MonthlyBudgetsExport implements ExportInterface
             $row->budgetTitle,
             $row->budget->renewal_frequency,
             $row->budget->started_at?->format('d-m-Y'),
-            $row->budget->ended_at->format('d-m-Y'),
+            $row->budget->requireEndedAt()->format('d-m-Y'),
             (bool) $row->budget->archived_at?->isBefore($this->month->endOfMonth()),
             $row->budget->getHourlyRateBigDecimal()->toFloat(),
             (float) $row->budget->getTotalPrice(),

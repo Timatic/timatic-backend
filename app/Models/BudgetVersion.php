@@ -17,14 +17,14 @@ use Illuminate\Support\Carbon;
  * @property ?string $description
  * @property ?string $change_id
  * @property ?string $contract_id
- * @property ?Carbon $effective_from
+ * @property Carbon $effective_from
  * @property ?Carbon $effective_to
  * @property string $total_price
  * @property int $initial_minutes
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property ?Carbon $deleted_at
- * @property ?Budget $budget
+ * @property Budget $budget
  */
 class BudgetVersion extends Model
 {
@@ -56,24 +56,17 @@ class BudgetVersion extends Model
     protected static function booted(): void
     {
         static::updated(function (BudgetVersion $budgetVersion) {
-            assert(! is_null($budgetVersion->budget));
             BudgetSaved::dispatch($budgetVersion->budget);
         });
     }
 
     public function isObsoleteComparedTo(self $version): bool
     {
-        assert(! is_null($this->effective_from));
-        assert(! is_null($version->effective_from));
-
         return $this->effective_from->greaterThanOrEqualTo($version->effective_from);
     }
 
     public function overlapsWith(self $version): bool
     {
-        assert(! is_null($this->effective_from));
-        assert(! is_null($version->effective_from));
-
         return $this->effective_from->lessThanOrEqualTo($version->effective_from)
             && (
                 ! $this->effective_to

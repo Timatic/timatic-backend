@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use InvalidArgumentException;
 
 /**
  * @property int $id
@@ -141,8 +142,6 @@ class Entry extends Model
     #[Scope]
     protected function settlement(Builder $query, string $settlement): Builder
     {
-        assert($settlement == 'internal' || $settlement == 'budget' || $settlement == 'paid-per-hour');
-
         match ($settlement) {
             'internal' => $query->where('is_internal', '=', 1),
             'budget' => $query->whereNotNull('budget_id'),
@@ -151,7 +150,8 @@ class Entry extends Model
                     $query->where('is_internal', '=', 0);
                     $query->whereNull('budget_id');
                 }
-            )
+            ),
+            default => throw new InvalidArgumentException("Unknown settlement {$settlement}."),
         };
 
         return $query;

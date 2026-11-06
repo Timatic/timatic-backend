@@ -40,8 +40,7 @@ class BudgetVersionService
         if (isset($attributes['effective_from'])) {
             $effectiveFrom = Carbon::parse($attributes['effective_from']);
         } else {
-            assert(! is_null($budget->started_at));
-            $effectiveFrom = $budget->started_at->copy();
+            $effectiveFrom = $budget->requireStartedAt()->copy();
         }
 
         $this->validateEffectiveFromOrFail($budget, $effectiveFrom);
@@ -58,9 +57,7 @@ class BudgetVersionService
 
     protected function validateEffectiveFromOrFail(Budget $budget, Carbon $effectiveFrom): void
     {
-        assert(! is_null($budget->started_at));
-
-        $budgetStartedAt = $budget->started_at->setTimezone('UTC');
+        $budgetStartedAt = $budget->requireStartedAt()->setTimezone('UTC');
         $effectiveFrom->setTimezone('UTC');
 
         // Validate for no renewal frequency
@@ -119,8 +116,6 @@ class BudgetVersionService
 
                 continue;
             }
-
-            assert(! is_null($newVersion->effective_from));
 
             if ($version->overlapsWith($newVersion)) {
                 $version->effective_to = $newVersion->effective_from->copy()->subMinute();
