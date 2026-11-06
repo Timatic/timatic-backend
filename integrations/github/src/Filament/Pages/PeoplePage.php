@@ -17,7 +17,7 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Validation\Rules\Unique;
-use Timatic\GitHub\Models\CommitEmail;
+use App\Models\GitCommitEmail;
 use Timatic\GitHub\Models\UserLogin;
 
 /**
@@ -79,7 +79,7 @@ class PeoplePage extends Page implements HasTable
                     ->placeholder(__('github::github.common.not_linked')),
                 TextColumn::make('github_emails')
                     ->label(__('github::github.people.column_emails'))
-                    ->state(fn (User $record): array => CommitEmail::query()->where('user_id', $record->id)->orderBy('email')->pluck('email')->all())
+                    ->state(fn (User $record): array => GitCommitEmail::query()->where('user_id', $record->id)->orderBy('email')->pluck('email')->all())
                     ->badge()
                     ->placeholder(__('github::github.common.not_linked')),
             ])
@@ -89,7 +89,7 @@ class PeoplePage extends Page implements HasTable
                     ->icon('heroicon-o-pencil-square')
                     ->fillForm(fn (User $record): array => [
                         'login' => UserLogin::query()->where('user_id', $record->id)->value('login'),
-                        'emails' => CommitEmail::query()->where('user_id', $record->id)->orderBy('email')->pluck('email')->all(),
+                        'emails' => GitCommitEmail::query()->where('user_id', $record->id)->orderBy('email')->pluck('email')->all(),
                     ])
                     ->schema(fn (User $record): array => [
                         TextInput::make('login')
@@ -100,7 +100,7 @@ class PeoplePage extends Page implements HasTable
                             ->helperText(__('github::github.people.field_emails_helper'))
                             ->nestedRecursiveRules([
                                 'email',
-                                (new Unique('github_commit_emails', 'email'))->whereNot('user_id', (int) $record->id),
+                                (new Unique('git_commit_emails', 'email'))->whereNot('user_id', (int) $record->id),
                             ]),
                     ])
                     ->action(function (User $record, array $data): void {
@@ -112,8 +112,8 @@ class PeoplePage extends Page implements HasTable
                         $submittedEmails = $data['emails'] ?? [];
                         $emails = collect($submittedEmails)->map(fn (string $email) => mb_strtolower($email))->unique();
 
-                        CommitEmail::query()->where('user_id', $record->id)->whereNotIn('email', $emails)->delete();
-                        $emails->each(fn (string $email) => CommitEmail::query()->firstOrCreate(['email' => $email], ['user_id' => $record->id]));
+                        GitCommitEmail::query()->where('user_id', $record->id)->whereNotIn('email', $emails)->delete();
+                        $emails->each(fn (string $email) => GitCommitEmail::query()->firstOrCreate(['email' => $email], ['user_id' => $record->id]));
                     }),
             ])
             ->heading(__('github::github.people.table_heading'))

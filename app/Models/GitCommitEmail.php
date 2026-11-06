@@ -1,8 +1,7 @@
 <?php
 
-namespace Timatic\GitHub\Models;
+namespace App\Models;
 
-use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -12,10 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $user_id
  * @property string $email
  */
-class CommitEmail extends Model
+class GitCommitEmail extends Model
 {
-    protected $table = 'github_commit_emails';
-
     protected $fillable = [
         'user_id',
         'email',

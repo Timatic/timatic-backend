@@ -3,7 +3,7 @@
 namespace Timatic\GitHub;
 
 use App\Models\User;
-use Timatic\GitHub\Models\CommitEmail;
+use App\Models\GitCommitEmail;
 use Timatic\GitHub\Models\UserLogin;
 
 /**
@@ -17,7 +17,7 @@ class UserMatcher
         $email = is_string($email) && $email !== '' ? mb_strtolower($email) : null;
         $login = is_string($login) && $login !== '' ? $login : null;
 
-        $user = ($email === null ? null : CommitEmail::query()->where('email', $email)->first()?->user)
+        $user = ($email === null ? null : GitCommitEmail::query()->where('email', $email)->first()?->user)
             ?? ($login === null ? null : $this->forLogin($login))
             ?? ($email === null ? null : User::query()->where('email', $email)->first());
 
@@ -26,7 +26,7 @@ class UserMatcher
         }
 
         if ($email !== null) {
-            CommitEmail::query()->firstOrCreate(['email' => $email], ['user_id' => $user->id]);
+            GitCommitEmail::query()->firstOrCreate(['email' => $email], ['user_id' => $user->id]);
         }
 
         if ($login !== null && ! UserLogin::query()->where('user_id', $user->id)->orWhere('login', $login)->exists()) {

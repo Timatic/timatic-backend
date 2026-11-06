@@ -7,7 +7,7 @@ use App\Models\Integration;
 use App\Models\User;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Timatic\GitHub\Jobs\ProcessWebhookJob;
-use Timatic\GitHub\Models\CommitEmail;
+use App\Models\GitCommitEmail;
 use Timatic\GitHub\Models\RepositoryMapping;
 use Timatic\GitHub\Models\UserLogin;
 
@@ -86,7 +86,7 @@ it('attributes a commit from another email address to the user with that github 
     new ProcessWebhookJob($payload, null, 'push')->handle(app(TicketService::class));
 
     expect(Event::query()->sole()->user_id)->toBe($user->id)
-        ->and(CommitEmail::query()->where('email', 'dev@home.example')->value('user_id'))->toBe($user->id);
+        ->and(GitCommitEmail::query()->where('email', 'dev@home.example')->value('user_id'))->toBe($user->id);
 });
 
 it('ignores a commit whose author is not a Timatic user', function () {
