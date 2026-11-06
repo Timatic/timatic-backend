@@ -15,9 +15,13 @@ use App\Models\User;
 use App\Policies\PermissionPolicy;
 use App\Support\Scramble\RenamePathParametersTransformer;
 use BezhanSalleh\FilamentShield\Facades\FilamentShield;
+use Dedoc\Scramble\Configuration\ParametersExtractors;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
+use Dedoc\Scramble\Support\OperationExtensions\ParameterExtractor\FormRequestParametersExtractor;
+use Dedoc\Scramble\Support\OperationExtensions\ParameterExtractor\PathParametersExtractor;
+use Dedoc\Scramble\Support\OperationExtensions\ParameterExtractor\ValidateCallParametersExtractor;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\JsonApi\AnonymousResourceCollection as JsonApiResourceCollection;
@@ -103,6 +107,12 @@ class AppServiceProvider extends ServiceProvider
 
         Scramble::configure()
             ->preferPatchMethod()
+            // Document includes from each controller's allowedIncludes() only, not every nested relation of the resource
+            ->withParametersExtractors(fn (ParametersExtractors $extractors) => $extractors->use([
+                PathParametersExtractor::class,
+                FormRequestParametersExtractor::class,
+                ValidateCallParametersExtractor::class,
+            ]))
             ->withDocumentTransformers(RenamePathParametersTransformer::class)
             ->withDocumentTransformers(function (OpenApi $openApi) {
                 $openApi->secure(

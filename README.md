@@ -55,7 +55,7 @@ php artisan db:seed --class=DummySeeder
 
 ### API documentation
 
-`/docs` serves the committed `public/api.json`, which the `export-api-docs` workflow regenerates with [Scramble Pro](https://scramble.dedoc.co/pro) on pushes to `main`. Pro is not in `composer.json`, so locally `/docs` shows the free Scramble output, without filter and pagination parameters.
+`/docs` serves the committed `public/api.json`, which the `export-api-docs` workflow regenerates with [Scramble Pro](https://scramble.dedoc.co/pro) on pushes to `main`. Pro is not in `composer.json`, so locally `/docs` shows the free Scramble output, without filter, include and pagination parameters.
 
 To regenerate `public/api.json` locally, set the license credentials once and run the export. It installs Pro temporarily and restores `composer.json`/`composer.lock` afterwards:
 
