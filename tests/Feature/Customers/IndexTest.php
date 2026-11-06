@@ -36,3 +36,9 @@ it('returns the pagination meta in camelCase', function () {
         ->assertJsonMissingPath('meta.current_page')
         ->assertJsonMissingPath('links.prev');
 });
+
+it('rejects the count and exists variants of an include', function () {
+    $this->loginUser(permissions: ['customers.read']);
+
+    $this->getJson('customers?include=accountManagerCount')->assertBadRequest();
+});

@@ -18,6 +18,8 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Gate;
 use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\AllowedInclude;
+use Spatie\QueryBuilder\Includes\IncludedRelationship;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class OvertimeController extends Controller implements HasMiddleware
@@ -59,7 +61,7 @@ class OvertimeController extends Controller implements HasMiddleware
                 AllowedFilter::scope('isExported'),
             ])
             ->allowedIncludes([
-                'entry',
+                AllowedInclude::custom('entry', new IncludedRelationship),
             ])
             ->jsonPaginate();
 

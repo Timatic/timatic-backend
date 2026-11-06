@@ -10,6 +10,8 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Arr;
 use Spatie\Permission\Models\Role;
+use Spatie\QueryBuilder\AllowedInclude;
+use Spatie\QueryBuilder\Includes\IncludedRelationship;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class RoleController extends Controller implements HasMiddleware
@@ -26,7 +28,9 @@ class RoleController extends Controller implements HasMiddleware
     public function index(): AnonymousResourceCollection
     {
         $roles = QueryBuilder::for(Role::class)
-            ->allowedIncludes(['permissions'])
+            ->allowedIncludes([
+                AllowedInclude::custom('permissions', new IncludedRelationship),
+            ])
             ->jsonPaginate();
 
         return Resources\Role::collection($roles);

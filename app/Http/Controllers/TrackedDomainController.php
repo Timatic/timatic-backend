@@ -16,6 +16,8 @@ use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\AllowedInclude;
+use Spatie\QueryBuilder\Includes\IncludedRelationship;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class TrackedDomainController extends Controller implements HasMiddleware
@@ -42,8 +44,8 @@ class TrackedDomainController extends Controller implements HasMiddleware
                 AllowedFilter::scope('shared'),
             ])
             ->allowedIncludes([
-                'customer',
-                'budget',
+                AllowedInclude::custom('customer', new IncludedRelationship),
+                AllowedInclude::custom('budget', new IncludedRelationship),
             ])
             ->jsonPaginate();
 

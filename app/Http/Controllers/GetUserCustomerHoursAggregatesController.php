@@ -11,6 +11,8 @@ use Dedoc\Scramble\Attributes\ExcludeRouteFromDocs;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\AllowedInclude;
+use Spatie\QueryBuilder\Includes\IncludedRelationship;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class GetUserCustomerHoursAggregatesController extends Controller
@@ -29,9 +31,9 @@ class GetUserCustomerHoursAggregatesController extends Controller
                 AllowedFilter::exact('userId', 'user_id'),
             ])
             ->allowedIncludes([
-                'customer',
-                'user',
-                'user.team',
+                AllowedInclude::custom('customer', new IncludedRelationship),
+                AllowedInclude::custom('user', new IncludedRelationship),
+                AllowedInclude::custom('user.team', new IncludedRelationship),
             ])
             ->getEloquentBuilder();
 

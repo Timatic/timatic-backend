@@ -21,7 +21,9 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Gate;
 use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\AllowedInclude;
 use Spatie\QueryBuilder\AllowedSort;
+use Spatie\QueryBuilder\Includes\IncludedRelationship;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class EntryController extends Controller implements HasMiddleware
@@ -55,13 +57,13 @@ class EntryController extends Controller implements HasMiddleware
                 AllowedFilter::scope('isInvoiceable'),
             ])
             ->allowedIncludes([
-                'customer',
-                'personalOvertime',
-                'customerOvertime',
-                'correctionEntryCorrection',
-                'correctedEntryCorrection',
-                'newEntryCorrection',
-                'budget',
+                AllowedInclude::custom('customer', new IncludedRelationship),
+                AllowedInclude::custom('personalOvertime', new IncludedRelationship),
+                AllowedInclude::custom('customerOvertime', new IncludedRelationship),
+                AllowedInclude::custom('correctionEntryCorrection', new IncludedRelationship),
+                AllowedInclude::custom('correctedEntryCorrection', new IncludedRelationship),
+                AllowedInclude::custom('newEntryCorrection', new IncludedRelationship),
+                AllowedInclude::custom('budget', new IncludedRelationship),
             ])
             ->allowedSorts([
                 'id',

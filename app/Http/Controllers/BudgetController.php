@@ -21,6 +21,7 @@ use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Arr;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\AllowedInclude;
+use Spatie\QueryBuilder\Includes\IncludedRelationship;
 use Spatie\QueryBuilder\QueryBuilder;
 use Throwable;
 
@@ -48,9 +49,9 @@ class BudgetController extends Controller implements HasMiddleware
                 AllowedFilter::scope('showToCustomer'),
             ])
             ->allowedIncludes([
-                'customer',
-                'allowedUsers',
-                'supervisor',
+                AllowedInclude::custom('customer', new IncludedRelationship),
+                AllowedInclude::custom('allowedUsers', new IncludedRelationship),
+                AllowedInclude::custom('supervisor', new IncludedRelationship),
                 AllowedInclude::custom('lastPeriod', new CustomRelationInclude),
                 AllowedInclude::custom('currentPeriod', new CustomRelationInclude),
             ])

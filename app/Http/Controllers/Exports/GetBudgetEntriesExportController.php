@@ -11,6 +11,8 @@ use App\Models\Entry;
 use Dedoc\Scramble\Attributes\ExcludeRouteFromDocs;
 use Illuminate\Http\Response;
 use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\AllowedInclude;
+use Spatie\QueryBuilder\Includes\IncludedRelationship;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class GetBudgetEntriesExportController
@@ -37,7 +39,7 @@ class GetBudgetEntriesExportController
                 AllowedFilter::scope('isInvoiceable'),
             ])
             ->allowedIncludes([
-                'customer',
+                AllowedInclude::custom('customer', new IncludedRelationship),
             ])
             ->get();
 

@@ -12,6 +12,8 @@ use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\AllowedInclude;
+use Spatie\QueryBuilder\Includes\IncludedRelationship;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class CustomerController extends Controller implements HasMiddleware
@@ -34,7 +36,7 @@ class CustomerController extends Controller implements HasMiddleware
                 AllowedFilter::exact('externalId', 'external_id'),
             ])
             ->allowedIncludes([
-                'accountManager',
+                AllowedInclude::custom('accountManager', new IncludedRelationship),
             ])
             ->jsonPaginate();
 

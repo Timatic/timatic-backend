@@ -13,6 +13,8 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Arr;
 use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\AllowedInclude;
+use Spatie\QueryBuilder\Includes\IncludedRelationship;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class UserController extends Controller implements HasMiddleware
@@ -35,9 +37,9 @@ class UserController extends Controller implements HasMiddleware
                 AllowedFilter::exact('externalId', 'external_id'),
             ])
             ->allowedIncludes([
-                'team',
-                'permissions',
-                'roles',
+                AllowedInclude::custom('team', new IncludedRelationship),
+                AllowedInclude::custom('permissions', new IncludedRelationship),
+                AllowedInclude::custom('roles', new IncludedRelationship),
             ])
             ->jsonPaginate();
 
