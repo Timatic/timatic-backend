@@ -6,7 +6,7 @@ use App\Jobs;
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Command\Command as BaseCommand;
 
-class RemindUsersOfUnusedSuggestions extends Command
+class RemindUsersOfUnusedSuggestionsCommand extends Command
 {
     /**
      * The name and signature of the console command.
