@@ -30,7 +30,7 @@ it('includes the icon of the source an activity was built from', function () {
         'source_id' => $source->id,
     ]);
 
-    $activity->events()->attach(Event::factory()->create(['user_id' => $user->id, 'source_id' => $source->id]));
+    $activity->events()->attach(Event::factory()->createQuietly(['user_id' => $user->id, 'source_id' => $source->id]));
 
     $response = $this->getJson('entry-suggestions?include=activities.events.source')->assertSuccessful();
 
