@@ -35,6 +35,12 @@ class UserRequest extends FormRequest
             'data.attributes.familyName' => ['nullable', 'string', 'max:255'],
             'data.relationships.team.data.type' => ['nullable', 'string', 'in:teams'],
             'data.relationships.team.data.id' => ['nullable', 'string', 'exists:teams,id'],
+            'data.relationships.roles.data' => ['nullable', 'array'],
+            'data.relationships.roles.data.*.type' => ['string', 'in:roles'],
+            'data.relationships.roles.data.*.id' => ['string', 'exists:roles,id'],
+            'data.relationships.permissions.data' => ['nullable', 'array'],
+            'data.relationships.permissions.data.*.type' => ['string', 'in:permissions'],
+            'data.relationships.permissions.data.*.id' => ['string', 'exists:permissions,name'],
         ];
     }
 }

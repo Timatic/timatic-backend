@@ -8,14 +8,15 @@ use Illuminate\Http\Request;
 use TiMacDonald\JsonApi\JsonApiResource;
 
 /**
- * @mixin DerivedPermission
+ * @mixin DerivedPermission|\Spatie\Permission\Models\Permission
  */
 class Permission extends JsonApiResource
 {
     public function toAttributes(Request $request): array
     {
         return [
-            'values' => $this->values,
+            'name' => $this->name,
+            'values' => property_exists($this->resource, 'values') ? $this->resource->values : null,
         ];
     }
 
@@ -24,7 +25,7 @@ class Permission extends JsonApiResource
      */
     public function toId(Request $request): string
     {
-        return (string) $this->resource->getAttribute('name');
+        return $this->name;
     }
 
     public function toType(Request $request): string

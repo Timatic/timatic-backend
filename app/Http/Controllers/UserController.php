@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Arr;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 use TiMacDonald\JsonApi\JsonApiResourceCollection;
@@ -36,6 +37,7 @@ class UserController extends Controller implements HasMiddleware
             ->allowedIncludes([
                 'team',
                 'permissions',
+                'roles',
             ])
             ->jsonPaginate();
 
@@ -54,7 +56,18 @@ class UserController extends Controller implements HasMiddleware
             $user->save();
         }
 
-        return new Resources\User($user);
+        $roleRelationships = $request->relationships('roles.data');
+        if ($roleRelationships !== null) {
+            // Spatie treats string ids as role names
+            $user->syncRoles(array_map('intval', Arr::pluck($roleRelationships, 'id')));
+        }
+
+        $permissionRelationships = $request->relationships('permissions.data');
+        if ($permissionRelationships !== null) {
+            $user->syncPermissions(Arr::pluck($permissionRelationships, 'id'));
+        }
+
+        return new Resources\User($user->load(['team', 'roles', 'permissions']));
     }
 
     public function show(User $user): Resources\User
@@ -74,7 +87,18 @@ class UserController extends Controller implements HasMiddleware
             $user->save();
         }
 
-        return new Resources\User($user);
+        $roleRelationships = $request->relationships('roles.data');
+        if ($roleRelationships !== null) {
+            // Spatie treats string ids as role names
+            $user->syncRoles(array_map('intval', Arr::pluck($roleRelationships, 'id')));
+        }
+
+        $permissionRelationships = $request->relationships('permissions.data');
+        if ($permissionRelationships !== null) {
+            $user->syncPermissions(Arr::pluck($permissionRelationships, 'id'));
+        }
+
+        return new Resources\User($user->load(['team', 'roles', 'permissions']));
     }
 
     public function destroy(User $user, ResponseFactory $responseFactory): Response

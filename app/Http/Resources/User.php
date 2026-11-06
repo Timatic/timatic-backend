@@ -39,6 +39,10 @@ class User extends JsonApiResource
     {
         $relationships = [];
 
+        if ($this->relationLoaded('roles')) {
+            $relationships['roles'] = fn () => Role::collection($this->roles);
+        }
+
         // Add permissions relationship with derived permissions
         if ($this->resource && $this->relationLoaded('permissions')) {
             $relationships['permissions'] = function () {

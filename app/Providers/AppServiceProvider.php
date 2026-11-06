@@ -12,6 +12,7 @@ use App\Integrations\TicketProviderRegistry;
 use App\Integrations\TicketService;
 use App\Models\ApiToken;
 use App\Models\User;
+use App\Policies\PermissionPolicy;
 use App\Support\Scramble\RenamePathParametersTransformer;
 use BezhanSalleh\FilamentShield\Facades\FilamentShield;
 use Dedoc\Scramble\Scramble;
@@ -22,6 +23,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -49,6 +51,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(SuggestionIntegrationRegistry $suggestionIntegrations): void
     {
         $suggestionIntegrations->register('chrome_extension', ChromeExtensionIntegration::class);
+
+        Gate::policy(Permission::class, PermissionPolicy::class);
 
         $this->app->booted(function () {
             if (! Schema::hasTable('permissions')) {
