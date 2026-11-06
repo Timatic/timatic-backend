@@ -52,7 +52,7 @@ class EntryUpdateRequest extends FormRequest
             'data.attributes.overtimeEndedAt' => 'date',
             'data.attributes.startedAt' => 'required|date',
             'data.attributes.endedAt' => 'required|date',
-            'data.attributes.isInvoiced' => 'bool|in:true,1',
+            'data.attributes.isInvoiced' => 'boolean',
         ]);
     }
 }

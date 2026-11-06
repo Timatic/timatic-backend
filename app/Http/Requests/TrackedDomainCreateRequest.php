@@ -66,7 +66,15 @@ class TrackedDomainCreateRequest extends FormRequest
                 },
             ],
             'data.attributes.isInternal' => ['boolean'],
-            'data.attributes.userId' => ['required', 'string', Rule::in($ownUserId === null ? [] : [$ownUserId])],
+            'data.attributes.userId' => [
+                'required',
+                'string',
+                function (string $attribute, mixed $value, Closure $fail) use ($ownUserId): void {
+                    if ($value !== (string) $ownUserId) {
+                        $fail('You can only map a domain for yourself.');
+                    }
+                },
+            ],
             'data.attributes.parentId' => [
                 'bail',
                 'nullable',
