@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Integrations\ChromeExtensionIntegration;
 use App\Integrations\ExportProviderRegistry;
 use App\Integrations\ExportService;
+use App\Integrations\GitProviderRegistry;
 use App\Integrations\IntegrationTypeRegistry;
 use App\Integrations\SuggestionIntegrationRegistry;
 use App\Integrations\TicketProviderRegistry;
@@ -40,6 +41,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(IntegrationTypeRegistry::class);
         $this->app->singleton(TicketProviderRegistry::class);
+        $this->app->singleton(GitProviderRegistry::class);
         $this->app->singleton(TicketService::class);
         $this->app->singleton(ExportProviderRegistry::class);
         $this->app->singleton(ExportService::class);

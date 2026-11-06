@@ -2102,6 +2102,53 @@
                 }
             }
         },
+        "/git-repository-mappings": {
+            "get": {
+                "operationId": "git-repository-mappings.index",
+                "tags": [
+                    "GitRepositoryMapping"
+                ],
+                "parameters": [
+                    {
+                        "name": "filter[remote]",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `GitRepositoryMapping`",
+                        "content": {
+                            "application/vnd.api+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/GitRepositoryMapping"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/overtimes": {
             "get": {
                 "operationId": "overtimes.index",
@@ -2733,6 +2780,40 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/jira/project-mappings": {
+            "get": {
+                "operationId": "jira.project-mappings.index",
+                "tags": [
+                    "ProjectMapping"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `ProjectMapping`",
+                        "content": {
+                            "application/vnd.api+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ProjectMapping"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
@@ -6129,6 +6210,40 @@
                 ],
                 "title": "ExportFormat"
             },
+            "GitRepositoryMapping": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "attributes": {
+                        "type": "object",
+                        "properties": {
+                            "customerId": {
+                                "type": "integer"
+                            },
+                            "budgetId": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "customerId",
+                            "budgetId"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "type"
+                ],
+                "title": "GitRepositoryMapping"
+            },
             "Overtime": {
                 "type": "object",
                 "properties": {
@@ -6438,6 +6553,54 @@
                     "id"
                 ],
                 "title": "PermissionIdentifier"
+            },
+            "ProjectMapping": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "jira-project-mappings"
+                        ]
+                    },
+                    "attributes": {
+                        "type": "object",
+                        "properties": {
+                            "projectKey": {
+                                "type": "string"
+                            },
+                            "projectName": {
+                                "type": "string"
+                            },
+                            "customerId": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            },
+                            "budgetId": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "projectKey",
+                            "projectName",
+                            "customerId",
+                            "budgetId"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "type"
+                ],
+                "title": "ProjectMapping"
             },
             "Role": {
                 "type": "object",
