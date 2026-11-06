@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace App\DataTransferObjects;
 
-class UnusedSuggestion
+readonly class UnusedSuggestion
 {
-    public readonly ?string $customer_id;
+    public ?string $customer_id;
 
-    public readonly ?string $customer_name;
+    public ?string $customer_name;
 
-    public readonly int $user_id;
+    public int $user_id;
 
-    public readonly ?string $ticket_number;
+    public ?string $ticket_number;
 
-    public readonly string $date;
+    public string $date;
 
-    public readonly int $duration_in_minutes;
+    public int $duration_in_minutes;
 
     public function __construct(\stdClass $row)
     {

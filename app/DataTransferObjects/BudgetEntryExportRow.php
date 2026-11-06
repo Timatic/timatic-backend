@@ -2,7 +2,7 @@
 
 namespace App\DataTransferObjects;
 
-class BudgetEntryExportRow
+readonly class BudgetEntryExportRow
 {
     public function __construct(
         public string $entryId,

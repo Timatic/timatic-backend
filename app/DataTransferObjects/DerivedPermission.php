@@ -6,14 +6,14 @@ namespace App\DataTransferObjects;
 
 use Exception;
 
-class DerivedPermission
+readonly class DerivedPermission
 {
     /**
      * @param  array<string, string>  $values
      */
     public function __construct(
-        public readonly string $name,
-        public readonly array $values = [],
+        public string $name,
+        public array $values = [],
     ) {}
 
     /**

@@ -6,12 +6,12 @@ namespace Timatic\GoogleCalendar\DataTransferObjects;
 
 use Carbon\CarbonImmutable;
 
-class GoogleTokens
+readonly class GoogleTokens
 {
     public function __construct(
-        public readonly string $accessToken,
-        public readonly ?string $refreshToken,
-        public readonly int $expiresIn,
+        public string $accessToken,
+        public ?string $refreshToken,
+        public int $expiresIn,
     ) {}
 
     /**

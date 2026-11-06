@@ -5,15 +5,15 @@ namespace App\DataTransferObjects;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 
-class BudgetTimeSpentTotal
+readonly class BudgetTimeSpentTotal
 {
     public function __construct(
-        public readonly int $budgetId,
-        public readonly Carbon|CarbonImmutable $start,
-        public readonly Carbon|CarbonImmutable $end,
-        public readonly int $remainingMinutes,
-        public readonly string $periodUnit,
-        public readonly int $periodValue,
+        public int $budgetId,
+        public Carbon|CarbonImmutable $start,
+        public Carbon|CarbonImmutable $end,
+        public int $remainingMinutes,
+        public string $periodUnit,
+        public int $periodValue,
     ) {}
 
     public function getId(): string
