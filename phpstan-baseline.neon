@@ -1,14 +1,14 @@
 parameters:
 	ignoreErrors:
 		-
-			message: "#^Method App\\\\Console\\\\Commands\\\\SendBudgetBalanceOverview\\:\\:getBudgetsGroupedByAccountManager\\(\\) return type with generic class Illuminate\\\\Support\\\\Collection does not specify its types\\: TKey, TValue$#"
+			message: "#^Method App\\\\Console\\\\Commands\\\\SendBudgetBalanceOverviewCommand\\:\\:getBudgetsGroupedByAccountManager\\(\\) return type with generic class Illuminate\\\\Support\\\\Collection does not specify its types\\: TKey, TValue$#"
 			count: 1
-			path: app/Console/Commands/SendBudgetBalanceOverview.php
+			path: app/Console/Commands/SendBudgetBalanceOverviewCommand.php
 
 		-
-			message: "#^Method App\\\\Console\\\\Commands\\\\SendBudgetBalanceOverview\\:\\:sendMails\\(\\) has parameter \\$groupedBudgets with generic class Illuminate\\\\Support\\\\Collection but does not specify its types\\: TKey, TValue$#"
+			message: "#^Method App\\\\Console\\\\Commands\\\\SendBudgetBalanceOverviewCommand\\:\\:sendMails\\(\\) has parameter \\$groupedBudgets with generic class Illuminate\\\\Support\\\\Collection but does not specify its types\\: TKey, TValue$#"
 			count: 1
-			path: app/Console/Commands/SendBudgetBalanceOverview.php
+			path: app/Console/Commands/SendBudgetBalanceOverviewCommand.php
 
 		-
 			message: "#^Method App\\\\Exports\\\\BudgetsExport\\:\\:collection\\(\\) return type with generic class Illuminate\\\\Database\\\\Eloquent\\\\Collection does not specify its types\\: TKey, TModel$#"
