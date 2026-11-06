@@ -14,7 +14,6 @@ class Role extends JsonApiResource
     {
         return [
             'name' => $this->name,
-            'guardName' => $this->guard_name,
             'createdAt' => $this->created_at,
             'updatedAt' => $this->updated_at,
         ];

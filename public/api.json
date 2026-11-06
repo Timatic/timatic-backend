@@ -6457,9 +6457,6 @@
                             "name": {
                                 "type": "string"
                             },
-                            "guardName": {
-                                "type": "string"
-                            },
                             "createdAt": {
                                 "type": [
                                     "string",
@@ -6477,7 +6474,6 @@
                         },
                         "required": [
                             "name",
-                            "guardName",
                             "createdAt",
                             "updatedAt"
                         ]
