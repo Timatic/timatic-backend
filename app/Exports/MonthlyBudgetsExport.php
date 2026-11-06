@@ -53,7 +53,7 @@ class MonthlyBudgetsExport implements ExportInterface
         return [
             $row->budget->id,
             $row->budget->budgetType->title,
-            $row->budget->customer->external_id,
+            $row->budget->requireCustomer()->external_id,
             $row->customerName,
             $row->budgetTitle,
             $row->budget->renewal_frequency,

@@ -55,7 +55,7 @@ class BudgetMonthlyBalance extends Mailable
                         return [
                             'title' => $budget->activeVersion()->title,
                             'url' => sprintf('%s/budgets/%s', config('app.frontend_url'), $budget->id),
-                            'customer' => $budget->customer->name,
+                            'customer' => $budget->customer?->name,
                             'remainingHours' => floor($remainingMinutes / 6) / 10,
                             'initialMinutes' => $initialMinutes,
                             'usedPercentage' => $usedPercentage,

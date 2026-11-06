@@ -32,7 +32,7 @@ use UnexpectedValueException;
  * @property Collection|Entry[] $entries
  * @property Collection|BudgetVersion[] $budgetVersions
  * @property BudgetType $budgetType
- * @property Customer $customer
+ * @property ?Customer $customer
  * @property ?User $supervisor
  * @property Collection<int, User> $allowedUsers
  *
@@ -366,6 +366,11 @@ class Budget extends Model
 
         return $this->budgetVersions->whereNull('effective_to')->first()
             ?? throw new UnexpectedValueException("Budget {$this->id} has no active version.");
+    }
+
+    public function requireCustomer(): Customer
+    {
+        return $this->customer ?? throw new UnexpectedValueException("Budget {$this->id} has no customer.");
     }
 
     public function requireStartedAt(): Carbon

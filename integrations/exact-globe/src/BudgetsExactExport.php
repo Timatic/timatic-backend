@@ -201,7 +201,7 @@ class BudgetsExactExport implements ExportInterface
             index: $rows->count() + 1,
             description: $description,
             amount: $amount,
-            customerId: $budgetMutation->budget->customer->external_id,
+            customerId: $budgetMutation->budget->customer?->external_id,
             budgetTypeId: $budgetMutation->budget->budget_type_id,
             budgetId: $budgetMutation->budget->id,
             credit: true,

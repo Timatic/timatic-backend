@@ -98,6 +98,6 @@ class BudgetUsageWarning implements ShouldQueue
         }
 
         Mail::to($mailTo)
-            ->send(new WarningMail($budget, $budget->customer, $amountUsed));
+            ->send(new WarningMail($budget, $budget->requireCustomer(), $amountUsed));
     }
 }

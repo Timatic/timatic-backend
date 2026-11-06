@@ -136,7 +136,7 @@ class EntrySeeder extends Seeder
 
                 Entry::create([
                     'customer_id' => $budget->customer_id,
-                    'customer_name' => $budget->customer->name,
+                    'customer_name' => $budget->customer !== null ? $budget->customer->name : '',
                     'user_id' => $user->id,
                     'user_email' => $user->email,
                     'user_full_name' => $user->full_name,

@@ -45,16 +45,18 @@ class BudgetsExport implements ExportInterface
                         continue;
                     }
 
-                    if ($budget->customer->account_manager_user_id) {
+                    if ($budget->customer?->account_manager_user_id) {
                         $accountManager = $budget->customer->accountManager;
                         $accountManagerName = $accountManager?->given_name.' '.$accountManager?->family_name;
                     }
 
+                    $customer = $budget->requireCustomer();
+
                     $row = new BudgetExportRow(
                         id: $budget->id,
                         description: $budget->getTitle(),
-                        customerId: $budget->customer->external_id,
-                        customer: $budget->customer->name,
+                        customerId: $customer->external_id,
+                        customer: $customer->name,
                         type: $budget->budgetType->title,
                         renewalFrequency: $budget->renewal_frequency,
                         startDate: $budget->started_at?->format('d-m-Y'),
