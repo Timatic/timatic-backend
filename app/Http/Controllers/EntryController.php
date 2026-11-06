@@ -104,7 +104,14 @@ class EntryController extends Controller implements HasMiddleware
 
         $entry->save();
 
-        $entryEnricher->enrichFromRequest($entry, $request);
+        $entryEnricher->enrich(
+            $entry,
+            isPartialUpdate: false,
+            hasOvertime: $request->boolean('data.attributes.hasOvertime'),
+            hasCustomerOvertime: $request->boolean('data.attributes.hasCustomerOvertime'),
+            overtimeStartedAt: $request->validated('data.attributes.overtimeStartedAt'),
+            overtimeEndedAt: $request->validated('data.attributes.overtimeEndedAt'),
+        );
 
         return new EntryResource($entry);
     }
@@ -131,7 +138,17 @@ class EntryController extends Controller implements HasMiddleware
         $entry->fill($attributes);
         $entry->save();
 
-        $entryEnricher->enrichFromRequest($entry, $request);
+        // A partial update keeps the existing overtime unless the request says otherwise
+        $isPartialUpdate = $request->isMethod('patch');
+
+        $entryEnricher->enrich(
+            $entry,
+            isPartialUpdate: $isPartialUpdate,
+            hasOvertime: $request->boolean('data.attributes.hasOvertime', $isPartialUpdate && $entry->personalOvertime),
+            hasCustomerOvertime: $request->boolean('data.attributes.hasCustomerOvertime', $isPartialUpdate && $entry->customerOvertime),
+            overtimeStartedAt: $request->validated('data.attributes.overtimeStartedAt'),
+            overtimeEndedAt: $request->validated('data.attributes.overtimeEndedAt'),
+        );
 
         return new EntryResource($entry);
     }
