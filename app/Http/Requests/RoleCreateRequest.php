@@ -27,10 +27,9 @@ class RoleCreateRequest extends FormRequest
                 'max:255',
                 'unique:roles,name',
             ],
-            // Permissions relationship (optional, for syncing)
             'data.relationships.permissions.data' => ['nullable', 'array'],
             'data.relationships.permissions.data.*.type' => ['string', 'in:permissions'],
-            'data.relationships.permissions.data.*.id' => ['string', 'exists:permissions,id'],
+            'data.relationships.permissions.data.*.id' => ['string', 'exists:permissions,name'],
         ];
     }
 }

@@ -34,10 +34,9 @@ class RoleUpdateRequest extends FormRequest
                 Rule::unique('roles', 'name')
                     ->ignore($roleId),
             ],
-            // Permissions relationship (optional, for syncing)
             'data.relationships.permissions.data' => ['nullable', 'array'],
             'data.relationships.permissions.data.*.type' => ['string', 'in:permissions'],
-            'data.relationships.permissions.data.*.id' => ['string', 'exists:permissions,id'],
+            'data.relationships.permissions.data.*.id' => ['string', 'exists:permissions,name'],
         ];
     }
 }

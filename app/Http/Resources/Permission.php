@@ -5,11 +5,10 @@ namespace App\Http\Resources;
 use App\DataTransferObjects\DerivedPermission;
 use Exception;
 use Illuminate\Http\Request;
-use Spatie\Permission\Models\Permission as PermissionModel;
 use TiMacDonald\JsonApi\JsonApiResource;
 
 /**
- * @mixin DerivedPermission|PermissionModel
+ * @mixin DerivedPermission|\Spatie\Permission\Models\Permission
  */
 class Permission extends JsonApiResource
 {
@@ -26,8 +25,7 @@ class Permission extends JsonApiResource
      */
     public function toId(Request $request): string
     {
-        // Stored permissions are addressed by id, derived ones only have a name
-        return $this->resource instanceof PermissionModel ? (string) $this->resource->id : $this->name;
+        return $this->name;
     }
 
     public function toType(Request $request): string

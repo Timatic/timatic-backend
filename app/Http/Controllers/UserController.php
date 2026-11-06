@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Arr;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 use TiMacDonald\JsonApi\JsonApiResourceCollection;
@@ -55,18 +56,15 @@ class UserController extends Controller implements HasMiddleware
             $user->save();
         }
 
-        // Handle roles relationship if provided
-        $roles = $request->relationships('roles');
-        if ($roles !== null && isset($roles['data'])) {
-            $roleIds = array_map(fn ($r) => (int) $r['id'], $roles['data']);
-            $user->syncRoles($roleIds);
+        $roleRelationships = $request->relationships('roles.data');
+        if ($roleRelationships !== null) {
+            // Spatie treats string ids as role names
+            $user->syncRoles(array_map('intval', Arr::pluck($roleRelationships, 'id')));
         }
 
-        // Handle permissions relationship if provided
-        $permissions = $request->relationships('permissions');
-        if ($permissions !== null && isset($permissions['data'])) {
-            $permissionIds = array_map(fn ($p) => (int) $p['id'], $permissions['data']);
-            $user->syncPermissions($permissionIds);
+        $permissionRelationships = $request->relationships('permissions.data');
+        if ($permissionRelationships !== null) {
+            $user->syncPermissions(Arr::pluck($permissionRelationships, 'id'));
         }
 
         return new Resources\User($user->load(['team', 'roles', 'permissions']));
@@ -89,18 +87,15 @@ class UserController extends Controller implements HasMiddleware
             $user->save();
         }
 
-        // Handle roles relationship if provided
-        $roles = $request->relationships('roles');
-        if ($roles !== null && isset($roles['data'])) {
-            $roleIds = array_map(fn ($r) => (int) $r['id'], $roles['data']);
-            $user->syncRoles($roleIds);
+        $roleRelationships = $request->relationships('roles.data');
+        if ($roleRelationships !== null) {
+            // Spatie treats string ids as role names
+            $user->syncRoles(array_map('intval', Arr::pluck($roleRelationships, 'id')));
         }
 
-        // Handle permissions relationship if provided
-        $permissions = $request->relationships('permissions');
-        if ($permissions !== null && isset($permissions['data'])) {
-            $permissionIds = array_map(fn ($p) => (int) $p['id'], $permissions['data']);
-            $user->syncPermissions($permissionIds);
+        $permissionRelationships = $request->relationships('permissions.data');
+        if ($permissionRelationships !== null) {
+            $user->syncPermissions(Arr::pluck($permissionRelationships, 'id'));
         }
 
         return new Resources\User($user->load(['team', 'roles', 'permissions']));

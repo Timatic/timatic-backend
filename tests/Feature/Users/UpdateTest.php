@@ -9,7 +9,7 @@ uses(LoginUser::class);
 
 uses(RefreshDatabase::class);
 
-it('syncs the roles of a user', function () {
+it('syncs the roles and permissions of a user', function () {
     $this->loginUser(permissions: ['users.update']);
     $user = User::factory()->create();
     $role = Role::create(['name' => 'auditor', 'guard_name' => 'web']);
@@ -19,8 +19,10 @@ it('syncs the roles of a user', function () {
         'attributes' => ['givenName' => 'Ada'],
         'relationships' => [
             'roles' => ['data' => [['type' => 'roles', 'id' => (string) $role->id]]],
+            'permissions' => ['data' => [['type' => 'permissions', 'id' => 'budgets.read']]],
         ],
     ])->assertSuccessful();
 
-    expect($user->fresh()->hasRole('auditor'))->toBeTrue();
+    expect($user->fresh()->hasRole('auditor'))->toBeTrue()
+        ->and($user->fresh()->hasDirectPermission('budgets.read'))->toBeTrue();
 });

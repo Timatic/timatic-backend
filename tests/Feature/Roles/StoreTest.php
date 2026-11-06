@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\Concerns\LoginUser;
 
@@ -11,13 +10,12 @@ uses(RefreshDatabase::class);
 
 it('creates a role with its permissions', function () {
     $this->loginUser(permissions: ['roles.create']);
-    $permission = Permission::findByName('budgets.read');
 
     $this->postJson('roles', [
         'type' => 'roles',
         'attributes' => ['name' => 'auditor'],
         'relationships' => [
-            'permissions' => ['data' => [['type' => 'permissions', 'id' => (string) $permission->id]]],
+            'permissions' => ['data' => [['type' => 'permissions', 'id' => 'budgets.read']]],
         ],
     ])->assertCreated()
         ->assertJsonPath('data.id', (string) Role::findByName('auditor', 'web')->id)

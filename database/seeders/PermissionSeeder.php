@@ -43,8 +43,6 @@ class PermissionSeeder extends Seeder
         'users.delete',
         'permissions.read',
         'permissions.create',
-        'permissions.update',
-        'permissions.delete',
         'roles.read',
         'roles.create',
         'roles.update',

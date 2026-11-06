@@ -2563,9 +2563,9 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Array of `Permission`",
+                        "description": "Paginated set of `Permission`",
                         "content": {
-                            "application/json": {
+                            "application/vnd.api+json": {
                                 "schema": {
                                     "type": "object",
                                     "properties": {
@@ -2574,10 +2574,110 @@
                                             "items": {
                                                 "$ref": "#/components/schemas/Permission"
                                             }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": "string"
+                                                },
+                                                "last": {
+                                                    "type": "string"
+                                                },
+                                                "prev": {
+                                                    "type": "string"
+                                                },
+                                                "next": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "from": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "minimum": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "links": {
+                                                    "type": "array",
+                                                    "description": "Generated paginator links.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "url": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "active": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "url",
+                                                            "label",
+                                                            "active"
+                                                        ]
+                                                    }
+                                                },
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "to": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "description": "Number of the last item in the slice.",
+                                                    "minimum": 1
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "description": "Total number of items being paginated.",
+                                                    "minimum": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "from",
+                                                "last_page",
+                                                "links",
+                                                "path",
+                                                "per_page",
+                                                "to",
+                                                "total"
+                                            ]
                                         }
                                     },
                                     "required": [
-                                        "data"
+                                        "data",
+                                        "links",
+                                        "meta"
                                     ]
                                 }
                             }
@@ -2633,144 +2733,6 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/permissions/{permissionId}": {
-            "get": {
-                "operationId": "permissions.show",
-                "tags": [
-                    "Permission"
-                ],
-                "parameters": [
-                    {
-                        "name": "permissionId",
-                        "in": "path",
-                        "required": true,
-                        "description": "The permission ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "`Permission`",
-                        "content": {
-                            "application/vnd.api+json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/Permission"
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            },
-            "patch": {
-                "operationId": "permissions.update",
-                "tags": [
-                    "Permission"
-                ],
-                "parameters": [
-                    {
-                        "name": "permissionId",
-                        "in": "path",
-                        "required": true,
-                        "description": "The permission ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/PermissionUpdateRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "`Permission`",
-                        "content": {
-                            "application/vnd.api+json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/Permission"
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            },
-            "delete": {
-                "operationId": "permissions.destroy",
-                "tags": [
-                    "Permission"
-                ],
-                "parameters": [
-                    {
-                        "name": "permissionId",
-                        "in": "path",
-                        "required": true,
-                        "description": "The permission ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No content"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
@@ -2997,58 +2959,6 @@
             }
         },
         "/roles/{roleId}": {
-            "get": {
-                "operationId": "roles.show",
-                "tags": [
-                    "Role"
-                ],
-                "parameters": [
-                    {
-                        "name": "roleId",
-                        "in": "path",
-                        "required": true,
-                        "description": "The role ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "`Role`",
-                        "content": {
-                            "application/vnd.api+json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/Role"
-                                        },
-                                        "included": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/Permission"
-                                            }
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            },
             "patch": {
                 "operationId": "roles.update",
                 "tags": [
@@ -3111,37 +3021,6 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            },
-            "delete": {
-                "operationId": "roles.destroy",
-                "tags": [
-                    "Role"
-                ],
-                "parameters": [
-                    {
-                        "name": "roleId",
-                        "in": "path",
-                        "required": true,
-                        "description": "The role ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No content"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
@@ -4005,7 +3884,17 @@
                                         "included": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/Team"
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    }
+                                                ]
                                             }
                                         }
                                     },
@@ -4054,7 +3943,17 @@
                                         "included": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/Team"
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    }
+                                                ]
                                             }
                                         }
                                     },
@@ -4111,7 +4010,17 @@
                                         "included": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/Team"
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    }
+                                                ]
                                             }
                                         }
                                     },
@@ -4175,7 +4084,17 @@
                                         "included": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/Team"
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    }
+                                                ]
                                             }
                                         }
                                     },
@@ -6520,41 +6439,6 @@
                 ],
                 "title": "PermissionIdentifier"
             },
-            "PermissionUpdateRequest": {
-                "type": "object",
-                "properties": {
-                    "data": {
-                        "type": "object",
-                        "properties": {
-                            "type": {
-                                "type": "string",
-                                "enum": [
-                                    "permissions"
-                                ]
-                            },
-                            "attributes": {
-                                "type": "object",
-                                "properties": {
-                                    "name": {
-                                        "type": "string",
-                                        "maxLength": 255
-                                    }
-                                },
-                                "required": [
-                                    "name"
-                                ]
-                            }
-                        },
-                        "required": [
-                            "type"
-                        ]
-                    }
-                },
-                "required": [
-                    "data"
-                ],
-                "title": "PermissionUpdateRequest"
-            },
             "Role": {
                 "type": "object",
                 "properties": {
@@ -6659,7 +6543,6 @@
                                                     "array",
                                                     "null"
                                                 ],
-                                                "description": "Permissions relationship (optional, for syncing)",
                                                 "items": {
                                                     "type": "object",
                                                     "properties": {
@@ -6689,6 +6572,25 @@
                     "data"
                 ],
                 "title": "RoleCreateRequest"
+            },
+            "RoleIdentifier": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "roles"
+                        ]
+                    },
+                    "id": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "type",
+                    "id"
+                ],
+                "title": "RoleIdentifier"
             },
             "RoleUpdateRequest": {
                 "type": "object",
@@ -6725,7 +6627,6 @@
                                                     "array",
                                                     "null"
                                                 ],
-                                                "description": "Permissions relationship (optional, for syncing)",
                                                 "items": {
                                                     "type": "object",
                                                     "properties": {
@@ -7417,6 +7318,35 @@
                     "relationships": {
                         "type": "object",
                         "properties": {
+                            "roles": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "type": "array",
+                                        "items": {
+                                            "$ref": "#/components/schemas/RoleIdentifier"
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "data"
+                                ]
+                            },
+                            "permissions": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "type": "array",
+                                        "description": "Convert to Permission resources",
+                                        "items": {
+                                            "$ref": "#/components/schemas/PermissionIdentifier"
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "data"
+                                ]
+                            },
                             "team": {
                                 "type": "object",
                                 "properties": {
@@ -7512,7 +7442,6 @@
                                                     "array",
                                                     "null"
                                                 ],
-                                                "description": "Roles relationship (for syncing)",
                                                 "items": {
                                                     "type": "object",
                                                     "properties": {
@@ -7538,7 +7467,6 @@
                                                     "array",
                                                     "null"
                                                 ],
-                                                "description": "Permissions relationship (for syncing)",
                                                 "items": {
                                                     "type": "object",
                                                     "properties": {

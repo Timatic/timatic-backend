@@ -7,11 +7,10 @@ uses(LoginUser::class);
 
 uses(RefreshDatabase::class);
 
-it('lists the permissions by id', function () {
-    $user = $this->loginUser(permissions: ['permissions.read']);
-    $permission = $user->permissions->firstOrFail();
+it('lists the permissions by name', function () {
+    $this->loginUser(permissions: ['permissions.read']);
 
     $this->getJson('permissions?page[size]=100')
         ->assertSuccessful()
-        ->assertJsonFragment(['type' => 'permissions', 'id' => (string) $permission->id]);
+        ->assertJsonFragment(['type' => 'permissions', 'id' => 'permissions.read']);
 });
