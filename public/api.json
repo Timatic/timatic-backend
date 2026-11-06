@@ -26,7 +26,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `customer`, `customerCount`, `customerExists`, `allowedUsers`, `allowedUsersCount`, `allowedUsersExists`, `supervisor`, `supervisorCount`, `supervisorExists`, `lastPeriod`, `currentPeriod`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `customer`, `allowedUsers`, `supervisor`, `lastPeriod`, `currentPeriod`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
@@ -813,7 +813,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `accountManager`, `accountManagerCount`, `accountManagerExists`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `accountManager`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
@@ -1358,7 +1358,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `customer`, `customerCount`, `customerExists`, `personalOvertime`, `personalOvertimeCount`, `personalOvertimeExists`, `customerOvertime`, `customerOvertimeCount`, `customerOvertimeExists`, `correctionEntryCorrection`, `correctionEntryCorrectionCount`, `correctionEntryCorrectionExists`, `correctedEntryCorrection`, `correctedEntryCorrectionCount`, `correctedEntryCorrectionExists`, `newEntryCorrection`, `newEntryCorrectionCount`, `newEntryCorrectionExists`, `budget`, `budgetCount`, `budgetExists`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `customer`, `personalOvertime`, `customerOvertime`, `correctionEntryCorrection`, `correctedEntryCorrection`, `newEntryCorrection`, `budget`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
@@ -2105,7 +2105,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `activities.events.source`, `activities.eventType`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `activities`, `activities.events`, `activities.events.source`, `activities.eventType`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
@@ -2651,7 +2651,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `entry`, `entryCount`, `entryExists`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `entry`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
@@ -3340,7 +3340,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `permissions`, `permissionsCount`, `permissionsExists`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `permissions`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
@@ -4019,7 +4019,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `customer`, `customerCount`, `customerExists`, `budget`, `budgetCount`, `budgetExists`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `customer`, `budget`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
@@ -4390,7 +4390,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `team`, `teamCount`, `teamExists`, `permissions`, `permissionsCount`, `permissionsExists`, `roles`, `rolesCount`, `rolesExists`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `team`, `permissions`, `roles`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
