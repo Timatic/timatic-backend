@@ -2,6 +2,7 @@
 
 namespace Timatic\GitHub;
 
+use App\Integrations\GitProviderRegistry;
 use App\Integrations\IntegrationTypeRegistry;
 use App\Integrations\SuggestionIntegrationRegistry;
 use App\Integrations\TicketProviderRegistry;
@@ -30,10 +31,11 @@ class ServiceProvider extends BaseServiceProvider
         });
     }
 
-    public function boot(TicketProviderRegistry $ticketProviders, SuggestionIntegrationRegistry $suggestionIntegrations): void
+    public function boot(TicketProviderRegistry $ticketProviders, SuggestionIntegrationRegistry $suggestionIntegrations, GitProviderRegistry $gitProviders): void
     {
         $ticketProviders->register('github', TicketProvider::class);
         $suggestionIntegrations->register('github', SuggestionIntegration::class);
+        $gitProviders->register('github', GitProvider::class);
         $this->publishes([__DIR__.'/../resources/icons/github.svg' => public_path('icons/github.svg')], 'source-icons');
 
         $this->mergeConfigFrom(__DIR__.'/../config/github.php', 'github');
