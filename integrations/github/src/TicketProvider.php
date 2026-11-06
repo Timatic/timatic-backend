@@ -67,6 +67,15 @@ final class TicketProvider implements TicketProviderInterface
                 : $this->fetchOpenIssues($repositories);
         }
 
+        // People refer to an issue as "#123", which only names an issue together with a repository
+        if (preg_match('/^#(\d+)$/', $search, $matches) === 1) {
+            return $repositories
+                ->take(self::SEARCHABLE_REPOSITORIES)
+                ->map(fn (RepositoryMapping $mapping) => $this->fetchTicketByKey($mapping->repository_full_name.'#'.$matches[1]))
+                ->filter()
+                ->values();
+        }
+
         return $this->searchIssues($search, $repositories);
     }
 

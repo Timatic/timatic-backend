@@ -91,6 +91,41 @@ it('searches issues within the mapped repositories', function () {
     });
 });
 
+it('finds an issue by its bare number in every repository mapped to the customer', function () {
+    // Given
+    Cache::put('github.installation_token.4242', 'ghs_installation_token');
+    $customer = Customer::factory()->create();
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
+    foreach (['api', 'web'] as $repository) {
+        RepositoryMapping::create([
+            'integration_id' => $integration->id,
+            'installation_id' => 4242,
+            'owner_login' => 'acme',
+            'repository_name' => $repository,
+            'repository_full_name' => 'acme/'.$repository,
+            'customer_id' => $customer->id,
+        ]);
+    }
+    MockClient::global([
+        'api.github.com/repos/acme/web/issues/42' => MockResponse::make([
+            'number' => 42,
+            'title' => 'Login fails on Safari',
+            'html_url' => 'https://github.com/acme/web/issues/42',
+            'state' => 'open',
+            'repository_url' => 'https://api.github.com/repos/acme/web',
+            'created_at' => '2026-09-01T10:00:00Z',
+        ]),
+        '*' => MockResponse::make(['message' => 'Not Found'], 404),
+    ]);
+
+    // When
+    $tickets = TicketProvider::fromConfig(['integration_id' => $integration->id, 'installations' => [['id' => 4242, 'account' => 'acme']]])
+        ->searchTickets($customer, '#42');
+
+    // Then
+    expect($tickets->pluck('number')->all())->toBe(['acme/web#42']);
+});
+
 it('searches issues the user is involved in when no customer is given', function () {
     Cache::put('github.installation_token.4242', 'ghs_installation_token');
     $user = User::factory()->create();
