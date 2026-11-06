@@ -53,6 +53,16 @@ To (re)seed dummy data at any time:
 php artisan db:seed --class=DummySeeder
 ```
 
+### API documentation
+
+`/docs` serves the committed `public/api.json`, which the `export-api-docs` workflow regenerates with [Scramble Pro](https://scramble.dedoc.co/pro) on pushes to `main`. Pro is not in `composer.json`, so locally `/docs` shows the free Scramble output, without filter and pagination parameters. To get the full spec locally, install Pro with the license credentials and don't commit the changes it makes to `composer.json`/`composer.lock`:
+
+```bash
+composer config -g http-basic.satis.dedoc.co <username> <password>
+composer config repositories.scramble-pro composer https://satis.dedoc.co
+composer require dedoc/scramble-pro:^0.8.4
+```
+
 ## Commands
 
 ### Rebundle entry suggestions
