@@ -63,12 +63,9 @@ jobs:
       - name: Install Dependencies
         run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
 
-      # Scramble Pro (paid) is only needed to generate the spec, so it is installed here instead of in composer.json
-      - name: Install Scramble Pro
-        run: |
-          composer config -g http-basic.satis.dedoc.co "${{ secrets.SCRAMBLE_USERNAME }}" "${{ secrets.SCRAMBLE_PASSWORD }}"
-          composer config repositories.scramble-pro composer https://satis.dedoc.co
-          composer require dedoc/scramble-pro:^0.8.4 -q --no-interaction --no-scripts --no-progress
+      # Scramble Pro (paid) is only needed to generate the spec; `composer docs:api` installs it temporarily
+      - name: Configure Scramble Pro credentials
+        run: composer config -g http-basic.satis.dedoc.co "${{ secrets.SCRAMBLE_USERNAME }}" "${{ secrets.SCRAMBLE_PASSWORD }}"
 
       - name: Copy .env
         run: cp .env.example .env
@@ -80,7 +77,7 @@ jobs:
         run: php artisan migrate --force
 
       - name: Export API documentation
-        run: php artisan scramble:export --path=public/api.json
+        run: composer docs:api
 
       - name: Commit API documentation
         uses: stefanzweifel/git-auto-commit-action@v5
