@@ -1,0 +1,21 @@
+<?php
+
+namespace Timatic\GitHub\Requests;
+
+use Saloon\Enums\Method;
+use Saloon\Http\Request;
+
+class DeleteRepositoryWebhookRequest extends Request
+{
+    protected Method $method = Method::DELETE;
+
+    public function __construct(
+        private readonly string $repositoryFullName,
+        private readonly int $webhookId,
+    ) {}
+
+    public function resolveEndpoint(): string
+    {
+        return '/repos/'.$this->repositoryFullName.'/hooks/'.$this->webhookId;
+    }
+}
