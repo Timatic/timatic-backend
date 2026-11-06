@@ -60,11 +60,15 @@ jobs:
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: ${{ runner.os }}-composer-
 
-      - name: Configure Composer authentication
-        run: composer config -g http-basic.satis.dedoc.co "${{ secrets.SCRAMBLE_USERNAME }}" "${{ secrets.SCRAMBLE_PASSWORD }}"
-
       - name: Install Dependencies
         run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
+      # Scramble Pro (paid) is only needed to generate the spec, so it is installed here instead of in composer.json
+      - name: Install Scramble Pro
+        run: |
+          composer config -g http-basic.satis.dedoc.co "${{ secrets.SCRAMBLE_USERNAME }}" "${{ secrets.SCRAMBLE_PASSWORD }}"
+          composer config repositories.scramble-pro composer https://satis.dedoc.co
+          composer require dedoc/scramble-pro:^0.8.4 -q --no-interaction --no-scripts --no-progress
 
       - name: Copy .env
         run: cp .env.example .env
