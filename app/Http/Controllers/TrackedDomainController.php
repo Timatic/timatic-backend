@@ -36,7 +36,10 @@ class TrackedDomainController extends Controller implements HasMiddleware
      */
     public function index(#[CurrentUser] $user): AnonymousResourceCollection
     {
-        $trackedDomains = QueryBuilder::for(TrackedDomain::query()->visibleTo($this->userId($user)))
+        // An api token belongs to nobody: it owns no mappings and creates none
+        $userId = $user instanceof User ? $user->id : null;
+
+        $trackedDomains = QueryBuilder::for(TrackedDomain::query()->visibleTo($userId))
             ->allowedFilters([
                 AllowedFilter::exact('domain'),
                 AllowedFilter::exact('customerId', 'customer_id'),
@@ -64,11 +67,5 @@ class TrackedDomainController extends Controller implements HasMiddleware
         $trackedDomain->delete();
 
         return $responseFactory->noContent();
-    }
-
-    /** Null for an api token that belongs to nobody: it owns no mappings and creates none. */
-    private function userId(User|ApiToken $user): ?int
-    {
-        return $user instanceof User ? $user->id : null;
     }
 }
