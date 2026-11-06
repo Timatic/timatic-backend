@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Timatic\Jira;
+namespace Timatic\Bitbucket;
 
-use App\Integrations\Contracts\SuggestionIntegrationInterface;
+use App\Integrations\Suggestions\SuggestionProviderInterface;
 use App\Models\Integration;
 use App\Models\User;
 
-class SuggestionIntegration implements SuggestionIntegrationInterface
+class SuggestionProvider implements SuggestionProviderInterface
 {
     public function sourceId(): string
     {
@@ -17,12 +17,12 @@ class SuggestionIntegration implements SuggestionIntegrationInterface
 
     public function label(): string
     {
-        return __('jira::jira.integration.label');
+        return __('bitbucket::bitbucket.integration.label');
     }
 
     public function instructions(): string
     {
-        return __('jira::jira.integration.instructions');
+        return __('bitbucket::bitbucket.integration.instructions');
     }
 
     public function isCompanyManaged(): bool
@@ -32,14 +32,15 @@ class SuggestionIntegration implements SuggestionIntegrationInterface
 
     public function isAvailable(): bool
     {
-        return Integration::query()->where('type', 'jira')->exists();
+        return Integration::query()->where('type', 'bitbucket')->exists();
     }
 
     public function isActiveFor(User $user): bool
     {
-        return Integration::query()->where('type', 'jira')->get()->contains(
+        return Integration::query()->where('type', 'bitbucket')->get()->contains(
             fn (Integration $integration): bool => filled($integration->config['access_token'] ?? null)
-                && filled($integration->config['cloud_id'] ?? null),
+                && filled($integration->config['workspace'] ?? null)
+                && filled($integration->config['webhook_uuid'] ?? null),
         );
     }
 

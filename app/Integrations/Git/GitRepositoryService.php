@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Integrations;
+namespace App\Integrations\Git;
 
 use App\DataTransferObjects\GitRemote;
 use App\DataTransferObjects\GitRepositoryMapping;

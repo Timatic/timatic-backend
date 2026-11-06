@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\EventRequest;
 use App\Http\Resources\Event as EventResource;
-use App\Integrations\TicketService;
+use App\Integrations\Tickets\TicketService;
 use App\Models\Budget;
 use App\Models\Customer;
 use App\Models\Event;

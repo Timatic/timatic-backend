@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Timatic\GitHub;
 
-use App\Integrations\Contracts\SuggestionIntegrationInterface;
+use App\Integrations\Suggestions\SuggestionProviderInterface;
 use App\Models\Integration;
 use App\Models\User;
 
-class SuggestionIntegration implements SuggestionIntegrationInterface
+class SuggestionProvider implements SuggestionProviderInterface
 {
     public function sourceId(): string
     {

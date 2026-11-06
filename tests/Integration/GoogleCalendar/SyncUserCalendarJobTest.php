@@ -1,6 +1,6 @@
 <?php
 
-use App\Integrations\TicketService;
+use App\Integrations\Tickets\TicketService;
 use App\Models\Event;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Saloon\Http\Faking\MockClient;

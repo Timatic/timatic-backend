@@ -10,7 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Timatic\ExactGlobe\BudgetsExactExport;
 use Timatic\ExactGlobe\DataTransferObjects\LedgerMapping;
-use Timatic\ExactGlobe\ExactGlobeExportProvider;
+use Timatic\ExactGlobe\ExportProvider;
 
 use function Pest\Laravel\mock;
 
@@ -70,7 +70,7 @@ it('skips budgets whose type has no ledger mapping', function () {
 });
 
 it('builds ledger mappings from the integration config', function () {
-    $provider = ExactGlobeExportProvider::fromConfig([
+    $provider = ExportProvider::fromConfig([
         'ledger_mapping' => [
             'project' => [
                 'usage_credit' => '1001',
@@ -86,7 +86,7 @@ it('builds ledger mappings from the integration config', function () {
 });
 
 it('exposes no export formats without a ledger mapping', function () {
-    $provider = ExactGlobeExportProvider::fromConfig([]);
+    $provider = ExportProvider::fromConfig([]);
 
     expect($provider->exportFormats())->toBeEmpty();
 });

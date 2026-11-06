@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Integrations\Contracts;
+namespace App\Integrations\Suggestions;
 
 use App\Models\User;
 
-interface SuggestionIntegrationInterface
+interface SuggestionProviderInterface
 {
     public function sourceId(): string;
 

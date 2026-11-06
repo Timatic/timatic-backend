@@ -5,14 +5,14 @@ namespace Timatic\ExactGlobe;
 use App\DataTransferObjects\ExportFormat;
 use App\DataTransferObjects\ExportPeriod;
 use App\Enums\ExportPeriodOptions;
-use App\Integrations\Contracts\ExportInterface;
-use App\Integrations\Contracts\ExportProviderInterface;
+use App\Integrations\Exports\ExportInterface;
+use App\Integrations\Exports\ExportProviderInterface;
 use App\Services\BudgetUsageService;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use Timatic\ExactGlobe\DataTransferObjects\LedgerMapping;
 
-final class ExactGlobeExportProvider implements ExportProviderInterface
+final class ExportProvider implements ExportProviderInterface
 {
     public const EXPORT_KEY = 'exact-globe-csv';
 

@@ -1,25 +1,22 @@
 <?php
 
-declare(strict_types=1);
+namespace App\Integrations\Tickets;
 
-namespace App\Integrations;
-
-use App\Integrations\Contracts\GitProviderInterface;
 use InvalidArgumentException;
 
-class GitProviderRegistry
+class TicketProviderRegistry
 {
-    /** @var array<string, class-string<GitProviderInterface>> */
+    /** @var array<string, class-string<TicketProviderInterface>> */
     private array $classes = [];
 
-    /** @param class-string<GitProviderInterface> $providerClass */
+    /** @param class-string<TicketProviderInterface> $providerClass */
     public function register(string $type, string $providerClass): void
     {
         $this->classes[$type] = $providerClass;
     }
 
     /** @param array<string, mixed> $config */
-    public function makeProvider(string $type, array $config): GitProviderInterface
+    public function makeProvider(string $type, array $config): TicketProviderInterface
     {
         $class = $this->classes[$type]
             ?? throw new InvalidArgumentException("Integration type [{$type}] is not registered.");
@@ -27,7 +24,7 @@ class GitProviderRegistry
         return $class::fromConfig($config);
     }
 
-    /** @return array<string, class-string<GitProviderInterface>> */
+    /** @return array<string, class-string<TicketProviderInterface>> */
     public function all(): array
     {
         return $this->classes;

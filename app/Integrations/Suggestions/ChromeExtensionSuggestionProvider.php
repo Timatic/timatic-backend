@@ -2,13 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Integrations;
+namespace App\Integrations\Suggestions;
 
-use App\Integrations\Contracts\SuggestionIntegrationInterface;
 use App\Models\ApiToken;
 use App\Models\User;
 
-class ChromeExtensionIntegration implements SuggestionIntegrationInterface
+class ChromeExtensionSuggestionProvider implements SuggestionProviderInterface
 {
     public const CLIENT_ID = 'chrome-extension';
 

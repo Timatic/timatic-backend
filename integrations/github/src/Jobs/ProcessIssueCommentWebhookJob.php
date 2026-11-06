@@ -2,7 +2,7 @@
 
 namespace Timatic\GitHub\Jobs;
 
-use App\Integrations\TicketService;
+use App\Integrations\Tickets\TicketService;
 
 class ProcessIssueCommentWebhookJob extends ProcessWebhookJob
 {

@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Integrations\ExportService;
+use App\Integrations\Exports\ExportService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;

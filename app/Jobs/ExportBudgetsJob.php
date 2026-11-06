@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\DataTransferObjects\ExportPeriod;
-use App\Integrations\ExportService;
+use App\Integrations\Exports\ExportService;
 use App\Mail\ExportEmail;
 use App\Models\User;
 use Illuminate\Bus\Queueable;

@@ -2,9 +2,9 @@
 
 namespace Timatic\Bitbucket;
 
-use App\Integrations\GitProviderRegistry;
+use App\Integrations\Git\GitProviderRegistry;
 use App\Integrations\IntegrationTypeRegistry;
-use App\Integrations\SuggestionIntegrationRegistry;
+use App\Integrations\Suggestions\SuggestionProviderRegistry;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Timatic\Bitbucket\Filament\Pages\RepositoryMappingPage;
 use Timatic\Bitbucket\Filament\Pages\SettingsPage;
@@ -23,9 +23,9 @@ class ServiceProvider extends BaseServiceProvider
         });
     }
 
-    public function boot(SuggestionIntegrationRegistry $suggestionIntegrations, GitProviderRegistry $gitProviders): void
+    public function boot(SuggestionProviderRegistry $suggestionProviders, GitProviderRegistry $gitProviders): void
     {
-        $suggestionIntegrations->register('bitbucket', SuggestionIntegration::class);
+        $suggestionProviders->register('bitbucket', SuggestionProvider::class);
         $gitProviders->register('bitbucket', GitProvider::class);
         $this->publishes([__DIR__.'/../resources/icons/bitbucket.svg' => public_path('icons/bitbucket.svg')], 'source-icons');
 

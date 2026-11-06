@@ -2,14 +2,14 @@
 
 namespace App\Providers;
 
-use App\Integrations\ChromeExtensionIntegration;
-use App\Integrations\ExportProviderRegistry;
-use App\Integrations\ExportService;
-use App\Integrations\GitProviderRegistry;
+use App\Integrations\Exports\ExportProviderRegistry;
+use App\Integrations\Exports\ExportService;
+use App\Integrations\Git\GitProviderRegistry;
 use App\Integrations\IntegrationTypeRegistry;
-use App\Integrations\SuggestionIntegrationRegistry;
-use App\Integrations\TicketProviderRegistry;
-use App\Integrations\TicketService;
+use App\Integrations\Suggestions\ChromeExtensionSuggestionProvider;
+use App\Integrations\Suggestions\SuggestionProviderRegistry;
+use App\Integrations\Tickets\TicketProviderRegistry;
+use App\Integrations\Tickets\TicketService;
 use App\Models\ApiToken;
 use App\Models\User;
 use App\Policies\PermissionPolicy;
@@ -45,12 +45,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(TicketService::class);
         $this->app->singleton(ExportProviderRegistry::class);
         $this->app->singleton(ExportService::class);
-        $this->app->singleton(SuggestionIntegrationRegistry::class);
+        $this->app->singleton(SuggestionProviderRegistry::class);
     }
 
-    public function boot(SuggestionIntegrationRegistry $suggestionIntegrations): void
+    public function boot(SuggestionProviderRegistry $suggestionProviders): void
     {
-        $suggestionIntegrations->register('chrome_extension', ChromeExtensionIntegration::class);
+        $suggestionProviders->register('chrome_extension', ChromeExtensionSuggestionProvider::class);
 
         Gate::policy(Permission::class, PermissionPolicy::class);
 

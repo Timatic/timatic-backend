@@ -1,12 +1,10 @@
 <?php
 
-namespace App\Integrations;
+namespace App\Integrations\Exports;
 
 use App\DataTransferObjects\ExportFormat;
 use App\DataTransferObjects\ExportPeriod;
 use App\Exports\CoreExportProvider;
-use App\Integrations\Contracts\ExportInterface;
-use App\Integrations\Contracts\ExportProviderInterface;
 use App\Models\Integration;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;

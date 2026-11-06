@@ -2,7 +2,7 @@
 
 namespace Timatic\ExactGlobe;
 
-use App\Integrations\ExportProviderRegistry;
+use App\Integrations\Exports\ExportProviderRegistry;
 use App\Integrations\IntegrationTypeRegistry;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Timatic\ExactGlobe\Filament\Pages\LedgerMappingPage;
@@ -22,7 +22,7 @@ class ServiceProvider extends BaseServiceProvider
 
     public function boot(ExportProviderRegistry $exportProviders): void
     {
-        $exportProviders->register(self::INTEGRATION_TYPE, ExactGlobeExportProvider::class);
+        $exportProviders->register(self::INTEGRATION_TYPE, ExportProvider::class);
 
         $this->loadViewsFrom(__DIR__.'/../resources/views', self::INTEGRATION_TYPE);
     }

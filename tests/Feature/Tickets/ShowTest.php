@@ -2,7 +2,7 @@
 
 use App\DataTransferObjects\Ticket;
 use App\DataTransferObjects\TicketAction;
-use App\Integrations\TicketService;
+use App\Integrations\Tickets\TicketService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\LoginUser;

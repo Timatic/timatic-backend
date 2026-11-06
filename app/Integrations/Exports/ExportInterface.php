@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Integrations\Contracts;
+namespace App\Integrations\Exports;
 
 interface ExportInterface
 {

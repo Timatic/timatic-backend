@@ -1,7 +1,7 @@
 <?php
 
-use App\Integrations\TicketProviderRegistry;
-use App\Integrations\TicketService;
+use App\Integrations\Tickets\TicketProviderRegistry;
+use App\Integrations\Tickets\TicketService;
 use App\Models\Event;
 use App\Models\Integration;
 use App\Models\User;

@@ -3,7 +3,7 @@
 namespace App\Exports;
 
 use App\DataTransferObjects\BudgetExportRow;
-use App\Integrations\Contracts\ExportInterface;
+use App\Integrations\Exports\ExportInterface;
 use App\Models\Budget;
 use Exception;
 use Illuminate\Database\Eloquent\Collection;

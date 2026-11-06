@@ -1,6 +1,6 @@
 <?php
 
-use App\Integrations\TicketService;
+use App\Integrations\Tickets\TicketService;
 use App\Models\Customer;
 use App\Models\Event;
 use App\Models\GitCommitEmail;
