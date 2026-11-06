@@ -58,8 +58,6 @@ class EntryController extends Controller implements HasMiddleware
             ])
             ->allowedIncludes([
                 AllowedInclude::custom('customer', new IncludedRelationship),
-                AllowedInclude::custom('personalOvertime', new IncludedRelationship),
-                AllowedInclude::custom('customerOvertime', new IncludedRelationship),
                 AllowedInclude::custom('correctionEntryCorrection', new IncludedRelationship),
                 AllowedInclude::custom('correctedEntryCorrection', new IncludedRelationship),
                 AllowedInclude::custom('newEntryCorrection', new IncludedRelationship),
