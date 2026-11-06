@@ -5,6 +5,7 @@ namespace Timatic\Nmbrs\Requests;
 use Saloon\Contracts\Body\HasBody;
 use Saloon\Enums\Method;
 use Saloon\Http\Request;
+use Saloon\Http\Response;
 use Saloon\Traits\Body\HasJsonBody;
 
 class CreateVariableHourRequest extends Request implements HasBody
@@ -23,6 +24,12 @@ class CreateVariableHourRequest extends Request implements HasBody
     public function resolveEndpoint(): string
     {
         return '/api/employees/'.$this->employeeId.'/variablehours';
+    }
+
+    /** The response carries no body worth mapping. */
+    public function createDtoFromResponse(Response $response): null
+    {
+        return null;
     }
 
     /** @return array<string, mixed> */
