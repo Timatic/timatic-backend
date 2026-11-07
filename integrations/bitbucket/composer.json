@@ -5,6 +5,7 @@
     "version": "1.0.0",
     "require": {
         "php": "^8.4",
+        "firebase/php-jwt": "^7.0",
         "saloonphp/saloon": "^4.0"
     },
     "autoload": {
