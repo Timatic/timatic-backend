@@ -18,4 +18,4 @@ Hours are invoiced per month. Once finance has closed a month, no entry in it ma
 ## Where in the code
 
 - `app/Services/EntryLockedDateService.php`, `app/Services/ClosedMonthDateService.php`, `app/Policies/EntryPolicy.php`, `config/timatic.php` (`entries_locked_after_days`, `month-end_closing_day_of_month`, `extended_closing_day_of_month`)
-- Tests: `tests/Unit/Services/EntryLockedDateServiceTest.php`, `tests/Unit/Services/ClosedMonthDateServiceTest.php`, `tests/Feature/Entries/UpdateTest.php`, `tests/Feature/Users/` (locked date in the user response)
+- Tests: `tests/Unit/Services/EntryLockedDateServiceTest.php`, `tests/Unit/Services/ClosedMonthDateServiceTest.php`, `tests/Feature/Entries/UpdateTest.php`, `tests/Feature/Permissions/MeTest.php` (locked date in the me response)
