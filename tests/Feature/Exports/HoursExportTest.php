@@ -114,3 +114,44 @@ it('exports the hours per user per budget per month', function () {
         ['Bob', 'Support', 2, 0, 0],
     ]);
 });
+
+it('exports the hours per user without a split, filtered on a budget', function () {
+    // Given
+    app()->setLocale('nl');
+    $anna = User::factory()->create();
+    $bob = User::factory()->create();
+    $support = Budget::factory()->has(BudgetVersion::factory()->state(['title' => 'Support']))->create();
+    $development = Budget::factory()->has(BudgetVersion::factory()->state(['title' => 'Development']))->create();
+    Entry::factory()->create(['user_id' => $anna->id, 'user_full_name' => 'Anna', 'budget_id' => $support->id, 'customer_id' => $support->customer_id, 'started_at' => '2026-01-15 10:00:00', 'ended_at' => '2026-01-15 10:00:00', 'minutes_spent' => 60]);
+    Entry::factory()->create(['user_id' => $anna->id, 'user_full_name' => 'Anna', 'budget_id' => $support->id, 'customer_id' => $support->customer_id, 'started_at' => '2026-03-02 10:00:00', 'ended_at' => '2026-03-02 10:00:00', 'minutes_spent' => 90]);
+    Entry::factory()->create(['user_id' => $anna->id, 'user_full_name' => 'Anna', 'budget_id' => $development->id, 'customer_id' => $development->customer_id, 'started_at' => '2026-02-10 10:00:00', 'ended_at' => '2026-02-10 10:00:00', 'minutes_spent' => 30]);
+    Entry::factory()->create(['user_id' => $bob->id, 'user_full_name' => 'Bob', 'budget_id' => $support->id, 'customer_id' => $support->customer_id, 'started_at' => '2026-01-20 10:00:00', 'ended_at' => '2026-01-20 10:00:00', 'minutes_spent' => 120]);
+    Storage::fake('temp');
+    $path = Storage::disk('temp')->path('hours.xlsx');
+
+    // When
+    (new HoursExport(new ExportPeriod(
+        year: null,
+        month: null,
+        fromMonth: '2026-01',
+        toMonth: '2026-03',
+        groupBy: HoursExportDimension::User,
+        budgetId: $support->id,
+    )))->export($path);
+
+    // Then
+    $reader = new Reader;
+    $reader->open($path);
+    $rows = [];
+    foreach ($reader->getSheetIterator() as $sheet) {
+        foreach ($sheet->getRowIterator() as $row) {
+            $rows[] = $row->toArray();
+        }
+    }
+
+    expect($rows)->toBe([
+        ['Gebruiker', '2026-01', '2026-02', '2026-03'],
+        ['Anna', 1, 0, 1.5],
+        ['Bob', 2, 0, 0],
+    ]);
+});
