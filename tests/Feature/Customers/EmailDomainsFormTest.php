@@ -40,12 +40,14 @@ it('rejects an email domain that is not a hostname', function () {
 
 it('rejects an email domain of another customer', function () {
     $customer = Customer::factory()->create();
-    CustomerEmailDomain::factory()->create(['domain' => 'acme.com']);
+    CustomerEmailDomain::factory()
+        ->for(Customer::factory()->state(['name' => 'Acme']))
+        ->create(['domain' => 'acme.com']);
 
     Livewire::test(EditCustomer::class, ['record' => $customer->id])
         ->fillForm(['email_domains' => ['@ACME.com']])
         ->call('save')
-        ->assertHasFormErrors(['email_domains.0']);
+        ->assertHasFormErrors(['email_domains.0' => __('customers.email_domains.taken', ['domain' => 'acme.com', 'customer' => 'Acme'])]);
 
     expect($customer->emailDomains()->count())->toBe(0);
 });
