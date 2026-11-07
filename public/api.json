@@ -7,7 +7,7 @@
     },
     "servers": [
         {
-            "url": "https://localhost"
+            "url": "https://api.app.timatic.test"
         }
     ],
     "security": [
