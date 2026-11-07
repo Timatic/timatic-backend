@@ -52,6 +52,8 @@ Source (integration) → Event → Activity (grouped) → EntrySuggestion → En
 
 **Entry without budget** (`budget_id = null`, `is_internal = false`) is treated as "paid per hour".
 
+**Events are immutable** — they are stored exactly as the source delivered them and never altered afterwards. Activities and suggestions are projections rebuilt from events (`RebuildUserDay`) and may contain anything we derive. Suggestions "learn" from stored entries: an event without a customer or budget of its own is booked like the entry the user last made on an earlier occurrence of the same sequence (e.g. last week's instance of a recurring meeting). That resolution happens in `ActivityProjector`, before activities are chained, so a learned customer merges with adjacent work for that customer.
+
 ### Integration system
 
 All third-party integrations (Jira, Bitbucket, …) are path-based Composer packages under `/integrations/{name}/`. Each package:

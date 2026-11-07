@@ -55,13 +55,8 @@ class RebuildUserDay implements ShouldBeUnique, ShouldQueue
             ->where('date', $day->toDateString())
             ->get();
 
-        $activities = $activityProjector->project($events, $entries);
-        $suggestions = $suggestionProjector->project(
-            $activities,
-            $dismissedSuggestions,
-            $day,
-            $this->previousSequenceBookings($events),
-        );
+        $activities = $activityProjector->project($events, $entries, $this->previousSequenceBookings($events));
+        $suggestions = $suggestionProjector->project($activities, $dismissedSuggestions, $day);
 
         $db->transaction(function () use ($activities, $suggestions, $day) {
             $this->deleteProjectedState($day);

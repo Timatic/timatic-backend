@@ -2,10 +2,8 @@
 
 namespace App\Services;
 
-use App\DataTransferObjects\PreviousSequenceBooking;
 use App\Models\Activity;
 use App\Models\EntrySuggestion;
-use App\Models\Event;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
@@ -14,21 +12,11 @@ class SuggestionProjector
     /**
      * @param  Collection<int, Activity>  $activities
      * @param  Collection<int, EntrySuggestion>  $dismissedSuggestions
-     * @param  Collection<int, PreviousSequenceBooking>  $previousSequenceBookings  latest first
      * @return Collection<int, EntrySuggestion>
      */
-    public function project(
-        Collection $activities,
-        Collection $dismissedSuggestions,
-        CarbonInterface $date,
-        Collection $previousSequenceBookings = new Collection,
-    ): Collection {
+    public function project(Collection $activities, Collection $dismissedSuggestions, CarbonInterface $date): Collection
+    {
         return $this->buildSuggestions($activities, $date)
-            ->each(function (EntrySuggestion $suggestion) use ($previousSequenceBookings) {
-                if ($suggestion->customer_id === null) {
-                    $this->bookLikePreviousEntryOfSequence($suggestion, $previousSequenceBookings);
-                }
-            })
             ->reject(fn (EntrySuggestion $suggestion) => $this->isDismissed($suggestion, $dismissedSuggestions))
             ->values();
     }
@@ -152,34 +140,5 @@ class SuggestionProjector
             && $dismissed->budget_id === $suggestion->budget_id
             && $dismissed->ticket_number === $suggestion->ticket_number
             && $dismissed->is_internal === $suggestion->is_internal);
-    }
-
-    /**
-     * A suggestion without a customer of its own takes the customer and budget
-     * from the last entry booked on an earlier occurrence of the same sequence,
-     * e.g. the previous instance of a recurring meeting.
-     *
-     * @param  Collection<int, PreviousSequenceBooking>  $previousSequenceBookings
-     */
-    private function bookLikePreviousEntryOfSequence(EntrySuggestion $suggestion, Collection $previousSequenceBookings): void
-    {
-        $previousBooking = $suggestion->activities
-            ->filter(fn (Activity $activity) => $activity->relationLoaded('events'))
-            ->flatMap(fn (Activity $activity) => $activity->events)
-            ->map(fn (Event $event) => $previousSequenceBookings
-                ->where('sourceId', $event->source_id)
-                ->where('externalId', $event->external_id)
-                ->first())
-            ->filter()
-            ->sortByDesc('startedAt')
-            ->first();
-
-        if ($previousBooking === null) {
-            return;
-        }
-
-        $suggestion->customer_id = $previousBooking->customerId;
-        $suggestion->budget_id = $previousBooking->budgetId;
-        $suggestion->is_internal = $previousBooking->isInternal;
     }
 }
