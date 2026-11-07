@@ -22,7 +22,7 @@ enum HoursExportDimension: string
     {
         return (string) match ($this) {
             self::User => $entry->user_id,
-            self::Budget => $entry->budget_id,
+            self::Budget => $entry->budget_id ?? ($entry->is_internal ? 'internal' : 'per-hour'),
             self::Customer => $entry->customer_id,
             self::TicketType => $entry->ticket_type,
         };
@@ -32,7 +32,11 @@ enum HoursExportDimension: string
     {
         return match ($this) {
             self::User => (string) $entry->user_full_name,
-            self::Budget => $entry->budget?->getTitle() ?? __('exports.hours.without_budget'),
+            self::Budget => match (true) {
+                $entry->budget !== null => $entry->budget->getTitle(),
+                $entry->is_internal => __('exports.hours.internal'),
+                default => __('exports.hours.per_hour'),
+            },
             self::Customer => (string) $entry->customer_name,
             self::TicketType => $entry->ticket_type ?: __('exports.hours.without_ticket_type'),
         };

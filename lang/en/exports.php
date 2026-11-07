@@ -9,7 +9,8 @@ return [
             'customer' => 'Customer',
             'ticketType' => 'Ticket type',
         ],
-        'without_budget' => 'No budget',
+        'internal' => 'Internal',
+        'per_hour' => 'Paid per hour',
         'without_ticket_type' => 'No ticket type',
     ],
 ];
