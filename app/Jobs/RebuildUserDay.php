@@ -15,6 +15,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\DatabaseManager;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Collection;
 
@@ -96,7 +97,7 @@ class RebuildUserDay implements ShouldBeUnique, ShouldQueue
         EntrySuggestion::query()
             ->where('user_id', $this->userId)
             ->where('date', $day->toDateString())
-            ->whereDoesntHave('entry')
+            ->whereDoesntHave('entry', fn (Builder $query) => $query->withTrashed())
             ->whereNull('deleted_at')
             ->forceDelete();
 

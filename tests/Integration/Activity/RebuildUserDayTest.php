@@ -127,6 +127,27 @@ test('an entry blocks its period and entry-backed suggestions survive the rebuil
         ->and(EntrySuggestion::query()->whereKey($acceptedSuggestion->id)->exists())->toBeTrue();
 });
 
+test('a suggestion whose entry was deleted survives the rebuild', function () {
+    Illuminate\Support\Facades\Event::fake([EventCreated::class]);
+    $user = User::factory()->create();
+    $acceptedSuggestion = EntrySuggestion::factory()->create([
+        'user_id' => $user->id,
+        'date' => '2026-07-16',
+    ]);
+    $deletedEntry = Entry::factory()->create([
+        'user_id' => $user->id,
+        'entry_suggestion_id' => $acceptedSuggestion->id,
+        'started_at' => Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam'),
+        'ended_at' => Carbon::parse('2026-07-16 11:00', 'Europe/Amsterdam'),
+        'deleted_at' => now(),
+    ]);
+
+    RebuildUserDay::dispatchSync($user->id, '2026-07-16');
+
+    expect(EntrySuggestion::query()->whereKey($acceptedSuggestion->id)->exists())->toBeTrue()
+        ->and(Entry::withTrashed()->find($deletedEntry->id)->entry_suggestion_id)->toBe($acceptedSuggestion->id);
+});
+
 test('the unique id combines user and date', function () {
     expect((new RebuildUserDay(1, '2026-07-16'))->uniqueId())->toBe('1:2026-07-16');
 });
