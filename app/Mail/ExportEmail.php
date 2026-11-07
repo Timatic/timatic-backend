@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\DataTransferObjects\ExportParameters;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -19,18 +20,20 @@ class ExportEmail extends Mailable
 
     public string $formattedDate;
 
-    public function __construct(string $fileName, ?int $year, ?int $month, string $exportType)
+    public function __construct(string $fileName, ExportParameters $parameters, string $exportType)
     {
         $this->fileName = $fileName;
         $this->exportType = $exportType;
         $this->downloadUrl = route('download.export', ['fileName' => $this->fileName]);
 
-        if (is_null($year)) {
+        if ($parameters->fromMonth !== null) {
+            $this->formattedDate = $parameters->rangeStart()->format('F Y').' - '.$parameters->rangeEnd()->format('F Y');
+        } elseif (is_null($parameters->year)) {
             $this->formattedDate = '';
-        } elseif (is_null($month)) {
-            $this->formattedDate = (string) $year;
+        } elseif (is_null($parameters->month)) {
+            $this->formattedDate = (string) $parameters->year;
         } else {
-            $this->formattedDate = Carbon::createFromDate($year, $month, 1)
+            $this->formattedDate = Carbon::createFromDate($parameters->year, $parameters->month, 1)
                 ->format('F Y');
         }
     }
