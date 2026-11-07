@@ -83,6 +83,30 @@ it('creates an email draft saved event for a draft', function () {
     expect(Event::sole()->event_type_id)->toBe('email_draft_saved');
 });
 
+it('creates an email sent event for a draft that was labelled sent', function () {
+    $connection = GmailConnection::factory()->create(['history_id' => '1000']);
+
+    MockClient::global([
+        ListHistoryRequest::class => MockResponse::make([
+            'history' => [
+                ['id' => '1001', 'labelsAdded' => [['message' => ['id' => 'message-1', 'threadId' => 'thread-1', 'labelIds' => ['SENT']], 'labelIds' => ['SENT']]]],
+            ],
+            'historyId' => '1050',
+        ]),
+        GetMessageRequest::class => MockResponse::make([
+            'id' => 'message-1',
+            'threadId' => 'thread-1',
+            'labelIds' => ['SENT'],
+            'internalDate' => '1793872800000',
+            'payload' => ['headers' => []],
+        ]),
+    ]);
+
+    new SyncUserMailJob($connection)->handle(app(OAuthService::class), app(CustomerEmailDomainResolver::class));
+
+    expect(Event::sole()->event_type_id)->toBe('email_sent');
+});
+
 it('leaves the customer unknown for mail to the own organization only', function () {
     CustomerEmailDomain::factory()
         ->for(Customer::factory()->state(['is_own_organization' => true]))

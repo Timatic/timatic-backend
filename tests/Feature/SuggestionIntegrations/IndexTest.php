@@ -3,6 +3,7 @@
 use App\Models\ApiToken;
 use App\Models\Integration;
 use Tests\Concerns\LoginUser;
+use Timatic\Gmail\Models\GmailConnection;
 use Timatic\GoogleCalendar\Models\GoogleCalendarConnection;
 
 uses(LoginUser::class);
@@ -70,6 +71,21 @@ it('shows google calendar as active once the user connected it', function () {
     $response = $this->getJson(route('suggestion-integrations.index'))->assertOk();
 
     expect(collect($response->json('data'))->firstWhere('id', 'google_calendar')['attributes']['isActive'])->toBeTrue();
+});
+
+it('shows gmail as active once the user connected it', function () {
+    $user = $this->loginUser();
+
+    Integration::factory()->create(['type' => 'gmail']);
+    GmailConnection::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->getJson(route('suggestion-integrations.index'))->assertOk();
+
+    $gmail = collect($response->json('data'))->firstWhere('id', 'gmail');
+
+    expect($gmail['attributes']['isCompanyManaged'])->toBeFalse();
+    expect($gmail['attributes']['isActive'])->toBeTrue();
+    expect($gmail['attributes']['connectUrl'])->toContain('signature=');
 });
 
 it('offers to install the chrome extension from the chrome web store', function () {
