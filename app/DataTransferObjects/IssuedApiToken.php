@@ -6,10 +6,10 @@ namespace App\DataTransferObjects;
 
 use App\Models\ApiToken;
 
-class IssuedApiToken
+readonly class IssuedApiToken
 {
     public function __construct(
-        public readonly ApiToken $apiToken,
-        public readonly string $plainTextToken,
+        public ApiToken $apiToken,
+        public string $plainTextToken,
     ) {}
 }

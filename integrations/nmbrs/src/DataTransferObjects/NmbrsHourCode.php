@@ -2,11 +2,11 @@
 
 namespace Timatic\Nmbrs\DataTransferObjects;
 
-class NmbrsHourCode
+readonly class NmbrsHourCode
 {
     public function __construct(
-        public readonly int $code,
-        public readonly string $description,
+        public int $code,
+        public string $description,
     ) {}
 
     public function label(): string

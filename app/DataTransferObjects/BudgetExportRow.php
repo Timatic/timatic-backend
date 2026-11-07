@@ -2,20 +2,20 @@
 
 namespace App\DataTransferObjects;
 
-class BudgetExportRow
+readonly class BudgetExportRow
 {
     public function __construct(
-        public readonly int $id,
-        public readonly ?string $description,
-        public readonly ?string $customerId,
-        public readonly ?string $customer,
-        public readonly ?string $type,
-        public readonly ?string $renewalFrequency,
-        public readonly ?string $startDate,
-        public readonly ?string $expirationDate,
-        public readonly ?string $totalHours,
-        public readonly ?string $hoursRemaining,
-        public readonly ?string $accountManagerName,
-        public readonly ?string $changeId,
+        public int $id,
+        public ?string $description,
+        public ?string $customerId,
+        public ?string $customer,
+        public ?string $type,
+        public ?string $renewalFrequency,
+        public ?string $startDate,
+        public ?string $expirationDate,
+        public ?string $totalHours,
+        public ?string $hoursRemaining,
+        public ?string $accountManagerName,
+        public ?string $changeId,
     ) {}
 }

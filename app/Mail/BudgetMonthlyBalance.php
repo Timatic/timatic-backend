@@ -55,15 +55,15 @@ class BudgetMonthlyBalance extends Mailable
                         return [
                             'title' => $budget->activeVersion()->title,
                             'url' => sprintf('%s/budgets/%s', config('app.frontend_url'), $budget->id),
-                            'customer' => $budget->customer?->name,
+                            'customer' => $budget->customer->name,
                             'remainingHours' => floor($remainingMinutes / 6) / 10,
                             'initialMinutes' => $initialMinutes,
                             'usedPercentage' => $usedPercentage,
                             'usageWarning' => $usageWarning,
                             'renewalFrequency' => $budget->renewal_frequency,
-                            'expired' => $budget->ended_at?->isBefore(Carbon::today()),
-                            'expiring' => $budget->ended_at?->isBefore(Carbon::today()->addMonth()),
-                            'endedAt' => $budget->ended_at?->format('d-m-Y'),
+                            'expired' => $budget->ended_at->isBefore(Carbon::today()),
+                            'expiring' => $budget->ended_at->isBefore(Carbon::today()->addMonth()),
+                            'endedAt' => $budget->ended_at->format('d-m-Y'),
                         ];
                     })->sortByDesc('usedPercentage');
             });

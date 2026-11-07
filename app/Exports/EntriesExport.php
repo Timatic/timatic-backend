@@ -12,6 +12,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
+use UnexpectedValueException;
 
 class EntriesExport implements ExportInterface
 {
@@ -72,8 +73,8 @@ class EntriesExport implements ExportInterface
             $row->startedAt = $entry->started_at->format('d-m-Y');
             $row->ticketNumber = $entry->ticket_number;
             $row->ticketType = $entry->ticket_type;
-            assert(! is_null($entry->customer) && ! is_null($entry->customer->external_id));
-            $row->customerExternalId = $entry->customer->external_id;
+            $row->customerExternalId = $entry->customer->external_id
+                ?? throw new UnexpectedValueException("Entry {$entry->id} has no customer with an external id.");
             $row->customerName = $entry->customer_name;
             $row->budgetId = (string) $entry->budget_id;
             $row->employeeName = $entry->user_full_name;
@@ -114,8 +115,6 @@ class EntriesExport implements ExportInterface
 
             /** @var ?User $user */
             $user = $users->filter(function ($item) use ($entry) {
-                assert(! is_null($item->email));
-
                 return strtolower($item->email) == strtolower((string) $entry->user_email);
             })->first();
             if ($user) {

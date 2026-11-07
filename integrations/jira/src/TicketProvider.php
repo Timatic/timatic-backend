@@ -73,7 +73,7 @@ final class TicketProvider implements TicketProviderInterface
     /** @return Collection<int, Ticket> */
     private function fetchTicketsByUserHistory(?User $user): Collection
     {
-        if ($user === null || $user->email === null) {
+        if ($user === null) {
             return collect();
         }
 

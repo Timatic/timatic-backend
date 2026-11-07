@@ -6,10 +6,15 @@ use App\Models\Integration;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Timatic\Jira\DataTransferObjects\JiraCloudResource;
+use Timatic\Jira\DataTransferObjects\JiraTokens;
+use Timatic\Jira\Requests\ExchangeCodeRequest;
+use Timatic\Jira\Requests\GetAccessibleResourcesRequest;
+use Timatic\Jira\Requests\RefreshTokenRequest;
 
 class OAuthService
 {
@@ -41,48 +46,52 @@ class OAuthService
             throw new RuntimeException('Invalid OAuth state parameter.');
         }
 
-        $tokenResponse = Http::post('https://auth.atlassian.com/oauth/token', [
-            'grant_type' => 'authorization_code',
-            'client_id' => config('jira.client_id'),
-            'client_secret' => config('jira.client_secret'),
-            'code' => $code,
-            'redirect_uri' => $this->redirectUri(),
-        ]);
+        $connector = new OAuthConnector;
+
+        $tokenResponse = $connector->send(new ExchangeCodeRequest($code, $this->redirectUri()));
 
         if ($tokenResponse->failed()) {
             throw new RuntimeException('Token exchange failed.');
         }
 
-        $tokens = $tokenResponse->json();
+        /** @var JiraTokens $tokens */
+        $tokens = $tokenResponse->dto();
 
-        $resourcesResponse = Http::withToken($tokens['access_token'])
-            ->get('https://api.atlassian.com/oauth/token/accessible-resources');
+        $resourcesResponse = $connector->send(new GetAccessibleResourcesRequest($tokens->accessToken));
 
-        if ($resourcesResponse->failed() || empty($resourcesResponse->json())) {
+        if ($resourcesResponse->failed()) {
             throw new RuntimeException('Could not fetch Jira accessible resources.');
         }
 
-        $resources = $resourcesResponse->json();
+        /** @var Collection<int, JiraCloudResource> $resources */
+        $resources = $resourcesResponse->dto();
+
+        if ($resources->isEmpty()) {
+            throw new RuntimeException('Could not fetch Jira accessible resources.');
+        }
+
         $baseConfig = array_merge(
             Arr::except($integration->config ?? [], ['oauth_nonce']),
             [
-                'access_token' => $tokens['access_token'],
-                'refresh_token' => $tokens['refresh_token'] ?? null,
-                'expires_at' => now()->addSeconds($tokens['expires_in'] - 60)->timestamp,
+                'access_token' => $tokens->accessToken,
+                'refresh_token' => $tokens->refreshToken,
+                'expires_at' => now()->addSeconds($tokens->expiresIn - 60)->timestamp,
             ]
         );
 
-        if (count($resources) === 1) {
+        if ($resources->count() === 1) {
             $integration->update([
                 'config' => array_merge($baseConfig, [
-                    'cloud_id' => $resources[0]['id'],
-                    'cloud_url' => $resources[0]['url'],
+                    'cloud_id' => $resources->first()->id,
+                    'cloud_url' => $resources->first()->url,
                 ]),
             ]);
         } else {
             $integration->update([
                 'config' => array_merge($baseConfig, [
-                    'pending_resources' => $resources,
+                    'pending_resources' => $resources
+                        ->map(fn (JiraCloudResource $resource): array => ['id' => $resource->id, 'url' => $resource->url])
+                        ->all(),
                 ]),
             ]);
         }
@@ -147,12 +156,7 @@ class OAuthService
     {
         $config = $integration->config ?? [];
 
-        $response = Http::post('https://auth.atlassian.com/oauth/token', [
-            'grant_type' => 'refresh_token',
-            'client_id' => config('jira.client_id'),
-            'client_secret' => config('jira.client_secret'),
-            'refresh_token' => $config['refresh_token'] ?? '',
-        ]);
+        $response = new OAuthConnector()->send(new RefreshTokenRequest($config['refresh_token'] ?? ''));
 
         if ($response->status() === 400) {
             $this->disconnect($integration);
@@ -164,13 +168,14 @@ class OAuthService
             throw new RuntimeException('Token refresh failed.');
         }
 
-        $tokens = $response->json();
+        /** @var JiraTokens $tokens */
+        $tokens = $response->dto();
 
         $integration->update([
             'config' => array_merge($config, [
-                'access_token' => $tokens['access_token'],
-                'refresh_token' => $tokens['refresh_token'] ?? $config['refresh_token'],
-                'expires_at' => now()->addSeconds($tokens['expires_in'] - 60)->timestamp,
+                'access_token' => $tokens->accessToken,
+                'refresh_token' => $tokens->refreshToken ?? $config['refresh_token'],
+                'expires_at' => now()->addSeconds($tokens->expiresIn - 60)->timestamp,
             ]),
         ]);
 

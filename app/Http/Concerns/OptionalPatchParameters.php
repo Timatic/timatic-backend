@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\Traits;
+namespace App\Http\Concerns;
 
 trait OptionalPatchParameters
 {

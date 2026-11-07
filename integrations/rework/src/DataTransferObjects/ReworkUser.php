@@ -2,11 +2,11 @@
 
 namespace Timatic\Rework\DataTransferObjects;
 
-class ReworkUser
+readonly class ReworkUser
 {
     public function __construct(
-        public readonly int $id,
-        public readonly string $name,
-        public readonly string $email,
+        public int $id,
+        public string $name,
+        public string $email,
     ) {}
 }

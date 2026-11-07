@@ -7,6 +7,7 @@ namespace Timatic\GoogleCalendar\Requests;
 use Saloon\Contracts\Body\HasBody;
 use Saloon\Enums\Method;
 use Saloon\Http\Request;
+use Saloon\Http\Response;
 use Saloon\Traits\Body\HasFormBody;
 
 /**
@@ -25,6 +26,12 @@ class RevokeTokenRequest extends Request implements HasBody
     public function resolveEndpoint(): string
     {
         return '/revoke';
+    }
+
+    /** The response carries no body worth mapping. */
+    public function createDtoFromResponse(Response $response): null
+    {
+        return null;
     }
 
     /**

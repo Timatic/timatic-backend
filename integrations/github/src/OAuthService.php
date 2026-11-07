@@ -7,17 +7,18 @@ use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Saloon\Http\Request;
+use Timatic\GitHub\DataTransferObjects\GitHubTokens;
 use Timatic\GitHub\DataTransferObjects\GitHubUser;
 use Timatic\GitHub\Exceptions\GitHubException;
+use Timatic\GitHub\Requests\ExchangeCodeRequest;
 use Timatic\GitHub\Requests\GetAuthenticatedUserRequest;
+use Timatic\GitHub\Requests\RefreshTokenRequest;
 
 class OAuthService
 {
     private const AUTHORIZE_URL = 'https://github.com/login/oauth/authorize';
-
-    private const TOKEN_URL = 'https://github.com/login/oauth/access_token';
 
     /**
      * A GitHub App has no scopes: the fine-grained permissions of the app itself apply.
@@ -46,12 +47,7 @@ class OAuthService
             throw new GitHubException('Invalid OAuth state parameter.');
         }
 
-        $tokens = $this->requestTokens([
-            'client_id' => config('github.client_id'),
-            'client_secret' => config('github.client_secret'),
-            'code' => $code,
-            'redirect_uri' => $this->redirectUri(),
-        ]);
+        $tokens = $this->requestTokens(new ExchangeCodeRequest($code, $this->redirectUri()));
 
         $integration->update([
             'config' => array_merge(
@@ -110,14 +106,11 @@ class OAuthService
     {
         $config = $integration->config ?? [];
 
-        $tokens = $this->requestTokens([
-            'client_id' => config('github.client_id'),
-            'client_secret' => config('github.client_secret'),
-            'grant_type' => 'refresh_token',
-            'refresh_token' => $config['refresh_token'] ?? '',
-        ], disconnectOnError: $integration);
+        try {
+            $tokens = $this->requestTokens(new RefreshTokenRequest($config['refresh_token'] ?? ''));
+        } catch (GitHubException) {
+            $this->disconnect($integration);
 
-        if ($tokens === []) {
             return $integration->refresh();
         }
 
@@ -130,27 +123,15 @@ class OAuthService
 
     /**
      * GitHub answers a failed token request with HTTP 200 and an error key.
-     *
-     * @param  array<string, mixed>  $body
-     * @return array<string, mixed>
      */
-    private function requestTokens(array $body, ?Integration $disconnectOnError = null): array
+    private function requestTokens(Request $request): GitHubTokens
     {
-        $response = Http::asForm()
-            ->withHeaders(['Accept' => 'application/json'])
-            ->post(self::TOKEN_URL, $body);
+        $response = new OAuthConnector()->send($request);
 
-        $tokens = $response->failed() ? [] : $response->json();
-        $error = $tokens['error'] ?? ($response->failed() ? 'http_'.$response->status() : null);
+        $error = $response->failed() ? 'http_'.$response->status() : $response->json('error');
 
         if ($error === null) {
-            return $tokens;
-        }
-
-        if ($disconnectOnError !== null) {
-            $this->disconnect($disconnectOnError);
-
-            return [];
+            return $response->dto();
         }
 
         throw new GitHubException('GitHub token request failed: '.$error);
@@ -160,18 +141,15 @@ class OAuthService
      * Expiring user tokens are optional per app: without them GitHub returns
      * neither an expiry nor a refresh token, and the access token stays valid.
      *
-     * @param  array<string, mixed>  $tokens
      * @param  array<string, mixed>  $config
      * @return array<string, mixed>
      */
-    private function tokenConfig(array $tokens, array $config = []): array
+    private function tokenConfig(GitHubTokens $tokens, array $config = []): array
     {
-        $expiresIn = $tokens['expires_in'] ?? null;
-
         return [
-            'access_token' => $tokens['access_token'],
-            'refresh_token' => $tokens['refresh_token'] ?? ($config['refresh_token'] ?? null),
-            'expires_at' => $expiresIn === null ? null : now()->addSeconds((int) $expiresIn - 60)->timestamp,
+            'access_token' => $tokens->accessToken,
+            'refresh_token' => $tokens->refreshToken ?? ($config['refresh_token'] ?? null),
+            'expires_at' => $tokens->expiresIn === null ? null : now()->addSeconds($tokens->expiresIn - 60)->timestamp,
         ];
     }
 

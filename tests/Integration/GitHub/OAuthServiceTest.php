@@ -2,14 +2,15 @@
 
 use App\Models\Integration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\URL;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
 use Timatic\GitHub\Exceptions\GitHubException;
 use Timatic\GitHub\OAuthService;
+use Timatic\GitHub\Requests\ExchangeCodeRequest;
 use Timatic\GitHub\Requests\GetAuthenticatedUserRequest;
 use Timatic\GitHub\Requests\GetUserInstallationsRequest;
+use Timatic\GitHub\Requests\RefreshTokenRequest;
 
 uses(RefreshDatabase::class);
 
@@ -38,12 +39,12 @@ it('stores the tokens and the connecting github login', function () {
     $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     $state = app(OAuthService::class)->buildAuthorizationUrl($integration);
     parse_str(parse_url($state, PHP_URL_QUERY), $query);
-    Http::fake(['github.com/login/oauth/access_token' => Http::response([
-        'access_token' => 'ghu_user_token',
-        'refresh_token' => 'ghr_refresh_token',
-        'expires_in' => 28800,
-    ])]);
     MockClient::global([
+        ExchangeCodeRequest::class => MockResponse::make([
+            'access_token' => 'ghu_user_token',
+            'refresh_token' => 'ghr_refresh_token',
+            'expires_in' => 28800,
+        ]),
         GetAuthenticatedUserRequest::class => MockResponse::make(['id' => 99, 'login' => 'octocat']),
         GetUserInstallationsRequest::class => MockResponse::make([
             'total_count' => 1,
@@ -67,8 +68,8 @@ it('stores a non-expiring token without an expiry', function () {
     config()->set('github.client_secret', 'client-secret');
     $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     parse_str(parse_url(app(OAuthService::class)->buildAuthorizationUrl($integration), PHP_URL_QUERY), $query);
-    Http::fake(['github.com/login/oauth/access_token' => Http::response(['access_token' => 'ghu_user_token'])]);
     MockClient::global([
+        ExchangeCodeRequest::class => MockResponse::make(['access_token' => 'ghu_user_token']),
         GetAuthenticatedUserRequest::class => MockResponse::make(['id' => 99, 'login' => 'octocat']),
         GetUserInstallationsRequest::class => MockResponse::make([
             'total_count' => 1,
@@ -96,7 +97,9 @@ it('fails when github answers the token request with an error', function () {
     config()->set('github.client_secret', 'client-secret');
     $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     parse_str(parse_url(app(OAuthService::class)->buildAuthorizationUrl($integration), PHP_URL_QUERY), $query);
-    Http::fake(['github.com/login/oauth/access_token' => Http::response(['error' => 'bad_verification_code'])]);
+    MockClient::global([
+        ExchangeCodeRequest::class => MockResponse::make(['error' => 'bad_verification_code']),
+    ]);
 
     app(OAuthService::class)->handleCallback('the-code', $query['state']);
 })->throws(GitHubException::class, 'GitHub token request failed: bad_verification_code');
@@ -109,11 +112,13 @@ it('refreshes an expired user token', function () {
         'refresh_token' => 'ghr_old',
         'expires_at' => now()->subMinute()->timestamp,
     ]]);
-    Http::fake(['github.com/login/oauth/access_token' => Http::response([
-        'access_token' => 'ghu_new',
-        'refresh_token' => 'ghr_new',
-        'expires_in' => 28800,
-    ])]);
+    MockClient::global([
+        RefreshTokenRequest::class => MockResponse::make([
+            'access_token' => 'ghu_new',
+            'refresh_token' => 'ghr_new',
+            'expires_in' => 28800,
+        ]),
+    ]);
 
     $integration = app(OAuthService::class)->refreshIfExpired($integration);
 
@@ -126,12 +131,12 @@ it('leaves a token without expiry untouched', function () {
         'access_token' => 'ghu_user_token',
         'expires_at' => null,
     ]]);
-    Http::fake();
+    $mockClient = MockClient::global();
 
     $integration = app(OAuthService::class)->refreshIfExpired($integration);
 
     expect($integration->config['access_token'])->toBe('ghu_user_token');
-    Http::assertNothingSent();
+    $mockClient->assertNothingSent();
 });
 
 it('disconnects when the refresh token is rejected', function () {
@@ -143,7 +148,9 @@ it('disconnects when the refresh token is rejected', function () {
         'expires_at' => now()->subMinute()->timestamp,
         'installations' => [['id' => 4242, 'account' => 'acme']],
     ]]);
-    Http::fake(['github.com/login/oauth/access_token' => Http::response(['error' => 'bad_refresh_token'])]);
+    MockClient::global([
+        RefreshTokenRequest::class => MockResponse::make(['error' => 'bad_refresh_token']),
+    ]);
 
     $integration = app(OAuthService::class)->refreshIfExpired($integration);
 

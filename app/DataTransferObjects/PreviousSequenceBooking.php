@@ -4,14 +4,14 @@ namespace App\DataTransferObjects;
 
 use Carbon\CarbonInterface;
 
-class PreviousSequenceBooking
+readonly class PreviousSequenceBooking
 {
     public function __construct(
-        public readonly string $sourceId,
-        public readonly string $externalId,
-        public readonly string $customerId,
-        public readonly ?int $budgetId,
-        public readonly bool $isInternal,
-        public readonly CarbonInterface $startedAt,
+        public string $sourceId,
+        public string $externalId,
+        public string $customerId,
+        public ?int $budgetId,
+        public bool $isInternal,
+        public CarbonInterface $startedAt,
     ) {}
 }

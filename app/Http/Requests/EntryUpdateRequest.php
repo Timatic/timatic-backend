@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests;
 
-use App\Http\Requests\Traits\OptionalPatchParameters;
-use App\Http\Requests\Traits\ValidatedAttributes;
+use App\Http\Concerns\OptionalPatchParameters;
+use App\Http\Concerns\ValidatedAttributes;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 

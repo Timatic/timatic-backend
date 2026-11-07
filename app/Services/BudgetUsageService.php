@@ -9,6 +9,7 @@ use Brick\Math\BigDecimal;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use UnexpectedValueException;
 
 class BudgetUsageService
 {
@@ -39,12 +40,9 @@ class BudgetUsageService
             /** @var Budget $budget */
             $budgetMutation = new BudgetMutation($budget);
 
-            $startPeriod = $budget->getPeriodAt($startOfMonth);
-            if (! $startPeriod) {
-                $startPeriod = $budget->getPeriodAt($budget->started_at);
-            }
-
-            assert(! is_null($startPeriod));
+            $startPeriod = $budget->getPeriodAt($startOfMonth)
+                ?? $budget->getPeriodAt($budget->started_at)
+                ?? throw new UnexpectedValueException("Budget {$budget->id} has no period to start from.");
 
             $budgetMutation->startBalance = $startPeriod->travelTo($startOfMonth)->getRemainingCredit();
 
@@ -106,7 +104,7 @@ class BudgetUsageService
         // if the period->endDate is within this month, we might have expired credit.
         if ($periodAtEndOfMonth->getEndDate()->lessThanOrEqualTo($endOfMonth)
             || $budget->archived_at?->lessThanOrEqualTo($endOfMonth)
-            || $budget->ended_at?->lessThanOrEqualTo($endOfMonth)
+            || $budget->ended_at->lessThanOrEqualTo($endOfMonth)
         ) {
             $budgetMutation->expiredCredit = $periodAtEndOfMonth->getRemainingCredit();
             $budgetMutation->endBalance = BigDecimal::of(0);

@@ -29,7 +29,7 @@ class DummySeeder extends Seeder
 
     private function restoreDevApiTokenIfConfigured(): void
     {
-        $plainToken = env('DEV_API_KEY'); // @phpstan-ignore-line
+        $plainToken = config('timatic.dev_api_key');
 
         if (! is_string($plainToken) || $plainToken === '') {
             return;

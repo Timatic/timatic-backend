@@ -16,7 +16,7 @@ use function Laravel\Prompts\multiselect;
 use function Laravel\Prompts\text;
 use function Laravel\Prompts\textarea;
 
-class GenerateApiToken extends Command
+class GenerateApiTokenCommand extends Command
 {
     protected $signature = 'apitoken:generate';
 

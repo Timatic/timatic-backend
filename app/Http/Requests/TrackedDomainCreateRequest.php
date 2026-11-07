@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
-use App\Http\Requests\Traits\ValidatedAttributes;
+use App\Http\Concerns\ValidatedAttributes;
 use App\Models\Budget;
 use App\Models\TrackedDomain;
 use App\Models\User;

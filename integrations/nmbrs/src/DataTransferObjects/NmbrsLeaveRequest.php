@@ -4,14 +4,14 @@ namespace Timatic\Nmbrs\DataTransferObjects;
 
 use Carbon\CarbonImmutable;
 
-class NmbrsLeaveRequest
+readonly class NmbrsLeaveRequest
 {
     public function __construct(
-        public readonly string $leaveRequestId,
-        public readonly string $employeeId,
-        public readonly CarbonImmutable $startDate,
-        public readonly CarbonImmutable $endDate,
-        public readonly float $hours,
+        public string $leaveRequestId,
+        public string $employeeId,
+        public CarbonImmutable $startDate,
+        public CarbonImmutable $endDate,
+        public float $hours,
     ) {}
 
     public function isActiveToday(): bool

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Requests\Traits;
+namespace App\Http\Concerns;
 
 use Closure;
 use Illuminate\Database\Eloquent\Model;

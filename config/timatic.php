@@ -17,4 +17,5 @@ return [
     'account_management_mail_address' => env('ACCOUNT_MANAGEMENT_MAIL_ADDRESS'),
     'preferred_timezone' => 'Europe/Amsterdam',
     'default_hourly_rate' => env('DEFAULT_HOURLY_RATE'),
+    'dev_api_key' => env('DEV_API_KEY'),
 ];

@@ -15,14 +15,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use UnexpectedValueException;
 
 /**
  * @property int $id
  * @property string $customer_id
  * @property bool $show_to_customer
  * @property string $budget_type_id
- * @property ?Carbon $started_at
- * @property ?Carbon $ended_at
+ * @property Carbon $started_at
+ * @property Carbon $ended_at
  * @property ?string $renewal_frequency
  * @property ?Carbon $archived_at
  * @property Carbon $created_at
@@ -31,7 +32,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property Collection|Entry[] $entries
  * @property Collection|BudgetVersion[] $budgetVersions
  * @property BudgetType $budgetType
- * @property ?Customer $customer
+ * @property Customer $customer
  * @property ?User $supervisor
  * @property Collection<int, User> $allowedUsers
  *
@@ -166,9 +167,6 @@ class Budget extends Model
     {
         $periods = new \Illuminate\Support\Collection;
 
-        assert(! is_null($this->started_at));
-        assert(! is_null($this->ended_at));
-
         $endDate = $this->ended_at;
         if ($this->archived_at) {
             $endDate = $this->archived_at->isBefore($endDate) ? $this->archived_at : $endDate;
@@ -190,17 +188,10 @@ class Budget extends Model
         /** @var \Illuminate\Support\Collection<int, Period> $periods */
         $periods = new \Illuminate\Support\Collection;
 
-        assert(! is_null($this->started_at));
-
         $frequency = ($this->renewal_frequency == 'yearly' ? 'year' : 'month');
         $startDate = $this->started_at->clone();
         $maxPeriodEndDate = Carbon::now()->add($frequency, 1);
-        $endDate = $this->ended_at;
-        if ($this->archived_at) {
-            $endDate = $this->archived_at;
-        }
-
-        assert($endDate instanceof Carbon);
+        $endDate = $this->archived_at ?? $this->ended_at;
 
         $alignToMonthStart = config('timatic.feature.align_periods_to_month_start') && $frequency === 'month';
         $isFirstPeriod = true;
@@ -272,10 +263,10 @@ class Budget extends Model
 
     public function getLastPeriodRelationData(): ?Period
     {
-        assert(! is_null($this->ended_at));
+        $endedAt = $this->ended_at;
 
-        if ($this->ended_at < Carbon::today()) {
-            return $this->getPeriodAt($this->ended_at->clone()->subDay());
+        if ($endedAt < Carbon::today()) {
+            return $this->getPeriodAt($endedAt->clone()->subDay());
         } else {
             return $this->getCurrentPeriodRelationData();
         }
@@ -357,16 +348,14 @@ class Budget extends Model
             $timestamp = Carbon::now();
         }
 
-        assert(! is_null($this->started_at));
+        $startedAt = $this->started_at;
 
         // entries can be moved to a budget that is created later than the entries themselves
-        if ($timestamp->isBefore($this->started_at)) {
-            $timestamp = $this->started_at;
+        if ($timestamp->isBefore($startedAt)) {
+            $timestamp = $startedAt;
         }
 
         foreach ($this->budgetVersions as $budgetVersion) {
-            assert(! is_null($budgetVersion->effective_from));
-
             if (
                 $timestamp->greaterThanOrEqualTo($budgetVersion->effective_from) &&
                 (is_null($budgetVersion->effective_to) || $timestamp->lessThanOrEqualTo($budgetVersion->effective_to))
@@ -375,11 +364,8 @@ class Budget extends Model
             }
         }
 
-        $version = $this->budgetVersions->whereNull('effective_to')->first();
-
-        assert($version instanceof BudgetVersion);
-
-        return $version;
+        return $this->budgetVersions->whereNull('effective_to')->first()
+            ?? throw new UnexpectedValueException("Budget {$this->id} has no active version.");
     }
 
     public function getTotalPrice(?Carbon $timestamp = null): string

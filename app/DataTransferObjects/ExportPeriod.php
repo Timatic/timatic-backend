@@ -14,11 +14,8 @@ readonly class ExportPeriod
 
     public function start(): CarbonImmutable
     {
-        $start = CarbonImmutable::create($this->requireYear(), $this->month ?? 1, 1);
-
-        assert($start !== null);
-
-        return $start;
+        return CarbonImmutable::create($this->requireYear(), $this->month ?? 1, 1)
+            ?? throw new InvalidArgumentException('This export has an invalid period.');
     }
 
     public function end(): CarbonImmutable

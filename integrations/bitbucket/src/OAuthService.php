@@ -7,9 +7,11 @@ use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Timatic\Bitbucket\DataTransferObjects\BitbucketTokens;
+use Timatic\Bitbucket\Requests\ExchangeCodeRequest;
+use Timatic\Bitbucket\Requests\RefreshTokenRequest;
 
 class OAuthService
 {
@@ -39,28 +41,22 @@ class OAuthService
             throw new RuntimeException('Invalid OAuth state parameter.');
         }
 
-        $tokenResponse = Http::withBasicAuth(
-            config('bitbucket.client_id'),
-            config('bitbucket.client_secret'),
-        )->asForm()->post('https://bitbucket.org/site/oauth2/access_token', [
-            'grant_type' => 'authorization_code',
-            'code' => $code,
-            'redirect_uri' => $this->redirectUri(),
-        ]);
+        $tokenResponse = new OAuthConnector()->send(new ExchangeCodeRequest($code, $this->redirectUri()));
 
         if ($tokenResponse->failed()) {
             throw new RuntimeException('Token exchange failed.');
         }
 
-        $tokens = $tokenResponse->json();
+        /** @var BitbucketTokens $tokens */
+        $tokens = $tokenResponse->dto();
 
         $integration->update([
             'config' => array_merge(
                 Arr::except($integration->config ?? [], ['oauth_nonce']),
                 [
-                    'access_token' => $tokens['access_token'],
-                    'refresh_token' => $tokens['refresh_token'] ?? null,
-                    'expires_at' => now()->addSeconds(($tokens['expires_in'] ?? 7200) - 60)->timestamp,
+                    'access_token' => $tokens->accessToken,
+                    'refresh_token' => $tokens->refreshToken,
+                    'expires_at' => now()->addSeconds($tokens->expiresIn - 60)->timestamp,
                 ]
             ),
         ]);
@@ -101,13 +97,7 @@ class OAuthService
     {
         $config = $integration->config ?? [];
 
-        $response = Http::withBasicAuth(
-            config('bitbucket.client_id'),
-            config('bitbucket.client_secret'),
-        )->asForm()->post('https://bitbucket.org/site/oauth2/access_token', [
-            'grant_type' => 'refresh_token',
-            'refresh_token' => $config['refresh_token'] ?? '',
-        ]);
+        $response = new OAuthConnector()->send(new RefreshTokenRequest($config['refresh_token'] ?? ''));
 
         if ($response->status() === 400) {
             $this->disconnect($integration);
@@ -119,13 +109,14 @@ class OAuthService
             throw new RuntimeException('Token refresh failed.');
         }
 
-        $tokens = $response->json();
+        /** @var BitbucketTokens $tokens */
+        $tokens = $response->dto();
 
         $integration->update([
             'config' => array_merge($config, [
-                'access_token' => $tokens['access_token'],
-                'refresh_token' => $tokens['refresh_token'] ?? $config['refresh_token'],
-                'expires_at' => now()->addSeconds(($tokens['expires_in'] ?? 7200) - 60)->timestamp,
+                'access_token' => $tokens->accessToken,
+                'refresh_token' => $tokens->refreshToken ?? $config['refresh_token'],
+                'expires_at' => now()->addSeconds($tokens->expiresIn - 60)->timestamp,
             ]),
         ]);
 

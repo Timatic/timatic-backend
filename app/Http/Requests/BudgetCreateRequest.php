@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Http\Requests\Traits\ValidatedAttributes;
+use App\Http\Concerns\ValidatedAttributes;
 use App\Models\Budget;
 use Illuminate\Foundation\Http\FormRequest;
 

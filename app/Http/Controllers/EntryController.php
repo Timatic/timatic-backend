@@ -12,7 +12,6 @@ use App\Models\User;
 use App\QueryFilters\DateFilterCallback;
 use App\QueryFilters\TextFilterCallback;
 use App\Services\EntryEnricher;
-use Carbon\Carbon;
 use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -36,7 +35,6 @@ class EntryController extends Controller implements HasMiddleware
             new Middleware('can:create,App\Models\Entry', only: ['create', 'store']),
             new Middleware('can:update,entry', only: ['edit', 'update']),
             new Middleware('can:delete,entry', only: ['destroy']),
-            new Middleware('can:entries.mark-as-invoiced', only: ['markAsInvoiced']),
         ];
     }
 
@@ -106,7 +104,14 @@ class EntryController extends Controller implements HasMiddleware
 
         $entry->save();
 
-        $entryEnricher->enrichFromRequest($entry, $request);
+        $entryEnricher->enrich(
+            $entry,
+            isPartialUpdate: false,
+            hasOvertime: $request->boolean('data.attributes.hasOvertime'),
+            hasCustomerOvertime: $request->boolean('data.attributes.hasCustomerOvertime'),
+            overtimeStartedAt: $request->validated('data.attributes.overtimeStartedAt'),
+            overtimeEndedAt: $request->validated('data.attributes.overtimeEndedAt'),
+        );
 
         return new EntryResource($entry);
     }
@@ -133,20 +138,17 @@ class EntryController extends Controller implements HasMiddleware
         $entry->fill($attributes);
         $entry->save();
 
-        $entryEnricher->enrichFromRequest($entry, $request);
+        // A partial update keeps the existing overtime unless the request says otherwise
+        $isPartialUpdate = $request->isMethod('patch');
 
-        return new EntryResource($entry);
-    }
-
-    public function markAsInvoiced(
-        Entry $entry
-    ): EntryResource {
-        if ($entry->is_internal) {
-            abort(422, 'Cannot invoice internal entry.');
-        }
-
-        $entry->invoiced_at = Carbon::now();
-        $entry->save();
+        $entryEnricher->enrich(
+            $entry,
+            isPartialUpdate: $isPartialUpdate,
+            hasOvertime: $request->boolean('data.attributes.hasOvertime', $isPartialUpdate && $entry->personalOvertime),
+            hasCustomerOvertime: $request->boolean('data.attributes.hasCustomerOvertime', $isPartialUpdate && $entry->customerOvertime),
+            overtimeStartedAt: $request->validated('data.attributes.overtimeStartedAt'),
+            overtimeEndedAt: $request->validated('data.attributes.overtimeEndedAt'),
+        );
 
         return new EntryResource($entry);
     }

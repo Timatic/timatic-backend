@@ -4,13 +4,13 @@ namespace Timatic\Rework\DataTransferObjects;
 
 use Carbon\CarbonImmutable;
 
-class ReworkLeaveSlot
+readonly class ReworkLeaveSlot
 {
     public function __construct(
-        public readonly int $id,
-        public readonly CarbonImmutable $date,
-        public readonly float $hours,
-        public readonly bool $allDay,
+        public int $id,
+        public CarbonImmutable $date,
+        public float $hours,
+        public bool $allDay,
     ) {}
 
     public function isToday(): bool

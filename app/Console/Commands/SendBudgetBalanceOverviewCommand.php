@@ -11,7 +11,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 use Symfony\Component\Console\Command\Command as BaseCommand;
 
-class SendBudgetBalanceOverview extends Command
+class SendBudgetBalanceOverviewCommand extends Command
 {
     /**
      * The name and signature of the console command.

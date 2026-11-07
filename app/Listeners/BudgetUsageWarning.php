@@ -97,8 +97,6 @@ class BudgetUsageWarning implements ShouldQueue
             $mailTo[] = $budget->supervisor->email;
         }
 
-        assert(! is_null($budget->customer));
-
         Mail::to($mailTo)
             ->send(new WarningMail($budget, $budget->customer, $amountUsed));
     }
