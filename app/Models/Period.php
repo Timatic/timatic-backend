@@ -119,7 +119,7 @@ class Period
     public function getRemainingHours(bool $allowNegative = false): BigDecimal
     {
         return BigDecimal::of($this->getRemainingMinutes($allowNegative))
-            ->dividedBy(60, 4, RoundingMode::HALF_UP);
+            ->dividedBy(60, 4, RoundingMode::HalfUp);
     }
 
     protected function setAggregates(): void
@@ -170,7 +170,7 @@ class Period
     {
         return $this->getRemainingHours($allowNegative)
             ->multipliedBy($this->budget->getHourlyRateBigDecimal($this->startDate))
-            ->toScale(2, RoundingMode::HALF_UP);
+            ->toScale(2, RoundingMode::HalfUp);
     }
 
     public function travelTo(Carbon $date): self

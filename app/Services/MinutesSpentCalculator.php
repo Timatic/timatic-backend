@@ -52,6 +52,6 @@ class MinutesSpentCalculator
      */
     protected function roundToWholeMinutes(BigDecimal $calculatedMinutes): int
     {
-        return $calculatedMinutes->dividedBy(1, 0, RoundingMode::HALF_UP)->toInt();
+        return $calculatedMinutes->dividedBy(1, 0, RoundingMode::HalfUp)->toInt();
     }
 }
