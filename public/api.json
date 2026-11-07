@@ -243,6 +243,9 @@
                                                         "$ref": "#/components/schemas/BudgetType"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/Period"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/Team"
                                                     },
                                                     {
@@ -325,6 +328,9 @@
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Team"
@@ -413,6 +419,9 @@
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Team"
@@ -509,6 +518,9 @@
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Team"
@@ -669,6 +681,9 @@
                                                         "$ref": "#/components/schemas/BudgetType"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/Period"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/Team"
                                                     },
                                                     {
@@ -767,6 +782,9 @@
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Team"
@@ -1620,10 +1638,13 @@
                                                         "$ref": "#/components/schemas/Role"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/BudgetType"
                                                     },
                                                     {
-                                                        "$ref": "#/components/schemas/Permission"
+                                                        "$ref": "#/components/schemas/Period"
                                                     }
                                                 ]
                                             }
@@ -1707,10 +1728,13 @@
                                                         "$ref": "#/components/schemas/Role"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/BudgetType"
                                                     },
                                                     {
-                                                        "$ref": "#/components/schemas/Permission"
+                                                        "$ref": "#/components/schemas/Period"
                                                     }
                                                 ]
                                             }
@@ -1795,10 +1819,13 @@
                                                         "$ref": "#/components/schemas/Role"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/BudgetType"
                                                     },
                                                     {
-                                                        "$ref": "#/components/schemas/Permission"
+                                                        "$ref": "#/components/schemas/Period"
                                                     }
                                                 ]
                                             }
@@ -1890,10 +1917,13 @@
                                                         "$ref": "#/components/schemas/Role"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/BudgetType"
                                                     },
                                                     {
-                                                        "$ref": "#/components/schemas/Permission"
+                                                        "$ref": "#/components/schemas/Period"
                                                     }
                                                 ]
                                             }
@@ -2012,10 +2042,13 @@
                                                         "$ref": "#/components/schemas/Role"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/BudgetType"
                                                     },
                                                     {
-                                                        "$ref": "#/components/schemas/Permission"
+                                                        "$ref": "#/components/schemas/Period"
                                                     }
                                                 ]
                                             }
@@ -2868,6 +2901,9 @@
                                                         "$ref": "#/components/schemas/BudgetType"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/Period"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/Team"
                                                     },
                                                     {
@@ -2958,6 +2994,9 @@
                                                         "$ref": "#/components/schemas/BudgetType"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/Period"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/Team"
                                                     },
                                                     {
@@ -3044,6 +3083,9 @@
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Team"
@@ -3947,6 +3989,31 @@
                                             "items": {
                                                 "$ref": "#/components/schemas/Ticket"
                                             }
+                                        },
+                                        "included": {
+                                            "type": "array",
+                                            "items": {
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/Customer"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/TicketAction"
+                                                    }
+                                                ]
+                                            }
                                         }
                                     },
                                     "required": [
@@ -3991,6 +4058,31 @@
                                     "properties": {
                                         "data": {
                                             "$ref": "#/components/schemas/Ticket"
+                                        },
+                                        "included": {
+                                            "type": "array",
+                                            "items": {
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/Customer"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/TicketAction"
+                                                    }
+                                                ]
+                                            }
                                         }
                                     },
                                     "required": [
@@ -4236,6 +4328,9 @@
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
                                                     }
                                                 ]
                                             }
@@ -4320,6 +4415,9 @@
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
                                                     }
                                                 ]
                                             }
@@ -5181,6 +5279,54 @@
                                             "type": {
                                                 "type": "string",
                                                 "const": "users"
+                                            }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "data"
+                                ]
+                            },
+                            "currentPeriod": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
+                                            },
+                                            "type": {
+                                                "type": "string",
+                                                "const": "periods"
+                                            }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "data"
+                                ]
+                            },
+                            "lastPeriod": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
+                                            },
+                                            "type": {
+                                                "type": "string",
+                                                "const": "periods"
                                             }
                                         },
                                         "required": [
@@ -6846,6 +6992,23 @@
                 ],
                 "title": "OvertimeType"
             },
+            "Period": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string",
+                        "const": "periods"
+                    }
+                },
+                "required": [
+                    "id",
+                    "type"
+                ],
+                "title": "Period"
+            },
             "Permission": {
                 "type": "object",
                 "properties": {
@@ -7368,6 +7531,62 @@
                                 ]
                             }
                         }
+                    },
+                    "relationships": {
+                        "type": "object",
+                        "properties": {
+                            "customers": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
+                                            },
+                                            "type": {
+                                                "type": "string",
+                                                "const": "customers"
+                                            }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "data"
+                                ]
+                            },
+                            "actions": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "const": "actions"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "type"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "data"
+                                ]
+                            }
+                        }
                     }
                 },
                 "required": [
@@ -7375,6 +7594,52 @@
                     "type"
                 ],
                 "title": "Ticket"
+            },
+            "TicketAction": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string",
+                        "const": "actions"
+                    },
+                    "attributes": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "entryDate": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "text": {
+                                "type": "string"
+                            },
+                            "personDisplayName": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
+                            "personEmail": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "type"
+                ],
+                "title": "TicketAction"
             },
             "TrackedDomain": {
                 "type": "object",
@@ -7680,6 +7945,33 @@
                                 "required": [
                                     "data"
                                 ]
+                            },
+                            "permissions": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "const": "permissions"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "type"
+                                            ]
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "data"
+                                ]
                             }
                         }
                     }
@@ -7822,8 +8114,8 @@
             }
         },
         "responses": {
-            "AuthorizationException": {
-                "description": "Authorization error",
+            "AuthenticationException": {
+                "description": "Unauthenticated",
                 "content": {
                     "application/json": {
                         "schema": {
@@ -7841,8 +8133,8 @@
                     }
                 }
             },
-            "AuthenticationException": {
-                "description": "Unauthenticated",
+            "AuthorizationException": {
+                "description": "Authorization error",
                 "content": {
                     "application/json": {
                         "schema": {
