@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Users;
 
-use App\Http\Controllers\Controller;
 use App\DataTransferObjects\DerivedPermission;
+use App\Http\Controllers\Controller;
 use App\Models\ApiToken;
 use App\Models\User;
 use App\Services\EntryLockedDateService;

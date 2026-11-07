@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Suggestions;
 
-use App\Http\Controllers\Controller;
 use App\DataTransferObjects\SuggestionIntegration;
+use App\Http\Controllers\Controller;
 use App\Http\Resources\SuggestionIntegration as SuggestionIntegrationResource;
 use App\Integrations\Suggestions\SuggestionProviderInterface;
 use App\Integrations\Suggestions\SuggestionProviderRegistry;

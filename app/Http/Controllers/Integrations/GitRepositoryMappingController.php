@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Integrations;
 
-use App\Http\Controllers\Controller;
 use App\DataTransferObjects\GitRemote;
 use App\Exceptions\InvalidGitRemoteException;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\GitRepositoryMappingCollectionRequest;
 use App\Http\Resources\GitRepositoryMapping as GitRepositoryMappingResource;
 use App\Integrations\Git\GitRepositoryService;
