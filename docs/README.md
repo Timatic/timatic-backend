@@ -1,6 +1,6 @@
 # Timatic domain docs
 
-Read these when you change behaviour around budgets, entries or suggestions, in this repo or in a repo that consumes its API. Each page opens with the goal of the concept and what must stay true, then lists the rules as short bullets with the edge case each one guards and the test that pins it. Prose uses the terms from the [glossary](GLOSSARY.md) and stays free of class names; the "Where in the code" footer at the end of each page names the classes and tests.
+Read these when you change behaviour around budgets, entries or suggestions, in this repo or in a repo that consumes its API. Each page opens with the goal of the concept and what must stay true, then lists only the rules the code does not explain by itself: the *why* behind a decision, an invariant a change must preserve, or a behaviour that looks like a bug but is deliberate. Each such rule names the test that pins it. Prose uses the terms from the [glossary](GLOSSARY.md) and stays free of class names; the "Where in the code" footer at the end of each page names the classes and tests.
 
 ## Read order
 
@@ -16,4 +16,4 @@ Read these when you change behaviour around budgets, entries or suggestions, in 
 
 ## Keeping these pages true
 
-A rule in these pages exists because a test pins it. When you change a rule, change its test and its bullet in the same commit. When you add a scenario, add its test first and then one bullet that names it. Full scenarios with dates and minutes live in the tests, which stay the single source for exact numbers.
+A bullet earns its place by saying something the code cannot: intent, an invariant, or a deliberate surprise. Obvious behaviour and restatements of the code stay out, however well tested. When you change a rule, change its test and its bullet in the same commit. Full scenarios with dates and minutes live in the tests, which stay the single source for exact numbers.

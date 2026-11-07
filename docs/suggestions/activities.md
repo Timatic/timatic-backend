@@ -8,24 +8,15 @@ An activity is a span of time on one customer, and on one ticket when known, tha
 
 ## Rules
 
-Events are processed in ascending weight, then by start time. Each event either joins an existing activity or starts a new one.
+Events are processed in ascending weight, then by start time. Each event either joins an existing activity or starts a new one, and a new activity only gets the minutes nothing stronger has claimed.
 
-### Joining
-
-- **Same ticket, same customer, same event type, within 15 minutes joins.** An event within 15 minutes before or after an activity's span joins it and stretches it; further apart it starts a new activity. Events from different sources join as long as the ticket matches. Tests: `same-ticket events within the chain gap merge into one activity across sources`, `same-ticket events further apart than the chain gap become separate activities`.
-- **Different customers never join.** Test: `events of different customers never merge`.
-- **An event without a customer stands alone.** It becomes an activity of its own and joins nothing, since there is nothing to match it on. Test: `events without customer are never combined`.
-- **An event with a customer but no ticket glues onto the nearest activity of the same customer**, whatever that activity's event type; the preceding one wins when both sides are within 15 minutes. One without a neighbour at the time it is processed is held back and tried again after every other event has been placed, so a following activity can still claim it. Tests: `a null-ticket event glues onto the preceding group of the same customer even with another event type`, `a null-ticket event without preceding group is claimed by a following group of the same customer`, `a null-ticket event between two groups goes to the preceding one`, `a null-ticket event of another customer is not glued`.
-- **An event with a start and end becomes an activity of that span; one without a start becomes 15 minutes ending at its end.** Tests: `an event with start and end becomes an activity of the same period`, `an event without start becomes an activity starting 15 minutes before its end`.
-
-### Claiming time
-
-- **Booked entries claim their minutes first.** A new activity is cut down to the part of its span no entry of the user covers; an entry inside it splits it in two; an activity entirely inside entries is not created. Tests: `an activity partially overlapping an entry period is trimmed to the unbooked part`, `an entry period inside an activity splits it into two activities`, `an activity fully inside entry periods is not created`.
-- **Lower weight claims before higher weight.** A new activity is also cut down to what earlier (stronger) activities left. A strong event inside a weak one splits the weak one around it. Tests: `the higher-weight group keeps its period and the lower one is trimmed`, `a high-weight event inside a low-weight event splits the low-weight into two activities`, `a meeting spanning two commits is split into three activities around the commits`.
-- **On equal weight the earlier start wins.** Tests: `on equal weight the earlier-starting group is dominant`, `a subordinate group starts after the latest dominant overlapping group`.
-- **Point events of equal weight each keep a slice.** Three commits five minutes apart become three short activities, not one. Test: `fast sequential point events of equal weight each get their own time slice`.
-- **An event fully covered by the same customer still counts.** It has no minutes of its own left, so it is attached to the covering activity as extra evidence. Covered by another customer, it stays unattached rather than mixing customers. Tests: `a group fully covered by a dominant group of the same customer hands its events to that group`, `a covered group of another customer stays unattached instead of mixing customers`.
-- **Every part of a split keeps the events that overlap it**, so a suggestion can later recognise parts of one event and merge them. See [suggestions](suggestions.md).
+- **Booked entries claim first, then stronger activities.** A new activity is cut to what the user's entries and the earlier (lower-weight) activities left; a stronger span inside it splits it in two; one with nothing left is not created. Tests: `an entry period inside an activity splits it into two activities`, `an activity fully inside entry periods is not created`, `a high-weight event inside a low-weight event splits the low-weight into two activities`.
+- **On equal weight the earlier start wins, and point events each keep a slice.** Three commits five minutes apart become three short activities, not one, so later chaining can still tell them apart. Tests: `on equal weight the earlier-starting group is dominant`, `fast sequential point events of equal weight each get their own time slice`.
+- **Same ticket within 15 minutes joins, across sources.** The gap is the pipeline's estimate of "still the same stretch of work". Tests: `same-ticket events within the chain gap merge into one activity across sources`, `same-ticket events further apart than the chain gap become separate activities`.
+- **A ticketless event with a customer glues onto the nearest activity of that customer**, whatever that activity's event type, the preceding one winning a tie. One without a neighbour yet is held back and placed after every other event, so a following activity can still claim it. Tests: `a null-ticket event glues onto the preceding group of the same customer even with another event type`, `a null-ticket event without preceding group is claimed by a following group of the same customer`.
+- **A customerless event stands alone.** There is nothing to match it on, so it joins nothing and becomes its own activity. Test: `events without customer are never combined`.
+- **An event fully covered by the same customer is kept as evidence; covered by another customer it stays unattached.** Its minutes are gone, but it still underlines the covering activity. Mixing customers would be worse than losing the signal. Tests: `a group fully covered by a dominant group of the same customer hands its events to that group`, `a covered group of another customer stays unattached instead of mixing customers`.
+- **Every part of a split keeps the events that overlap it**, so a [suggestion](suggestions.md) can recognise parts of one event and merge them again.
 
 ## Where in the code
 
