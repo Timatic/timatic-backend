@@ -104,7 +104,7 @@ class BudgetUsageService
         // if the period->endDate is within this month, we might have expired credit.
         if ($periodAtEndOfMonth->getEndDate()->lessThanOrEqualTo($endOfMonth)
             || $budget->archived_at?->lessThanOrEqualTo($endOfMonth)
-            || $budget->ended_at?->lessThanOrEqualTo($endOfMonth)
+            || $budget->ended_at->lessThanOrEqualTo($endOfMonth)
         ) {
             $budgetMutation->expiredCredit = $periodAtEndOfMonth->getRemainingCredit();
             $budgetMutation->endBalance = BigDecimal::of(0);

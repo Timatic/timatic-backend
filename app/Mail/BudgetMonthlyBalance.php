@@ -61,9 +61,9 @@ class BudgetMonthlyBalance extends Mailable
                             'usedPercentage' => $usedPercentage,
                             'usageWarning' => $usageWarning,
                             'renewalFrequency' => $budget->renewal_frequency,
-                            'expired' => $budget->ended_at?->isBefore(Carbon::today()),
-                            'expiring' => $budget->ended_at?->isBefore(Carbon::today()->addMonth()),
-                            'endedAt' => $budget->ended_at?->format('d-m-Y'),
+                            'expired' => $budget->ended_at->isBefore(Carbon::today()),
+                            'expiring' => $budget->ended_at->isBefore(Carbon::today()->addMonth()),
+                            'endedAt' => $budget->ended_at->format('d-m-Y'),
                         ];
                     })->sortByDesc('usedPercentage');
             });

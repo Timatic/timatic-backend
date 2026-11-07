@@ -60,7 +60,7 @@ class BudgetsExport implements ExportInterface
                         type: $budget->budgetType->title,
                         renewalFrequency: $budget->renewal_frequency,
                         startDate: $budget->started_at->format('d-m-Y'),
-                        expirationDate: $budget->ended_at?->format('d-m-Y'),
+                        expirationDate: $budget->ended_at->format('d-m-Y'),
                         totalHours: $this->formatDuration($period->getInitialMinutes()),
                         hoursRemaining: $this->formatDuration($period->getRemainingMinutes(true)),
                         accountManagerName: $accountManagerName ?? '',

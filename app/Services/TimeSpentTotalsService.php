@@ -65,7 +65,7 @@ class TimeSpentTotalsService
 
         $budget = Budget::findOrFail($budgetId);
 
-        $startedAtEnd = $budget->ended_at?->min(Carbon::now());
+        $startedAtEnd = $budget->ended_at->min(Carbon::now());
         $startOfUnitPeriod = $budget->started_at;
         $remainingMinutes = $budget->activeVersion()->initial_minutes;
 
