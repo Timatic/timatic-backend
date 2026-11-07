@@ -24,11 +24,11 @@ Customer
 - **Every change to the mutable fields creates a version**, never an update in place. An update that posts none of the mutable fields creates no version. See [versions](versions.md). Test: `does not create a budget version if none of its fields are posted`.
 - **The hourly rate is derived**: total price of the active version divided by its initial minutes as hours. A version with zero minutes has a rate of zero. An entry on a budget carries no rate of its own; an entry without a budget takes the customer's rate. Tests: `returns hourly rate with budget`, `returns hourly rate without budget`.
 - **Archiving ends a budget early.** The archive date closes the last period and no later period exists, even when the end date lies further ahead. Tests: `it can archive budgets and set archived at`, `periods should not be created after budget is archived`.
-- **A budget may list the users allowed to book on it.** The list is stored and returned with the budget; the clients use it to offer the budget only to those users. Test: `allows a user to be assigned when creating a budget`.
+- **A budget may restrict who books on it.** With an empty list every user may create entries on the budget; with a non-empty list only the listed users may. Entries before the budget's start are refused for everyone. Tests: `stores an entry if the budget has no allowed users`, `does not store an entry if the current user is not an allowed user on the budget`, `does not store an entry when the budget has not started`.
 - **A budget may be visible to the customer.** The flag is a filter for client-facing views and changes nothing else. Test: `returns budgets filtered on show to customer`.
 - **Budgets are reachable by the customer's external id**, for integrations that only know their own customer id. Test: `returns budgets filtered on customer by external id`.
 
 ## Where in the code
 
 - `app/Models/Budget.php` (immutable fields, hourly rate, period generation), `app/Models/BudgetType.php`
-- Tests: `tests/Feature/Budgets/StoreTest.php`, `tests/Feature/Budgets/IndexTest.php`, `tests/Feature/Budgets/AssignUsersToBudgetsTest.php`, `tests/Feature/BudgetTypes/RenewalFrequenciesTest.php`, `tests/Integration/Entry/HourlyRateTest.php`, `tests/Feature/Periods/GetFromBudgetTest.php`
+- Tests: `tests/Feature/Budgets/StoreTest.php`, `tests/Feature/Budgets/IndexTest.php`, `tests/Feature/Budgets/AssignUsersToBudgetsTest.php`, `tests/Feature/Entries/StoreTest.php`, `tests/Feature/BudgetTypes/RenewalFrequenciesTest.php`, `tests/Integration/Entry/HourlyRateTest.php`, `tests/Feature/Periods/GetFromBudgetTest.php`
