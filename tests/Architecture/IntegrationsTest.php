@@ -151,7 +151,7 @@ test('the filament pages of an integration are registered under its type', funct
     $registered = collect(app(IntegrationTypeRegistry::class)->allPageEntries())
         ->filter(fn (string $page): bool => str_starts_with($page, "{$namespace}\\"));
 
-    expect($registered->values()->sort()->values()->all())->toBe($pages->sort()->values()->all());
+    expect($registered->sort()->values()->all())->toBe($pages->sort()->values()->all());
 
     foreach ($registered->keys() as $slug) {
         expect($slug)->toStartWith("{$type}.");
@@ -176,7 +176,7 @@ test('the capability providers of an integration are registered under its type',
     ];
     $shipped = collect($registered)->keys()
         ->map(fn (string $provider): string => "{$namespace}\\{$provider}")
-        ->filter(class_exists(...))
+        ->filter(fn (string $class): bool => class_exists($class))
         // GitHub tickets are opt-in, so that provider only registers when they are enabled
         ->reject(fn (string $class): bool => $class === GitHubTicketProvider::class);
 
