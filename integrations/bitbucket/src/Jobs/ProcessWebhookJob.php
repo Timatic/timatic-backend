@@ -5,6 +5,7 @@ namespace Timatic\Bitbucket\Jobs;
 use App\DataTransferObjects\Ticket;
 use App\Integrations\Tickets\TicketService;
 use App\Models\Event;
+use App\Models\GitCommitEmail;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -108,13 +109,7 @@ class ProcessWebhookJob implements ShouldQueue
     /** @param array<string, mixed> $commit */
     private function createEventFromCommit(array $commit, ?string $branchName, TicketService $ticketService): void
     {
-        $email = $this->extractEmail($commit['author']['raw'] ?? '');
-
-        if ($email === null) {
-            return;
-        }
-
-        $user = User::where('email', $email)->first();
+        $user = $this->findCommitAuthor($commit['author']['raw'] ?? '');
 
         if ($user === null) {
             return;
@@ -202,16 +197,10 @@ class ProcessWebhookJob implements ShouldQueue
      */
     private function isKnownCommit(array $commit, bool $forced): bool
     {
-        $email = $this->extractEmail($commit['author']['raw'] ?? '');
         $date = $commit['date'] ?? null;
+        $user = $this->findCommitAuthor($commit['author']['raw'] ?? '');
 
-        if ($email === null || ! is_string($date)) {
-            return false;
-        }
-
-        $user = User::where('email', $email)->first();
-
-        if ($user === null) {
+        if ($user === null || ! is_string($date)) {
             return false;
         }
 
@@ -225,8 +214,7 @@ class ProcessWebhookJob implements ShouldQueue
     /** @param non-empty-list<array<string, mixed>> $knownCommits */
     private function createRebaseEvent(array $knownCommits, ?string $branchName): void
     {
-        $email = $this->extractEmail($knownCommits[0]['author']['raw'] ?? '');
-        $user = $email === null ? null : User::where('email', $email)->first();
+        $user = $this->findCommitAuthor($knownCommits[0]['author']['raw'] ?? '');
 
         if ($user === null) {
             return;
@@ -300,12 +288,15 @@ class ProcessWebhookJob implements ShouldQueue
         return null;
     }
 
-    private function extractEmail(string $raw): ?string
+    private function findCommitAuthor(string $rawAuthor): ?User
     {
-        if (preg_match('/<(.+?)>/', $raw, $matches)) {
-            return $matches[1];
+        if (! preg_match('/<(.+?)>/', $rawAuthor, $matches)) {
+            return null;
         }
 
-        return null;
+        $email = mb_strtolower($matches[1]);
+
+        return GitCommitEmail::query()->where('email', $email)->first()->user
+            ?? User::query()->where('email', $email)->first();
     }
 }
