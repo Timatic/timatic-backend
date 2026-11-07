@@ -153,6 +153,15 @@ test('the filament pages of an integration are registered under its type', funct
     }
 })->with($packagesByName);
 
+test('an integration can be renamed and deleted from one of its filament pages', function (string $path): void {
+    $pages = collect(glob("{$path}/src/Filament/Pages/*.php"))
+        ->map(fn (string $file): string => (string) file_get_contents($file));
+
+    expect($pages->contains(fn (string $page): bool => str_contains($page, "TextInput::make('title')")
+        && str_contains($page, "Action::make('save')")
+        && str_contains($page, 'DeleteAction::make()')))->toBeTrue();
+})->with(array_filter($packagesByName, fn (array $package): bool => glob("{$package[0]}/src/Filament/Pages/*.php") !== []));
+
 test('the commands of an integration are registered with artisan', function (string $path, string $namespace): void {
     $commands = collect(glob("{$path}/src/Commands/*.php"))
         ->map(fn (string $file): string => "{$namespace}\\Commands\\".basename($file, '.php'));
