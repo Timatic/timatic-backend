@@ -6,6 +6,7 @@ use App\Integrations\Exports\ExportProviderRegistry;
 use App\Integrations\IntegrationTypeRegistry;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Timatic\ExactGlobe\Filament\Pages\LedgerMappingPage;
+use Timatic\ExactGlobe\Filament\Pages\SettingsPage;
 
 class ServiceProvider extends BaseServiceProvider
 {
@@ -16,6 +17,7 @@ class ServiceProvider extends BaseServiceProvider
         $this->callAfterResolving(IntegrationTypeRegistry::class, function (IntegrationTypeRegistry $types): void {
             $types->register(self::INTEGRATION_TYPE, [
                 'exact-globe.ledger-mapping' => LedgerMappingPage::class,
+                'exact-globe.settings' => SettingsPage::class,
             ]);
         });
     }
