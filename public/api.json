@@ -16,6 +16,97 @@
         }
     ],
     "paths": {
+        "/overtimes/{overtimeId}/approve": {
+            "post": {
+                "operationId": "overtime.approve",
+                "tags": [
+                    "ApproveOvertime"
+                ],
+                "parameters": [
+                    {
+                        "name": "overtimeId",
+                        "in": "path",
+                        "required": true,
+                        "description": "The overtime ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`Overtime`",
+                        "content": {
+                            "application/vnd.api+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Overtime"
+                                        },
+                                        "included": {
+                                            "type": "array",
+                                            "items": {
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/OvertimeType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Entry"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Overtime"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Correction"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Customer"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/budgets": {
             "get": {
                 "operationId": "budgets.index",
@@ -1982,119 +2073,6 @@
                 }
             }
         },
-        "/entries/{entryId}/mark-as-invoiced": {
-            "post": {
-                "operationId": "entry.mark-as-invoiced",
-                "tags": [
-                    "Entry"
-                ],
-                "parameters": [
-                    {
-                        "name": "entryId",
-                        "in": "path",
-                        "required": true,
-                        "description": "The entry ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "`Entry`",
-                        "content": {
-                            "application/vnd.api+json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/Entry"
-                                        },
-                                        "included": {
-                                            "type": "array",
-                                            "items": {
-                                                "anyOf": [
-                                                    {
-                                                        "$ref": "#/components/schemas/Overtime"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/OvertimeType"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Entry"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Correction"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Customer"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Budget"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/User"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Team"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Role"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Permission"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/BudgetType"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Period"
-                                                    }
-                                                ]
-                                            }
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "An error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "description": "Error overview.",
-                                            "examples": [
-                                                "Cannot invoice internal entry."
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "message"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
         "/entry-suggestions": {
             "get": {
                 "operationId": "entry-suggestions.index",
@@ -2577,6 +2555,210 @@
                 }
             }
         },
+        "/entries/{entryId}/mark-as-invoiced": {
+            "post": {
+                "operationId": "entry.mark-as-invoiced",
+                "tags": [
+                    "MarkEntryAsInvoiced"
+                ],
+                "parameters": [
+                    {
+                        "name": "entryId",
+                        "in": "path",
+                        "required": true,
+                        "description": "The entry ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`Entry`",
+                        "content": {
+                            "application/vnd.api+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Entry"
+                                        },
+                                        "included": {
+                                            "type": "array",
+                                            "items": {
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/Overtime"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/OvertimeType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Entry"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Correction"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Customer"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                "Cannot invoice internal entry."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/overtimes/{overtimeId}/mark-as-exported": {
+            "post": {
+                "operationId": "overtime.mark-as-exported",
+                "tags": [
+                    "MarkOvertimeAsExported"
+                ],
+                "parameters": [
+                    {
+                        "name": "overtimeId",
+                        "in": "path",
+                        "required": true,
+                        "description": "The overtime ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`Overtime`",
+                        "content": {
+                            "application/vnd.api+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Overtime"
+                                        },
+                                        "included": {
+                                            "type": "array",
+                                            "items": {
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/OvertimeType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Entry"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Overtime"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Correction"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Customer"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/overtimes": {
             "get": {
                 "operationId": "overtimes.index",
@@ -2933,188 +3115,6 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/overtimes/{overtimeId}/approve": {
-            "post": {
-                "operationId": "overtime.approve",
-                "tags": [
-                    "Overtime"
-                ],
-                "parameters": [
-                    {
-                        "name": "overtimeId",
-                        "in": "path",
-                        "required": true,
-                        "description": "The overtime ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "`Overtime`",
-                        "content": {
-                            "application/vnd.api+json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/Overtime"
-                                        },
-                                        "included": {
-                                            "type": "array",
-                                            "items": {
-                                                "anyOf": [
-                                                    {
-                                                        "$ref": "#/components/schemas/OvertimeType"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Entry"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Overtime"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Correction"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Customer"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/User"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Budget"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/BudgetType"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Period"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Team"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Role"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Permission"
-                                                    }
-                                                ]
-                                            }
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    }
-                }
-            }
-        },
-        "/overtimes/{overtimeId}/mark-as-exported": {
-            "post": {
-                "operationId": "overtime.mark-as-exported",
-                "tags": [
-                    "Overtime"
-                ],
-                "parameters": [
-                    {
-                        "name": "overtimeId",
-                        "in": "path",
-                        "required": true,
-                        "description": "The overtime ID",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "`Overtime`",
-                        "content": {
-                            "application/vnd.api+json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/Overtime"
-                                        },
-                                        "included": {
-                                            "type": "array",
-                                            "items": {
-                                                "anyOf": [
-                                                    {
-                                                        "$ref": "#/components/schemas/OvertimeType"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Entry"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Overtime"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Correction"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Customer"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/User"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Budget"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/BudgetType"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Period"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Team"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Role"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Permission"
-                                                    }
-                                                ]
-                                            }
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/AuthorizationException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
@@ -4757,10 +4757,7 @@
                         "required": true,
                         "description": "The user ID",
                         "schema": {
-                            "type": [
-                                "integer",
-                                "null"
-                            ]
+                            "type": "integer"
                         }
                     }
                 ],
@@ -4822,10 +4819,7 @@
                         "required": true,
                         "description": "The user ID",
                         "schema": {
-                            "type": [
-                                "integer",
-                                "null"
-                            ]
+                            "type": "integer"
                         }
                     }
                 ],
@@ -4900,10 +4894,7 @@
                         "required": true,
                         "description": "The user ID",
                         "schema": {
-                            "type": [
-                                "integer",
-                                "null"
-                            ]
+                            "type": "integer"
                         }
                     }
                 ],
@@ -5127,17 +5118,11 @@
                                 "type": "number"
                             },
                             "startedAt": {
-                                "type": [
-                                    "string",
-                                    "null"
-                                ],
+                                "type": "string",
                                 "format": "date-time"
                             },
                             "endedAt": {
-                                "type": [
-                                    "string",
-                                    "null"
-                                ],
+                                "type": "string",
                                 "format": "date-time"
                             },
                             "initialMinutes": {
@@ -7850,10 +7835,7 @@
                                 ]
                             },
                             "email": {
-                                "type": [
-                                    "string",
-                                    "null"
-                                ]
+                                "type": "string"
                             },
                             "givenName": {
                                 "type": [
