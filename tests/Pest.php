@@ -11,8 +11,11 @@
 |
 */
 
+use App\Integrations\IntegrationTypeRegistry;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Saloon\Config;
 use Tests\TestCase;
 
@@ -58,4 +61,30 @@ uses(TestCase::class, RefreshDatabase::class)
 function loginUser(array $attributes = [], array $permissions = ['user']): Authenticatable
 {
     return test()->loginUser($attributes, $permissions);
+}
+
+/**
+ * The integration packages under /integrations, as package path => root namespace.
+ *
+ * @return Collection<string, string>
+ */
+function integrationPackages(): Collection
+{
+    return collect(glob(__DIR__.'/../integrations/*/composer.json'))
+        ->mapWithKeys(fn (string $path): array => [
+            (string) realpath(dirname($path)) => rtrim((string) array_key_first(json_decode((string) file_get_contents($path), true)['autoload']['psr-4']), '\\'),
+        ]);
+}
+
+/**
+ * The type an integration registers under: the prefix of its Filament page slugs, or its source id when it has no pages.
+ */
+function integrationType(string $namespace): string
+{
+    $slug = collect(app(IntegrationTypeRegistry::class)->allPageEntries())
+        ->search(fn (string $page): bool => str_starts_with($page, "{$namespace}\\"));
+
+    return $slug === false
+        ? constant("{$namespace}\\ServiceProvider::SOURCE_ID")
+        : Str::before($slug, '.');
 }
