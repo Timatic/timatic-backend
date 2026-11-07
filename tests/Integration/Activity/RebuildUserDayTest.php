@@ -274,3 +274,44 @@ test('rebuilding stores the event sequences of each suggestion', function () {
     expect(DB::table('entry_suggestion_sequences')->get(['entry_suggestion_id', 'source_id', 'external_id'])->map(fn (object $row) => (array) $row)->all())
         ->toBe([['entry_suggestion_id' => EntrySuggestion::sole()->id, 'source_id' => $source->id, 'external_id' => 'weekly-sync']]);
 });
+
+test('a booked sequence still teaches a later occurrence after its day is rebuilt and pruned', function () {
+    Illuminate\Support\Facades\Event::fake([EventCreated::class]);
+    $user = User::factory()->create();
+    $source = Source::factory()->create();
+    $budget = Budget::factory()->create();
+    $eventTypeId = EventType::factory()->create(['weight' => 1])->id;
+    $weeklySync = fn (string $date) => Event::factory()->create([
+        'user_id' => $user->id,
+        'source_id' => $source->id,
+        'external_id' => 'weekly-sync',
+        'customer_id' => null,
+        'ticket_id' => null,
+        'ticket_number' => null,
+        'event_type_id' => $eventTypeId,
+        'started_at' => Carbon::parse("{$date} 10:00", 'Europe/Amsterdam'),
+        'ended_at' => Carbon::parse("{$date} 10:30", 'Europe/Amsterdam'),
+    ]);
+    $weeklySync('2026-07-09');
+    RebuildUserDay::dispatchSync($user->id, '2026-07-09');
+    Entry::factory()->create([
+        'user_id' => $user->id,
+        'entry_suggestion_id' => EntrySuggestion::sole()->id,
+        'customer_id' => $budget->customer_id,
+        'budget_id' => $budget->id,
+        'is_internal' => false,
+        'started_at' => Carbon::parse('2026-07-09 10:00', 'Europe/Amsterdam'),
+        'ended_at' => Carbon::parse('2026-07-09 10:30', 'Europe/Amsterdam'),
+    ]);
+    RebuildUserDay::dispatchSync($user->id, '2026-07-09');
+    Activity::query()->delete();
+    Event::query()->delete();
+    $weeklySync('2026-07-16');
+
+    RebuildUserDay::dispatchSync($user->id, '2026-07-16');
+
+    $suggestion = EntrySuggestion::query()->where('date', '2026-07-16')->sole();
+    expect((int) $suggestion->customer_id)->toBe($budget->customer_id)
+        ->and($suggestion->budget_id)->toBe($budget->id)
+        ->and($suggestion->is_internal)->toBeFalse();
+});
