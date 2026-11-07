@@ -227,10 +227,10 @@ arch('integration connectors extend the saloon connector')
     ->toExtend(Connector::class);
 
 test('an integration with oauth ships the full token flow', function (string $path, string $namespace): void {
-    foreach (['OAuthConnector', 'Requests\\ExchangeCodeRequest', 'Requests\\RefreshTokenRequest', 'Http\\Controllers\\CallbackController'] as $class) {
+    foreach (['OAuthService', 'OAuthConnector', 'Requests\\ExchangeCodeRequest', 'Requests\\RefreshTokenRequest', 'Http\\Controllers\\CallbackController'] as $class) {
         expect(class_exists("{$namespace}\\{$class}"))->toBeTrue("{$namespace}\\{$class} is missing");
     }
-})->with(array_filter($packagesByName, fn (array $package): bool => class_exists("{$package[1]}\\OAuthService")));
+})->with(array_filter($packagesByName, fn (array $package): bool => glob("{$package[0]}/src/OAuth*.php") !== []));
 
 arch('integration classes follow the convention of their folder', function (string $folder, ?string $suffix, string $parent) use ($packages): void {
     $folderNamespaces = $packages->map(fn (string $namespace): string => "{$namespace}\\{$folder}")->values()->all();
