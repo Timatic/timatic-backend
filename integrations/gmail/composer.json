@@ -1,0 +1,25 @@
+{
+    "name": "timatic/gmail-integration",
+    "description": "Gmail integration for Timatic",
+    "type": "library",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.4",
+        "saloonphp/saloon": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Timatic\\Gmail\\": "src/",
+            "Timatic\\Gmail\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Timatic\\Gmail\\ServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

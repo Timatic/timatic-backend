@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5e6ed2e190d505bfab34a0e5e5facfef",
+    "content-hash": "3b324996f2692913712b8c3bfbcc4a20",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -11132,6 +11132,37 @@
                 }
             },
             "description": "GitHub repository integration for Timatic",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "timatic/gmail-integration",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "integrations/gmail",
+                "reference": "fb7242cfa460557ea758c9b0920e17e2cf33a34f"
+            },
+            "require": {
+                "php": "^8.4",
+                "saloonphp/saloon": "^4.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Timatic\\Gmail\\ServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Timatic\\Gmail\\": "src/",
+                    "Timatic\\Gmail\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "description": "Gmail integration for Timatic",
             "transport-options": {
                 "relative": true
             }
