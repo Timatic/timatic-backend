@@ -64,7 +64,7 @@ request here authenticates as the app installation. `OAuthService` handles the u
 
 | GitHub delivery | Timatic event type |
 |---|---|
-| `push` (per commit) | `commit_pushed`, plus `rebase` for replayed commits on a forced push |
+| `push` (per commit) | `commit_created`, plus `rebase` for replayed commits on a forced push |
 | `pull_request` opened / reopened | `pr_opened` |
 | `pull_request` closed, merged | `pr_merged` |
 | `pull_request` closed, not merged | `pr_declined` |

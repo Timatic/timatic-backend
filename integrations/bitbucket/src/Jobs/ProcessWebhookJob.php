@@ -128,7 +128,7 @@ class ProcessWebhookJob implements ShouldQueue
 
         $this->createEvent(
             user: $user,
-            eventTypeId: 'commit_pushed',
+            eventTypeId: 'commit_created',
             title: $commitTitle,
             timestamp: Carbon::parse($date)->utc(),
             ticket: $this->findTicket($ticketService, ...array_filter([$message, $branchName])),
@@ -208,7 +208,7 @@ class ProcessWebhookJob implements ShouldQueue
 
         $timestamp = $forced ? null : Carbon::parse($date)->utc();
 
-        return $this->eventExists($user, 'commit_pushed', $commitTitle, $timestamp);
+        return $this->eventExists($user, 'commit_created', $commitTitle, $timestamp);
     }
 
     /** @param non-empty-list<array<string, mixed>> $knownCommits */

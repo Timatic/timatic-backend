@@ -197,9 +197,9 @@ class SeedEntrySuggestionsCommand extends Command
     /** @return array<string, mixed> */
     private function bitbucketFields(): array
     {
-        $eventTypeId = $this->faker->randomElement(['commit_pushed', 'pr_merged', 'pr_approved']);
+        $eventTypeId = $this->faker->randomElement(['commit_created', 'pr_merged', 'pr_approved']);
 
-        $title = $eventTypeId === 'commit_pushed'
+        $title = $eventTypeId === 'commit_created'
             ? $this->faker->randomElement([
                 'Fix: resolve null pointer in budget calculation',
                 'Refactor: extract payment service logic',

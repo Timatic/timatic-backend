@@ -11,7 +11,7 @@ use Timatic\GitHub\Jobs\ProcessPushWebhookJob;
 use Timatic\GitHub\Models\RepositoryMapping;
 use Timatic\GitHub\Models\UserLogin;
 
-it('creates a commit_pushed event carrying the mapped customer', function () {
+it('creates a commit_created event carrying the mapped customer', function () {
     EventFacade::fake();
     $user = User::factory()->create(['email' => 'dev@example.com']);
     $customer = Customer::factory()->create();
@@ -39,7 +39,7 @@ it('creates a commit_pushed event carrying the mapped customer', function () {
     new ProcessPushWebhookJob($payload, $mapping)->handle(app(TicketService::class));
 
     $event = Event::sole();
-    expect($event->event_type_id)->toBe('commit_pushed')
+    expect($event->event_type_id)->toBe('commit_created')
         ->and($event->user_id)->toBe($user->id)
         ->and($event->title)->toBe('fix login')
         ->and($event->description)->toBe('reset the session')
@@ -155,7 +155,7 @@ it('records a rebase when a forced push replays known commits with rewritten dat
     new ProcessPushWebhookJob($original, null)->handle(app(TicketService::class));
     new ProcessPushWebhookJob($forced, null)->handle(app(TicketService::class));
 
-    expect(Event::where('event_type_id', 'commit_pushed')->count())->toBe(1)
+    expect(Event::where('event_type_id', 'commit_created')->count())->toBe(1)
         ->and(Event::where('event_type_id', 'rebase')->sole()->title)
         ->toBe('Rebased 1 commits on feature/login');
 });
