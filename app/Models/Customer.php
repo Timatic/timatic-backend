@@ -64,6 +64,14 @@ class Customer extends Model
         return $this->hasMany(CustomerEmailDomain::class);
     }
 
+    protected static function booted(): void
+    {
+        // Soft deletes too: a deleted customer must not keep a domain another customer may need.
+        static::deleting(function (Customer $customer) {
+            $customer->emailDomains()->delete();
+        });
+    }
+
     protected function casts(): array
     {
         return [

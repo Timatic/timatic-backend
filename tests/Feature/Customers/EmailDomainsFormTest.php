@@ -16,8 +16,7 @@ beforeEach(function () {
 });
 
 it('saves the email domains of a customer normalised', function () {
-    $customer = Customer::factory()->create();
-    $customer->emailDomains()->create(['domain' => 'old.example']);
+    $customer = CustomerEmailDomain::factory()->create(['domain' => 'old.example'])->customer;
 
     Livewire::test(EditCustomer::class, ['record' => $customer->id])
         ->assertFormSet(['email_domains' => ['old.example']])
@@ -41,7 +40,7 @@ it('rejects an email domain that is not a hostname', function () {
 
 it('rejects an email domain of another customer', function () {
     $customer = Customer::factory()->create();
-    Customer::factory()->create()->emailDomains()->create(['domain' => 'acme.com']);
+    CustomerEmailDomain::factory()->create(['domain' => 'acme.com']);
 
     Livewire::test(EditCustomer::class, ['record' => $customer->id])
         ->fillForm(['email_domains' => ['@ACME.com']])
@@ -49,4 +48,16 @@ it('rejects an email domain of another customer', function () {
         ->assertHasFormErrors(['email_domains.0']);
 
     expect($customer->emailDomains()->count())->toBe(0);
+});
+
+it('releases the email domains of a deleted customer', function () {
+    $customer = Customer::factory()->create();
+    CustomerEmailDomain::factory()->create(['domain' => 'acme.com'])->customer?->delete();
+
+    Livewire::test(EditCustomer::class, ['record' => $customer->id])
+        ->fillForm(['email_domains' => ['acme.com']])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($customer->emailDomains()->pluck('domain')->all())->toBe(['acme.com']);
 });
