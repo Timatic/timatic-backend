@@ -20,6 +20,7 @@ final class CoreExportProvider implements ExportProviderInterface
             new ExportFormat('budgets-excel', 'Budgets current balance', ExportPeriodOptions::None),
             new ExportFormat('entries-excel', 'Entries dump', ExportPeriodOptions::MonthlyAndYearly),
             new ExportFormat('users-monthly-summary-excel', 'Monthly summary per user', ExportPeriodOptions::Monthly),
+            new ExportFormat(HoursExport::KEY, __('exports.hours.label'), ExportPeriodOptions::MonthRange),
         ]);
     }
 
@@ -30,6 +31,7 @@ final class CoreExportProvider implements ExportProviderInterface
             'budgets-excel' => new BudgetsExport,
             'entries-excel' => new EntriesExport($period->start(), $period->end()),
             'users-monthly-summary-excel' => new UsersMonthlySummaryExport($period->start(), $period->end()),
+            HoursExport::KEY => new HoursExport($period),
             default => throw new InvalidArgumentException("Unknown export format: {$key}"),
         };
     }

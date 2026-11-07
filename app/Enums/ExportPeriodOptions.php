@@ -7,6 +7,7 @@ enum ExportPeriodOptions: string
     case None = 'none';
     case Monthly = 'monthly';
     case MonthlyAndYearly = 'monthly-and-yearly';
+    case MonthRange = 'month-range';
 
     public function yearIsRequired(): bool
     {
@@ -16,5 +17,10 @@ enum ExportPeriodOptions: string
     public function monthIsRequired(): bool
     {
         return $this === self::Monthly;
+    }
+
+    public function monthRangeIsRequired(): bool
+    {
+        return $this === self::MonthRange;
     }
 }

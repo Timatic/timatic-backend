@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 class ExportBudgetsJob implements ShouldQueue
@@ -20,8 +21,7 @@ class ExportBudgetsJob implements ShouldQueue
     public function __construct(
         protected User $user,
         protected string $exportType,
-        protected ?int $year,
-        protected ?int $month,
+        protected ExportPeriod $period,
     ) {}
 
     public function handle(ExportService $exportService): void
@@ -32,7 +32,7 @@ class ExportBudgetsJob implements ShouldQueue
         $fileName = $this->generateFileName($format->extension);
 
         $exportService
-            ->createExport($this->exportType, new ExportPeriod($this->year, $this->month))
+            ->createExport($this->exportType, $this->period)
             ->export(Storage::disk('temp')->path($fileName));
 
         $this->storeExport($fileName);
@@ -41,11 +41,16 @@ class ExportBudgetsJob implements ShouldQueue
 
     private function generateFileName(string $extension): string
     {
-        if ($this->year === null) {
+        if ($this->period->fromMonth !== null) {
+            // The download link is public and filtered exports of the same range differ, so the name must be unguessable.
+            return "export_{$this->exportType}_{$this->period->fromMonth}_{$this->period->toMonth}_".Str::random(16).".{$extension}";
+        }
+
+        if ($this->period->year === null) {
             return "export_{$this->exportType}.{$extension}";
         }
 
-        return "export_{$this->exportType}_{$this->year}_".($this->month ?? 'all').".{$extension}";
+        return "export_{$this->exportType}_{$this->period->year}_".($this->period->month ?? 'all').".{$extension}";
     }
 
     private function storeExport(string $fileName): void
@@ -61,6 +66,6 @@ class ExportBudgetsJob implements ShouldQueue
 
     private function sendExportEmail(string $fileName): void
     {
-        Mail::to($this->user->email)->queue(new ExportEmail($fileName, $this->year, $this->month, $this->exportType));
+        Mail::to($this->user->email)->queue(new ExportEmail($fileName, $this->period->year, $this->period->month, $this->exportType));
     }
 }
