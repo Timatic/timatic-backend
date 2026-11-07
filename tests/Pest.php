@@ -77,6 +77,22 @@ function integrationPackages(): Collection
 }
 
 /**
+ * The integration classes that opt out of an architecture rule with an "@arch-ignore <rule>" comment.
+ *
+ * @return Collection<int, string>
+ */
+function archIgnored(string $rule): Collection
+{
+    return integrationPackages()
+        ->flatMap(fn (string $namespace, string $path): array => collect(iterator_to_array(new RecursiveIteratorIterator(new RecursiveDirectoryIterator("{$path}/src", FilesystemIterator::SKIP_DOTS))))
+            ->filter(fn (SplFileInfo $file): bool => str_contains((string) file_get_contents($file->getPathname()), "@arch-ignore {$rule}"))
+            ->map(fn (SplFileInfo $file): string => $namespace.'\\'.str_replace('/', '\\', substr($file->getPathname(), strlen("{$path}/src/"), -4)))
+            ->values()
+            ->all())
+        ->values();
+}
+
+/**
  * The type an integration registers under: the prefix of its Filament page slugs, or its source id when it has no pages.
  */
 function integrationType(string $namespace): string

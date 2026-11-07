@@ -5,6 +5,7 @@ namespace Timatic\Jira\Requests;
 use Saloon\Enums\Method;
 use Saloon\Http\Request;
 
+// @arch-ignore response-dto: the TicketProvider maps this response until #38
 class GetIssueRequest extends Request
 {
     protected Method $method = Method::GET;

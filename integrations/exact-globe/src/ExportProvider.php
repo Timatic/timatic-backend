@@ -12,6 +12,7 @@ use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use Timatic\ExactGlobe\DataTransferObjects\LedgerMapping;
 
+// @arch-ignore app-boundary: reuses the budget mutations of the core monthly export
 final class ExportProvider implements ExportProviderInterface
 {
     public const EXPORT_KEY = 'exact-globe-csv';

@@ -22,10 +22,6 @@ use Illuminate\Support\ServiceProvider;
 use Saloon\Http\Connector;
 use Saloon\Http\Request;
 use Tests\TestCase;
-use Timatic\ExactGlobe\BudgetsExactExport;
-use Timatic\ExactGlobe\ExportProvider;
-use Timatic\GitHub\TicketProvider as GitHubTicketProvider;
-use Timatic\Jira\Requests\GetIssueRequest;
 
 uses(TestCase::class);
 
@@ -59,8 +55,7 @@ $appNamespacesHiddenFromIntegrations = collect(glob(__DIR__.'/../../app/*', GLOB
 arch('integrations only use the app models, contracts and data', function (string $namespace) use ($appNamespacesHiddenFromIntegrations): void {
     expect($namespace)
         ->not->toUse($appNamespacesHiddenFromIntegrations)
-        // The Exact export reuses the budget mutations of the core monthly export
-        ->ignoring([BudgetsExactExport::class, ExportProvider::class]);
+        ->ignoring(archIgnored('app-boundary')->all());
 })->with($namespaces);
 
 arch('integrations do not use each other', function (string $namespace) use ($namespaces): void {
@@ -177,8 +172,7 @@ test('the capability providers of an integration are registered under its type',
     $shipped = collect($registered)->keys()
         ->map(fn (string $provider): string => "{$namespace}\\{$provider}")
         ->filter(fn (string $class): bool => class_exists($class))
-        // GitHub tickets are opt-in, so that provider only registers when they are enabled
-        ->reject(fn (string $class): bool => $class === GitHubTicketProvider::class);
+        ->reject(fn (string $class): bool => archIgnored('provider-registration')->contains($class));
 
     expect(array_values(array_filter($registered)))->toBe($shipped->values()->all());
 })->with($packagesByName);
@@ -193,10 +187,10 @@ test('the tables of an integration are prefixed with its type', function (string
             return $model->getTable();
         });
     $migrationTables = collect(glob("{$path}/database/migrations/*.php"))
-        // Bitbucket once stored its account id on users; that migration has run, later integrations keep their own tables
-        ->reject(fn (string $file): bool => str_ends_with($file, '2026_04_14_000001_add_bitbucket_account_id_to_users_table.php'))
-        ->flatMap(function (string $file): array {
-            preg_match_all("/Schema::(?:create|table|dropIfExists)\\('(\\w+)'/", (string) file_get_contents($file), $matches);
+        ->map(fn (string $file): string => (string) file_get_contents($file))
+        ->reject(fn (string $migration): bool => str_contains($migration, '@arch-ignore table-prefix'))
+        ->flatMap(function (string $migration): array {
+            preg_match_all("/Schema::(?:create|table|dropIfExists)\\('(\\w+)'/", $migration, $matches);
 
             return $matches[1];
         });
@@ -267,10 +261,10 @@ test('saloon requests map their response to a DTO', function () use ($packages):
         ->flatMap(fn (string $namespace, string $path) => collect(glob("{$path}/src/Requests/*.php"))
             ->map(fn (string $file): string => "{$namespace}\\Requests\\".basename($file, '.php')))
         ->reject(fn (string $class): bool => (new ReflectionMethod($class, 'createDtoFromResponse'))->class === $class)
+        ->reject(fn (string $class): bool => archIgnored('response-dto')->contains($class))
         ->values();
 
-    // GetIssueRequest is mapped in the Jira TicketProvider until #38
-    expect($requestsWithoutDto->all())->toBe([GetIssueRequest::class]);
+    expect($requestsWithoutDto->all())->toBe([]);
 });
 
 arch('capability providers implement their interface', function (string $provider, string $interface) use ($packages): void {
