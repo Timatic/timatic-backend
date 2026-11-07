@@ -11,8 +11,11 @@
 |
 */
 
+use App\Integrations\IntegrationTypeRegistry;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Saloon\Config;
 use Tests\TestCase;
 
@@ -58,4 +61,46 @@ uses(TestCase::class, RefreshDatabase::class)
 function loginUser(array $attributes = [], array $permissions = ['user']): Authenticatable
 {
     return test()->loginUser($attributes, $permissions);
+}
+
+/**
+ * The integration packages under /integrations, as package path => root namespace.
+ *
+ * @return Collection<string, string>
+ */
+function integrationPackages(): Collection
+{
+    return collect(glob(__DIR__.'/../integrations/*/composer.json'))
+        ->mapWithKeys(fn (string $path): array => [
+            (string) realpath(dirname($path)) => rtrim((string) array_key_first(json_decode((string) file_get_contents($path), true)['autoload']['psr-4']), '\\'),
+        ]);
+}
+
+/**
+ * The integration classes that opt out of an architecture rule with an "@arch-ignore <rule>" comment.
+ *
+ * @return Collection<int, string>
+ */
+function archIgnored(string $rule): Collection
+{
+    return integrationPackages()
+        ->flatMap(fn (string $namespace, string $path): array => collect(iterator_to_array(new RecursiveIteratorIterator(new RecursiveDirectoryIterator("{$path}/src", FilesystemIterator::SKIP_DOTS))))
+            ->filter(fn (SplFileInfo $file): bool => str_contains((string) file_get_contents($file->getPathname()), "@arch-ignore {$rule}"))
+            ->map(fn (SplFileInfo $file): string => $namespace.'\\'.str_replace('/', '\\', substr($file->getPathname(), strlen("{$path}/src/"), -4)))
+            ->values()
+            ->all())
+        ->values();
+}
+
+/**
+ * The type an integration registers under: the prefix of its Filament page slugs, or its source id when it has no pages.
+ */
+function integrationType(string $namespace): string
+{
+    $slug = collect(app(IntegrationTypeRegistry::class)->allPageEntries())
+        ->search(fn (string $page): bool => str_starts_with($page, "{$namespace}\\"));
+
+    return $slug === false
+        ? constant("{$namespace}\\ServiceProvider::SOURCE_ID")
+        : Str::before($slug, '.');
 }

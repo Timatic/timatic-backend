@@ -18,6 +18,7 @@ use Timatic\GitHub\Requests\GetIssueRequest;
 use Timatic\GitHub\Requests\GetIssuesRequest;
 use Timatic\GitHub\Requests\SearchIssuesRequest;
 
+// @arch-ignore provider-registration: tickets are opt-in through github.tickets_enabled
 final class TicketProvider implements TicketProviderInterface
 {
     /**

@@ -10943,9 +10943,10 @@
             "dist": {
                 "type": "path",
                 "url": "integrations/bitbucket",
-                "reference": "f501374ed8ee0073e4e39200c7cce07c7ec51b20"
+                "reference": "70007844108c28ad458ea5c3090656250e472aa3"
             },
             "require": {
+                "firebase/php-jwt": "^7.0",
                 "php": "^8.4",
                 "saloonphp/saloon": "^4.0"
             },
@@ -11095,9 +11096,10 @@
             "dist": {
                 "type": "path",
                 "url": "integrations/jira",
-                "reference": "46f72b6118b8669ec40bc555f3322baf28cfccf1"
+                "reference": "8697ddf2e2502e71b6f409320e2efce3c0dc5c5b"
             },
             "require": {
+                "firebase/php-jwt": "^7.0",
                 "php": "^8.4",
                 "saloonphp/saloon": "^4.0"
             },
@@ -11125,9 +11127,10 @@
             "dist": {
                 "type": "path",
                 "url": "integrations/nmbrs",
-                "reference": "786c73b10fc89975f603b0f7b5181dcf82e76574"
+                "reference": "a0ad733584e9950ed8302cd37d09c903b54bcbb6"
             },
             "require": {
+                "firebase/php-jwt": "^7.0",
                 "php": "^8.4",
                 "saloonphp/saloon": "^4.0"
             },

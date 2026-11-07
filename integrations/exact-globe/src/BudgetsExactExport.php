@@ -13,6 +13,7 @@ use OpenSpout\Writer\CSV\Writer;
 use Timatic\ExactGlobe\DataTransferObjects\LedgerMapping;
 use Timatic\ExactGlobe\DataTransferObjects\MutationRow;
 
+// @arch-ignore app-boundary: reuses the budget mutations of the core monthly export
 class BudgetsExactExport implements ExportInterface
 {
     private const USAGE_DESCRIPTION = 'Verbruik';
