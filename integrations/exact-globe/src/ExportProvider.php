@@ -3,7 +3,7 @@
 namespace Timatic\ExactGlobe;
 
 use App\DataTransferObjects\ExportFormat;
-use App\DataTransferObjects\ExportPeriod;
+use App\DataTransferObjects\ExportParameters;
 use App\Enums\ExportPeriodOptions;
 use App\Integrations\Exports\ExportInterface;
 use App\Integrations\Exports\ExportProviderInterface;
@@ -33,7 +33,7 @@ final class ExportProvider implements ExportProviderInterface
         ]);
     }
 
-    public function createExport(string $key, ExportPeriod $period): ExportInterface
+    public function createExport(string $key, ExportParameters $period): ExportInterface
     {
         if ($key !== self::EXPORT_KEY) {
             throw new InvalidArgumentException("Unknown export format: {$key}");

@@ -6,7 +6,7 @@ use App\Enums\HoursExportDimension;
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;
 
-readonly class ExportPeriod
+readonly class ExportParameters
 {
     public function __construct(
         public ?int $year,

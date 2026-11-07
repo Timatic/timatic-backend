@@ -1,6 +1,6 @@
 <?php
 
-use App\DataTransferObjects\ExportPeriod;
+use App\DataTransferObjects\ExportParameters;
 use App\Enums\HoursExportDimension;
 use App\Exports\HoursExport;
 use App\Jobs\ExportBudgetsJob;
@@ -36,7 +36,7 @@ it('queues an hours export with group by, split by and filters', function () {
     Queue::assertPushed(ExportBudgetsJob::class, function (ExportBudgetsJob $job) use ($budget) {
         $period = (fn () => $this->period)->call($job);
 
-        return $period == new ExportPeriod(
+        return $period == new ExportParameters(
             year: null,
             month: null,
             fromMonth: '2026-01',
@@ -88,7 +88,7 @@ it('exports the hours per user per budget per month', function () {
     $path = Storage::disk('temp')->path('hours.xlsx');
 
     // When
-    (new HoursExport(new ExportPeriod(
+    (new HoursExport(new ExportParameters(
         year: null,
         month: null,
         fromMonth: '2026-01',
@@ -130,7 +130,7 @@ it('exports the hours per user without a split, filtered on a budget', function 
     $path = Storage::disk('temp')->path('hours.xlsx');
 
     // When
-    (new HoursExport(new ExportPeriod(
+    (new HoursExport(new ExportParameters(
         year: null,
         month: null,
         fromMonth: '2026-01',

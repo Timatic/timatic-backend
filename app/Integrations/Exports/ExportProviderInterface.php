@@ -3,7 +3,7 @@
 namespace App\Integrations\Exports;
 
 use App\DataTransferObjects\ExportFormat;
-use App\DataTransferObjects\ExportPeriod;
+use App\DataTransferObjects\ExportParameters;
 use Illuminate\Support\Collection;
 
 interface ExportProviderInterface
@@ -13,7 +13,7 @@ interface ExportProviderInterface
      */
     public function exportFormats(): Collection;
 
-    public function createExport(string $key, ExportPeriod $period): ExportInterface;
+    public function createExport(string $key, ExportParameters $period): ExportInterface;
 
     /** @param array<string, mixed> $config */
     public static function fromConfig(array $config): static;

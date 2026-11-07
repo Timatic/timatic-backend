@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Exports;
 
-use App\DataTransferObjects\ExportPeriod;
+use App\DataTransferObjects\ExportParameters;
 use App\Enums\HoursExportDimension;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ExportRequest;
@@ -24,7 +24,7 @@ class ExportEmailController extends Controller
      */
     public function __invoke(ExportRequest $request, #[CurrentUser] User $user)
     {
-        ExportBudgetsJob::dispatch($user, $request->validated('exportType'), new ExportPeriod(
+        ExportBudgetsJob::dispatch($user, $request->validated('exportType'), new ExportParameters(
             year: $request->validated('year'),
             month: $request->validated('month'),
             fromMonth: $request->validated('fromMonth'),

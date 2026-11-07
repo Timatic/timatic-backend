@@ -1,6 +1,6 @@
 <?php
 
-use App\DataTransferObjects\ExportPeriod;
+use App\DataTransferObjects\ExportParameters;
 use App\Exports\CoreExportProvider;
 use App\Integrations\Exports\ExportProviderRegistry;
 use App\Integrations\Exports\ExportService;
@@ -18,5 +18,5 @@ it('throws when providers register duplicate format keys', function () {
 it('throws when creating an export for an unknown format', function () {
     $registry = new ExportProviderRegistry;
 
-    (new ExportService($registry, new CoreExportProvider))->createExport('unknown-format', new ExportPeriod(2026, 6));
+    (new ExportService($registry, new CoreExportProvider))->createExport('unknown-format', new ExportParameters(2026, 6));
 })->throws(InvalidArgumentException::class, 'Unknown export format: unknown-format');
