@@ -75,7 +75,7 @@ These apply when reading or writing any code in `/integrations/`:
 - **Every Saloon request implements `createDtoFromResponse()`** returning typed DTOs, never raw arrays
 - **Connector credentials bound in `ServiceProvider::register()`** via a typed credentials class — `app(Connector::class)` must resolve without manual credential passing
 
-OAuth proxy flow and callback implementation details: see `.claude/docs/integration-oauth.md`.
+OAuth proxy flow and callback implementation details: see `docs/integration-oauth.md`.
 
 ### JSON:API
 
