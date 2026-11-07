@@ -32,7 +32,7 @@ class CustomerController extends Controller implements HasMiddleware
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $customers = QueryBuilder::for(Customer::query()->with('emailDomains'))
+        $customers = QueryBuilder::for(Customer::class)
             ->allowedFilters([
                 AllowedFilter::exact('externalId', 'external_id'),
             ])
@@ -59,7 +59,7 @@ class CustomerController extends Controller implements HasMiddleware
 
     public function show(Customer $customer): Resources\Customer
     {
-        $customer->load('accountManager', 'emailDomains');
+        $customer->load('accountManager');
 
         return new Resources\Customer($customer);
     }
