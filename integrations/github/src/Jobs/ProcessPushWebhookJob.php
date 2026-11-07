@@ -56,7 +56,7 @@ class ProcessPushWebhookJob extends ProcessWebhookJob
 
         $this->createEvent(
             user: $user,
-            eventTypeId: 'commit_pushed',
+            eventTypeId: 'commit_created',
             title: $commitTitle,
             timestamp: Carbon::parse($timestamp)->utc(),
             ticket: $this->findTicket($ticketService, ...array_filter([$message, $branchName])),
@@ -127,7 +127,7 @@ class ProcessPushWebhookJob extends ProcessWebhookJob
 
         [$commitTitle] = $this->splitCommitMessage((string) ($commit['message'] ?? ''));
 
-        return $this->eventExists($user, 'commit_pushed', $commitTitle, $forced ? null : Carbon::parse($timestamp)->utc());
+        return $this->eventExists($user, 'commit_created', $commitTitle, $forced ? null : Carbon::parse($timestamp)->utc());
     }
 
     private function eventExists(User $user, string $eventTypeId, string $title, ?Carbon $timestamp): bool

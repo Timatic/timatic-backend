@@ -52,7 +52,7 @@ function pushMapping(): RepositoryMapping
     ]);
 }
 
-it('creates a commit_pushed event for a new commit', function () {
+it('creates a commit_created event for a new commit', function () {
     EventFacade::fake();
     User::factory()->create(['email' => 'dev@example.com']);
     $mapping = pushMapping();
@@ -62,7 +62,7 @@ it('creates a commit_pushed event for a new commit', function () {
 
     new ProcessWebhookJob($payload, $mapping, 'repo:push')->handle(app(TicketService::class));
 
-    expect(Event::where('event_type_id', 'commit_pushed')->count())->toBe(1)
+    expect(Event::where('event_type_id', 'commit_created')->count())->toBe(1)
         ->and(Event::where('event_type_id', 'rebase')->count())->toBe(0);
 });
 
@@ -93,7 +93,7 @@ it('creates one rebase event instead of duplicate commit events for known commit
     new ProcessWebhookJob(pushPayload('dev@example.com', $commits), $mapping, 'repo:push')->handle(app(TicketService::class));
     new ProcessWebhookJob(pushPayload('dev@example.com', $commits), $mapping, 'repo:push')->handle(app(TicketService::class));
 
-    expect(Event::where('event_type_id', 'commit_pushed')->count())->toBe(2)
+    expect(Event::where('event_type_id', 'commit_created')->count())->toBe(2)
         ->and(Event::where('event_type_id', 'rebase')->count())->toBe(1);
 });
 
@@ -109,7 +109,7 @@ it('is a no-op when the exact same push webhook is redelivered', function () {
     new ProcessWebhookJob($payload, $mapping, 'repo:push')->handle(app(TicketService::class));
     new ProcessWebhookJob($payload, $mapping, 'repo:push')->handle(app(TicketService::class));
 
-    expect(Event::where('event_type_id', 'commit_pushed')->count())->toBe(1)
+    expect(Event::where('event_type_id', 'commit_created')->count())->toBe(1)
         ->and(Event::where('event_type_id', 'rebase')->count())->toBe(0);
 });
 
@@ -128,7 +128,7 @@ it('creates events for new commits alongside a rebase event for known ones', fun
     new ProcessWebhookJob($firstPush, $mapping, 'repo:push')->handle(app(TicketService::class));
     new ProcessWebhookJob($secondPush, $mapping, 'repo:push')->handle(app(TicketService::class));
 
-    expect(Event::where('event_type_id', 'commit_pushed')->count())->toBe(2)
+    expect(Event::where('event_type_id', 'commit_created')->count())->toBe(2)
         ->and(Event::where('event_type_id', 'rebase')->count())->toBe(1);
 });
 
@@ -146,11 +146,11 @@ it('recognizes a rebased commit on a force-pushed branch by title even when the 
     new ProcessWebhookJob($originalPush, $mapping, 'repo:push')->handle(app(TicketService::class));
     new ProcessWebhookJob($forcedPush, $mapping, 'repo:push')->handle(app(TicketService::class));
 
-    expect(Event::where('event_type_id', 'commit_pushed')->count())->toBe(1)
+    expect(Event::where('event_type_id', 'commit_created')->count())->toBe(1)
         ->and(Event::where('event_type_id', 'rebase')->count())->toBe(1);
 });
 
-it('creates a new commit_pushed event for a recurring commit title with a different date on a normal push', function () {
+it('creates a new commit_created event for a recurring commit title with a different date on a normal push', function () {
     EventFacade::fake();
     User::factory()->create(['email' => 'dev@example.com']);
     $mapping = pushMapping();
@@ -164,6 +164,6 @@ it('creates a new commit_pushed event for a recurring commit title with a differ
     new ProcessWebhookJob($firstPush, $mapping, 'repo:push')->handle(app(TicketService::class));
     new ProcessWebhookJob($secondPush, $mapping, 'repo:push')->handle(app(TicketService::class));
 
-    expect(Event::where('event_type_id', 'commit_pushed')->count())->toBe(2)
+    expect(Event::where('event_type_id', 'commit_created')->count())->toBe(2)
         ->and(Event::where('event_type_id', 'rebase')->count())->toBe(0);
 });

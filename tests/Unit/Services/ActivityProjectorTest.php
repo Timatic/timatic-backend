@@ -11,10 +11,10 @@ test('an event without start becomes an activity starting 15 minutes before its 
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'ended_at' => Carbon::parse('2026-07-16 10:00'),
     ]);
-    $event->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
+    $event->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 1]));
 
     $activities = (new ActivityProjector)->project(collect([$event]), collect());
 
@@ -29,11 +29,11 @@ test('an event with start and end becomes an activity of the same period', funct
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:00'),
         'ended_at' => Carbon::parse('2026-07-16 10:00'),
     ]);
-    $event->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
+    $event->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 1]));
 
     $activities = (new ActivityProjector)->project(collect([$event]), collect());
 
@@ -43,12 +43,12 @@ test('an event with start and end becomes an activity of the same period', funct
 });
 
 test('same-ticket events within the chain gap merge into one activity across sources', function () {
-    $eventType = new EventType(['id' => 'commit_pushed', 'weight' => 1]);
+    $eventType = new EventType(['id' => 'commit_created', 'weight' => 1]);
     $first = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'source_id' => 'bitbucket',
         'started_at' => Carbon::parse('2026-07-16 09:00'),
         'ended_at' => Carbon::parse('2026-07-16 09:30'),
@@ -58,7 +58,7 @@ test('same-ticket events within the chain gap merge into one activity across sou
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'source_id' => 'jira',
         'started_at' => Carbon::parse('2026-07-16 09:40'),
         'ended_at' => Carbon::parse('2026-07-16 10:00'),
@@ -74,12 +74,12 @@ test('same-ticket events within the chain gap merge into one activity across sou
 });
 
 test('same-ticket events further apart than the chain gap become separate activities', function () {
-    $eventType = new EventType(['id' => 'commit_pushed', 'weight' => 1]);
+    $eventType = new EventType(['id' => 'commit_created', 'weight' => 1]);
     $first = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:00'),
         'ended_at' => Carbon::parse('2026-07-16 09:30'),
     ]);
@@ -88,7 +88,7 @@ test('same-ticket events further apart than the chain gap become separate activi
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:46'),
         'ended_at' => Carbon::parse('2026-07-16 10:00'),
     ]);
@@ -100,12 +100,12 @@ test('same-ticket events further apart than the chain gap become separate activi
 });
 
 test('events of different customers never merge', function () {
-    $eventType = new EventType(['id' => 'commit_pushed', 'weight' => 1]);
+    $eventType = new EventType(['id' => 'commit_created', 'weight' => 1]);
     $first = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:00'),
         'ended_at' => Carbon::parse('2026-07-16 09:30'),
     ]);
@@ -114,7 +114,7 @@ test('events of different customers never merge', function () {
         'user_id' => 1,
         'customer_id' => 'customerY',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:35'),
         'ended_at' => Carbon::parse('2026-07-16 10:00'),
     ]);
@@ -157,11 +157,11 @@ test('a null-ticket event glues onto the preceding group of the same customer ev
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:00'),
         'ended_at' => Carbon::parse('2026-07-16 09:30'),
     ]);
-    $ticketed->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
+    $ticketed->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 1]));
     $ticketless = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
@@ -181,7 +181,7 @@ test('a null-ticket event glues onto the preceding group of the same customer ev
 });
 
 test('a null-ticket event without preceding group is claimed by a following group of the same customer', function () {
-    $eventType = new EventType(['id' => 'commit_pushed', 'weight' => 1]);
+    $eventType = new EventType(['id' => 'commit_created', 'weight' => 1]);
     $ticketless = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
@@ -195,7 +195,7 @@ test('a null-ticket event without preceding group is claimed by a following grou
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:30'),
         'ended_at' => Carbon::parse('2026-07-16 10:00'),
     ]);
@@ -209,12 +209,12 @@ test('a null-ticket event without preceding group is claimed by a following grou
 });
 
 test('a null-ticket event between two groups goes to the preceding one', function () {
-    $eventType = new EventType(['id' => 'commit_pushed', 'weight' => 1]);
+    $eventType = new EventType(['id' => 'commit_created', 'weight' => 1]);
     $preceding = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:00'),
         'ended_at' => Carbon::parse('2026-07-16 09:30'),
     ]);
@@ -223,7 +223,7 @@ test('a null-ticket event between two groups goes to the preceding one', functio
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => null,
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:35'),
         'ended_at' => Carbon::parse('2026-07-16 09:45'),
     ]);
@@ -232,7 +232,7 @@ test('a null-ticket event between two groups goes to the preceding one', functio
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-2',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:50'),
         'ended_at' => Carbon::parse('2026-07-16 10:30'),
     ]);
@@ -250,20 +250,20 @@ test('a null-ticket event of another customer is not glued', function () {
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:00'),
         'ended_at' => Carbon::parse('2026-07-16 09:30'),
     ]);
-    $ticketed->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
+    $ticketed->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 1]));
     $ticketless = new Event([
         'user_id' => 1,
         'customer_id' => 'customerY',
         'ticket_number' => null,
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:35'),
         'ended_at' => Carbon::parse('2026-07-16 09:45'),
     ]);
-    $ticketless->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
+    $ticketless->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 1]));
 
     $activities = (new ActivityProjector)->project(collect([$ticketed, $ticketless]), collect());
 
@@ -275,11 +275,11 @@ test('the higher-weight group keeps its period and the lower one is trimmed', fu
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 00:10'),
         'ended_at' => Carbon::parse('2026-07-16 00:20'),
     ]);
-    $light->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 99]));
+    $light->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 99]));
     $heavy = new Event([
         'user_id' => 1,
         'customer_id' => 'customerY',
@@ -315,11 +315,11 @@ test('a group fully covered by a dominant group of the same customer hands its e
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 10:05'),
         'ended_at' => Carbon::parse('2026-07-16 10:10'),
     ]);
-    $covered->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 99]));
+    $covered->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 99]));
 
     $activities = (new ActivityProjector)->project(collect([$covering, $covered]), collect());
 
@@ -343,11 +343,11 @@ test('a covered group of another customer stays unattached instead of mixing cus
         'user_id' => 1,
         'customer_id' => 'customerY',
         'ticket_number' => 'TIC-2',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 10:05'),
         'ended_at' => Carbon::parse('2026-07-16 10:10'),
     ]);
-    $covered->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 99]));
+    $covered->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 99]));
 
     $activities = (new ActivityProjector)->project(collect([$covering, $covered]), collect());
 
@@ -361,20 +361,20 @@ test('on equal weight the earlier-starting group is dominant', function () {
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:00'),
         'ended_at' => Carbon::parse('2026-07-16 10:00'),
     ]);
-    $earlier->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 5]));
+    $earlier->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 5]));
     $later = new Event([
         'user_id' => 1,
         'customer_id' => 'customerY',
         'ticket_number' => 'TIC-2',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:30'),
         'ended_at' => Carbon::parse('2026-07-16 10:30'),
     ]);
-    $later->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 5]));
+    $later->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 5]));
 
     $activities = (new ActivityProjector)->project(collect([$earlier, $later]), collect());
 
@@ -408,11 +408,11 @@ test('a subordinate group starts after the latest dominant overlapping group', f
         'user_id' => 1,
         'customer_id' => 'customerZ',
         'ticket_number' => 'TIC-3',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 10:15'),
         'ended_at' => Carbon::parse('2026-07-16 11:00'),
     ]);
-    $subordinate->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 99]));
+    $subordinate->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 99]));
 
     $activities = (new ActivityProjector)->project(collect([$firstDominant, $secondDominant, $subordinate]), collect());
 
@@ -422,14 +422,14 @@ test('a subordinate group starts after the latest dominant overlapping group', f
 
 test('shuffled input produces the same activities as chronological input', function () {
     $makeEvents = function () {
-        $eventType = new EventType(['id' => 'commit_pushed', 'weight' => 1]);
+        $eventType = new EventType(['id' => 'commit_created', 'weight' => 1]);
         $events = [];
         foreach ([['09:00', '09:20', 'TIC-1'], ['09:25', '09:40', 'TIC-1'], ['10:30', '11:00', 'TIC-2']] as [$start, $end, $ticket]) {
             $event = new Event([
                 'user_id' => 1,
                 'customer_id' => 'customerX',
                 'ticket_number' => $ticket,
-                'event_type_id' => 'commit_pushed',
+                'event_type_id' => 'commit_created',
                 'started_at' => Carbon::parse("2026-07-16 $start"),
                 'ended_at' => Carbon::parse("2026-07-16 $end"),
             ]);
@@ -454,11 +454,11 @@ test('an activity partially overlapping an entry period is trimmed to the unbook
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:00'),
         'ended_at' => Carbon::parse('2026-07-16 12:00'),
     ]);
-    $event->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
+    $event->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 1]));
     $entry = new Entry(['started_at' => Carbon::parse('2026-07-16 09:00'), 'ended_at' => Carbon::parse('2026-07-16 10:00')]);
 
     $activities = (new ActivityProjector)->project(collect([$event]), collect([$entry]));
@@ -469,12 +469,12 @@ test('an activity partially overlapping an entry period is trimmed to the unbook
 });
 
 test('an entry period inside an activity splits it into two activities', function () {
-    $eventType = new EventType(['id' => 'commit_pushed', 'weight' => 1]);
+    $eventType = new EventType(['id' => 'commit_created', 'weight' => 1]);
     $morning = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:00'),
         'ended_at' => Carbon::parse('2026-07-16 09:50'),
     ]);
@@ -483,7 +483,7 @@ test('an entry period inside an activity splits it into two activities', functio
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 10:00'),
         'ended_at' => Carbon::parse('2026-07-16 12:00'),
     ]);
@@ -504,11 +504,11 @@ test('an activity fully inside entry periods is not created', function () {
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 10:00'),
         'ended_at' => Carbon::parse('2026-07-16 10:30'),
     ]);
-    $event->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
+    $event->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 1]));
     $entry = new Entry(['started_at' => Carbon::parse('2026-07-16 09:00'), 'ended_at' => Carbon::parse('2026-07-16 11:00')]);
 
     $activities = (new ActivityProjector)->project(collect([$event]), collect([$entry]));
@@ -517,14 +517,14 @@ test('an activity fully inside entry periods is not created', function () {
 });
 
 test('a meeting spanning two commits is split into three activities around the commits', function () {
-    $commitType = new EventType(['id' => 'commit_pushed', 'weight' => 1]);
+    $commitType = new EventType(['id' => 'commit_created', 'weight' => 1]);
     $meetingType = new EventType(['id' => 'calendar_event_started', 'weight' => 100]);
 
     $commit1 = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 10:10'),
         'ended_at' => Carbon::parse('2026-07-16 10:25'),
     ]);
@@ -534,7 +534,7 @@ test('a meeting spanning two commits is split into three activities around the c
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 11:00'),
         'ended_at' => Carbon::parse('2026-07-16 11:15'),
     ]);
@@ -576,13 +576,13 @@ test('a meeting spanning two commits is split into three activities around the c
 });
 
 test('fast sequential point events of equal weight each get their own time slice', function () {
-    $eventType = new EventType(['id' => 'commit_pushed', 'weight' => 1]);
+    $eventType = new EventType(['id' => 'commit_created', 'weight' => 1]);
 
     $commit1 = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'ended_at' => Carbon::parse('2026-07-16 10:00'),
     ]);
     $commit1->setRelation('eventType', $eventType);
@@ -591,7 +591,7 @@ test('fast sequential point events of equal weight each get their own time slice
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-2',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'ended_at' => Carbon::parse('2026-07-16 10:05'),
     ]);
     $commit2->setRelation('eventType', $eventType);
@@ -600,7 +600,7 @@ test('fast sequential point events of equal weight each get their own time slice
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'ended_at' => Carbon::parse('2026-07-16 10:10'),
     ]);
     $commit3->setRelation('eventType', $eventType);
@@ -640,11 +640,11 @@ test('a high-weight event inside a low-weight event splits the low-weight into t
         'user_id' => 1,
         'customer_id' => 'customerY',
         'ticket_number' => 'TIC-2',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:30'),
         'ended_at' => Carbon::parse('2026-07-16 09:45'),
     ]);
-    $commit->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
+    $commit->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 1]));
 
     $activities = (new ActivityProjector)->project(collect([$meeting, $commit]), collect());
 
