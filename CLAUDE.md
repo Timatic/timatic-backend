@@ -36,21 +36,15 @@ php artisan migrate --seed
 ### Domain model
 
 ```
-Customer
-  └── Budget (immutable fields: type, customer, frequency, start)
-        └── BudgetVersion (mutable: title, price, hours — audit trail)
-              └── Period (dynamically generated, never stored)
-                    └── Entry (time log: ticket, minutes, budget or pay-per-hour)
-                          └── Overtime (night/evening/weekend buckets, stored as JSON)
-
-Source (integration) → Event → Activity (grouped) → EntrySuggestion → Entry
+Customer ─▶ Budget ─▶ BudgetVersion ─▶ Period (computed, never stored) ─▶ Entry
+Source ─▶ Event ─▶ Activity ─▶ EntrySuggestion ─▶ Entry
 ```
 
-**Periods are not stored** — they are calculated at runtime from `Budget.renewal_frequency` and start/end dates.
+Terms: `docs/GLOSSARY.md`. The rules below are pinned by tests; change a rule, its test and its doc bullet together.
 
-**Budget versioning** — `Budget` holds immutable fields; `BudgetVersion` holds mutable fields so history is preserved without data loss.
-
-**Entry without budget** (`budget_id = null`, `is_internal = false`) is treated as "paid per hour".
+- **Touching `Budget`, `BudgetVersion`, `BudgetType`, `Period`, `BudgetUsageService` or budget mail → read `docs/budgets/` first.**
+- **Touching `Entry`, `EntryPolicy`, corrections, locked dates, minutes spent or time spent totals → read `docs/entries/` first.**
+- **Touching `Event`, `EventType`, `Activity`, `EntrySuggestion`, the projectors, `RebuildUserDay` or tracked domains → read `docs/suggestions/` first.**
 
 ### Integration system
 
