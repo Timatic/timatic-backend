@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\HoursExportDimension;
+use App\Exports\HoursExport;
 use App\Integrations\Exports\ExportService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -25,6 +27,7 @@ class ExportRequest extends FormRequest
     public function rules(ExportService $exportService): array
     {
         $format = $exportService->findFormat($this->string('exportType')->toString());
+        $monthRangeIsRequired = $format?->periodOptions->monthRangeIsRequired() ?? false;
 
         return [
             'exportType' => ['required', 'string', Rule::in($exportService->formatKeys())],
@@ -36,6 +39,18 @@ class ExportRequest extends FormRequest
                 Rule::requiredIf($format?->periodOptions->monthIsRequired() ?? false),
                 'nullable', 'integer', 'min:1', 'max:12',
             ],
+            /** First month (`Y-m`) of an export with period option `month-range`. */
+            'fromMonth' => [Rule::requiredIf($monthRangeIsRequired), 'nullable', 'date_format:Y-m'],
+            /** Last month (`Y-m`) of an export with period option `month-range`. */
+            'toMonth' => [Rule::requiredIf($monthRangeIsRequired), 'nullable', 'date_format:Y-m', 'after_or_equal:fromMonth'],
+            /** Rows of the `hours-excel` export, one per value of this dimension. */
+            'groupBy' => [Rule::requiredIf($format?->key === HoursExport::KEY), 'nullable', Rule::enum(HoursExportDimension::class)],
+            /** Optional second row level of the `hours-excel` export, inside each group. */
+            'splitBy' => ['nullable', Rule::enum(HoursExportDimension::class), 'different:groupBy'],
+            /** Filters of the `hours-excel` export. */
+            'customerId' => ['nullable', 'integer', 'exists:customers,id'],
+            'budgetId' => ['nullable', 'integer', 'exists:budgets,id'],
+            'userId' => ['nullable', 'integer', 'exists:users,id'],
         ];
     }
 }

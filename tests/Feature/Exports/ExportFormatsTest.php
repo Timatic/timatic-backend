@@ -25,6 +25,7 @@ it('lists the built-in export formats', function () {
         'budgets-excel',
         'entries-excel',
         'users-monthly-summary-excel',
+        'hours-excel',
     ]);
 });
 
