@@ -17,7 +17,7 @@ uses(RefreshDatabase::class);
 
 it('queues an hours export with group by, split by and filters', function () {
     // Given
-    $user = $this->loginUser();
+    $this->loginUser(permissions: ['entries.read']);
     $budget = Budget::factory()->create();
     Queue::fake();
 
@@ -48,9 +48,25 @@ it('queues an hours export with group by, split by and filters', function () {
     });
 });
 
+it('forbids an hours export to a user who may not read entries', function () {
+    // Given
+    $this->loginUser(permissions: ['user']);
+
+    // When
+    $response = $this->getJson(route('budgets.export-mail', [
+        'exportType' => 'hours-excel',
+        'fromMonth' => '2026-01',
+        'toMonth' => '2026-03',
+        'groupBy' => 'user',
+    ]));
+
+    // Then
+    $response->assertForbidden();
+});
+
 it('rejects an hours export without a month range or with the same group by and split by', function () {
     // Given
-    $this->loginUser();
+    $this->loginUser(permissions: ['entries.read']);
 
     // When
     $response = $this->getJson(route('budgets.export-mail', [

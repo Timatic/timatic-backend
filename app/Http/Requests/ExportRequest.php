@@ -16,7 +16,8 @@ class ExportRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->string('exportType')->toString() !== HoursExport::KEY
+            || ($this->user()?->can('entries.read') ?? false);
     }
 
     /**
