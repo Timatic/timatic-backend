@@ -17,6 +17,7 @@ use App\Models\Period;
 use App\Models\TimeSpentTotal;
 use App\Models\User;
 use App\Providers\Filament\AdminPanelProvider;
+use App\Support\Scramble\CustomRelationshipsExtension;
 use Saloon\Http\Request;
 use Timatic\Jira\Requests\GetIssueRequest;
 
@@ -47,6 +48,8 @@ arch()->preset()->laravel()->ignoring([
     DailyProgress::class,
     Period::class,
     TimeSpentTotal::class,
+    // API doc tooling that inspects resources by design
+    CustomRelationshipsExtension::class,
 ]);
 
 arch('controllers have no private methods')
