@@ -4,13 +4,15 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use TiMacDonald\JsonApi\JsonApiResource;
 
 /**
  * @mixin \App\Models\Period
  */
 class Period extends JsonApiResource
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function toAttributes(Request $request): array
     {
         $tags = ['budget.'.$this->budget->id];

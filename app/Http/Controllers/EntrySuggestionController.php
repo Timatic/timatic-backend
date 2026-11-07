@@ -9,12 +9,14 @@ use App\Models\User;
 use App\QueryFilters\DateFilterCallback;
 use Exception;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\AllowedInclude;
+use Spatie\QueryBuilder\Includes\IncludedRelationship;
 use Spatie\QueryBuilder\QueryBuilder;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
 
 class EntrySuggestionController extends Controller implements HasMiddleware
 {
@@ -29,7 +31,7 @@ class EntrySuggestionController extends Controller implements HasMiddleware
         ];
     }
 
-    public function index(EntrySuggestionCollectionRequest $request): JsonApiResourceCollection
+    public function index(EntrySuggestionCollectionRequest $request): AnonymousResourceCollection
     {
         $query = EntrySuggestion::query();
 
@@ -45,8 +47,10 @@ class EntrySuggestionController extends Controller implements HasMiddleware
                 AllowedFilter::callback('date', DateFilterCallback::make('date')),
             ])
             ->allowedIncludes([
-                'activities.events.source',
-                'activities.eventType',
+                AllowedInclude::custom('activities', new IncludedRelationship),
+                AllowedInclude::custom('activities.events', new IncludedRelationship),
+                AllowedInclude::custom('activities.events.source', new IncludedRelationship),
+                AllowedInclude::custom('activities.eventType', new IncludedRelationship),
             ])
             ->jsonPaginate();
 

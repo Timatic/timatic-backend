@@ -85,6 +85,7 @@ it('updates an entry by the owner when not locked', function () {
     $description = 'second version';
 
     $this->patchJson('entries/'.$entry->id, [
+        'id' => (string) $entry->id,
         'type' => 'entries',
         'attributes' => [
             'description' => $description,
@@ -94,6 +95,25 @@ it('updates an entry by the owner when not locked', function () {
     $entry->refresh();
 
     expect($entry->description)->toEqual($description);
+});
+
+it('refuses an update whose id differs from the entry in the url', function () {
+    /** @var User $user */
+    $user = $this->loginUser();
+
+    $entry = provisionEntry(provisionBudget(), [
+        'user_id' => $user->id,
+        'started_at' => Carbon::now(),
+        'ended_at' => Carbon::now()->addHour(),
+    ]);
+
+    $this->patchJson('entries/'.$entry->id, [
+        'id' => (string) ($entry->id + 1),
+        'type' => 'entries',
+        'attributes' => [
+            'description' => 'second version',
+        ],
+    ])->assertJsonValidationErrors(['data.id' => 'The id does not match the resource in the URL.']);
 });
 
 it('denies to update an entry by the owner when 10 days have passed', function () {

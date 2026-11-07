@@ -41,7 +41,7 @@ it('lists the customer and budget every active Jira project is mapped to', funct
         ->and($response->json('data.0.attributes'))->toBe([
             'projectKey' => 'PIO',
             'projectName' => 'Pionect',
-            'customerId' => $budget->customer_id,
+            'customerId' => (string) $budget->customer_id,
             'budgetId' => $budget->id,
         ]);
 });

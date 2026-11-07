@@ -3,20 +3,27 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
-use TiMacDonald\JsonApi\JsonApiResource;
 
 /**
  * @mixin \App\Models\EntrySuggestion
  */
 class EntrySuggestion extends JsonApiResource
 {
+    public function toType(Request $request): string
+    {
+        return 'entrySuggestions';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function toAttributes(Request $request): array
     {
         return [
             'ticketId' => $this->ticket_id,
             'ticketNumber' => $this->ticket_number,
-            'customerId' => $this->customer_id,
-            'userId' => $this->user_id,
+            'customerId' => $this->customer_id === null ? null : (string) $this->customer_id,
+            'userId' => $this->user_id === null ? null : (string) $this->user_id,
             'date' => $this->date,
             'ticketTitle' => $this->ticket_title,
             'ticketType' => $this->ticket_type,

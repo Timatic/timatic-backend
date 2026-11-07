@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\RestrictedDocsAccess;
+use App\Support\Scramble\CustomRelationshipsExtension;
 
 return [
     /*
@@ -132,7 +133,9 @@ return [
         RestrictedDocsAccess::class,
     ],
 
-    'extensions' => [],
+    'extensions' => [
+        CustomRelationshipsExtension::class,
+    ],
 
     'allow_access' => env('SCRAMBLE_ALLOW_ACCESS', false),
 ];

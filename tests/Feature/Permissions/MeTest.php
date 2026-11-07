@@ -101,3 +101,12 @@ it('returns a locked date with extended closing date with permission to edit pre
         $derivedPermission['attributes']['values']['lockedAt']
     ))->toEqual(Carbon::now($preferredTimezone)->subMonth()->firstOfMonth()->subSecond());
 });
+
+it('includes the permissions next to the team', function () {
+    $this->loginUser(permissions: ['user']);
+
+    $response = $this->getJson('/me?include=team,permissions')->assertSuccessful();
+
+    expect((new Collection($response->json('included')))->where('type', 'permissions')->pluck('id')->all())
+        ->toBe(['user', 'entries.update_in_past_until']);
+});

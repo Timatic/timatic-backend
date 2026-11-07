@@ -3,13 +3,20 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
-use TiMacDonald\JsonApi\JsonApiResource;
 
 /**
  * @mixin \App\Models\BudgetType
  */
 class BudgetType extends JsonApiResource
 {
+    public function toType(Request $request): string
+    {
+        return 'budgetTypes';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function toAttributes(Request $request): array
     {
         $renewalFrequencies = $this->renewal_frequencies;

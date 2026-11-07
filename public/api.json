@@ -7,7 +7,7 @@
     },
     "servers": [
         {
-            "url": "https://api.app.timatic.test"
+            "url": "https://localhost"
         }
     ],
     "security": [
@@ -26,7 +26,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `customer`, `customerCount`, `customerExists`, `allowedUsers`, `allowedUsersCount`, `allowedUsersExists`, `supervisor`, `supervisorCount`, `supervisorExists`, `lastPeriod`, `currentPeriod`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `customer`, `allowedUsers`, `supervisor`, `lastPeriod`, `currentPeriod`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
@@ -102,18 +102,36 @@
                                             "type": "object",
                                             "properties": {
                                                 "first": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "last": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "prev": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "next": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
                                         },
                                         "meta": {
                                             "type": "object",
@@ -201,19 +219,40 @@
                                             "items": {
                                                 "anyOf": [
                                                     {
-                                                        "$ref": "#/components/schemas/Period"
-                                                    },
-                                                    {
                                                         "$ref": "#/components/schemas/Entry"
                                                     },
                                                     {
-                                                        "$ref": "#/components/schemas/BudgetType"
+                                                        "$ref": "#/components/schemas/Overtime"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/OvertimeType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Correction"
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Customer"
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
                                                     }
                                                 ]
                                             }
@@ -267,19 +306,40 @@
                                             "items": {
                                                 "anyOf": [
                                                     {
-                                                        "$ref": "#/components/schemas/Period"
-                                                    },
-                                                    {
                                                         "$ref": "#/components/schemas/Entry"
                                                     },
                                                     {
-                                                        "$ref": "#/components/schemas/BudgetType"
+                                                        "$ref": "#/components/schemas/Overtime"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/OvertimeType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Correction"
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Customer"
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
                                                     }
                                                 ]
                                             }
@@ -337,19 +397,40 @@
                                             "items": {
                                                 "anyOf": [
                                                     {
-                                                        "$ref": "#/components/schemas/Period"
-                                                    },
-                                                    {
                                                         "$ref": "#/components/schemas/Entry"
                                                     },
                                                     {
-                                                        "$ref": "#/components/schemas/BudgetType"
+                                                        "$ref": "#/components/schemas/Overtime"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/OvertimeType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Correction"
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Customer"
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
                                                     }
                                                 ]
                                             }
@@ -415,19 +496,40 @@
                                             "items": {
                                                 "anyOf": [
                                                     {
-                                                        "$ref": "#/components/schemas/Period"
-                                                    },
-                                                    {
                                                         "$ref": "#/components/schemas/Entry"
                                                     },
                                                     {
-                                                        "$ref": "#/components/schemas/BudgetType"
+                                                        "$ref": "#/components/schemas/Overtime"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/OvertimeType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Correction"
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Customer"
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
                                                     }
                                                 ]
                                             }
@@ -553,7 +655,44 @@
                                         "included": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/Entry"
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/Entry"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Overtime"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/OvertimeType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Correction"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Customer"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    }
+                                                ]
                                             }
                                         }
                                     },
@@ -619,7 +758,44 @@
                                         "included": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/Entry"
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/Entry"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Overtime"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/OvertimeType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Correction"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Customer"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    }
+                                                ]
                                             }
                                         }
                                     },
@@ -655,7 +831,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `accountManager`, `accountManagerCount`, `accountManagerExists`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `accountManager`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
@@ -703,18 +879,36 @@
                                             "type": "object",
                                             "properties": {
                                                 "first": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "last": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "prev": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "next": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
                                         },
                                         "meta": {
                                             "type": "object",
@@ -800,7 +994,20 @@
                                         "included": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/User"
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    }
+                                                ]
                                             }
                                         }
                                     },
@@ -850,7 +1057,20 @@
                                         "included": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/User"
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    }
+                                                ]
                                             }
                                         }
                                     },
@@ -907,7 +1127,20 @@
                                         "included": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/User"
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    }
+                                                ]
                                             }
                                         }
                                     },
@@ -972,7 +1205,20 @@
                                         "included": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/User"
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    }
+                                                ]
                                             }
                                         }
                                     },
@@ -1130,7 +1376,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `customer`, `customerCount`, `customerExists`, `personalOvertime`, `personalOvertimeCount`, `personalOvertimeExists`, `customerOvertime`, `customerOvertimeCount`, `customerOvertimeExists`, `correctionEntryCorrection`, `correctionEntryCorrectionCount`, `correctionEntryCorrectionExists`, `correctedEntryCorrection`, `correctedEntryCorrectionCount`, `correctedEntryCorrectionExists`, `newEntryCorrection`, `newEntryCorrectionCount`, `newEntryCorrectionExists`, `budget`, `budgetCount`, `budgetExists`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `customer`, `correctionEntryCorrection`, `correctedEntryCorrection`, `newEntryCorrection`, `budget`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
@@ -1248,18 +1494,36 @@
                                             "type": "object",
                                             "properties": {
                                                 "first": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "last": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "prev": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "next": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
                                         },
                                         "meta": {
                                             "type": "object",
@@ -1350,6 +1614,12 @@
                                                         "$ref": "#/components/schemas/Overtime"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/OvertimeType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Entry"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/Correction"
                                                     },
                                                     {
@@ -1357,6 +1627,24 @@
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
                                                     }
                                                 ]
                                             }
@@ -1416,6 +1704,12 @@
                                                         "$ref": "#/components/schemas/Overtime"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/OvertimeType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Entry"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/Correction"
                                                     },
                                                     {
@@ -1423,6 +1717,24 @@
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
                                                     }
                                                 ]
                                             }
@@ -1483,6 +1795,12 @@
                                                         "$ref": "#/components/schemas/Overtime"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/OvertimeType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Entry"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/Correction"
                                                     },
                                                     {
@@ -1490,6 +1808,24 @@
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
                                                     }
                                                 ]
                                             }
@@ -1557,6 +1893,12 @@
                                                         "$ref": "#/components/schemas/Overtime"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/OvertimeType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Entry"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/Correction"
                                                     },
                                                     {
@@ -1564,6 +1906,24 @@
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
                                                     }
                                                 ]
                                             }
@@ -1658,6 +2018,12 @@
                                                         "$ref": "#/components/schemas/Overtime"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/OvertimeType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Entry"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/Correction"
                                                     },
                                                     {
@@ -1665,6 +2031,24 @@
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
                                                     }
                                                 ]
                                             }
@@ -1754,7 +2138,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `activities.events.source`, `activities.eventType`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `activities`, `activities.events`, `activities.events.source`, `activities.eventType`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
@@ -1802,18 +2186,36 @@
                                             "type": "object",
                                             "properties": {
                                                 "first": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "last": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "prev": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "next": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
                                         },
                                         "meta": {
                                             "type": "object",
@@ -1899,7 +2301,20 @@
                                         "included": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/Activity"
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/Activity"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Event"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Source"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/EventType"
+                                                    }
+                                                ]
                                             }
                                         }
                                     },
@@ -1958,7 +2373,20 @@
                                         "included": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/Activity"
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/Activity"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Event"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Source"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/EventType"
+                                                    }
+                                                ]
                                             }
                                         }
                                     },
@@ -2256,7 +2684,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `entry`, `entryCount`, `entryExists`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `entry`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
@@ -2332,18 +2760,36 @@
                                             "type": "object",
                                             "properties": {
                                                 "first": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "last": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "prev": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "next": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
                                         },
                                         "meta": {
                                             "type": "object",
@@ -2435,6 +2881,36 @@
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Entry"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Overtime"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Correction"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Customer"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
                                                     }
                                                 ]
                                             }
@@ -2498,6 +2974,36 @@
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Entry"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Overtime"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Correction"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Customer"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
                                                     }
                                                 ]
                                             }
@@ -2559,6 +3065,36 @@
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Entry"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Overtime"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Correction"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Customer"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
                                                     }
                                                 ]
                                             }
@@ -2626,18 +3162,36 @@
                                             "type": "object",
                                             "properties": {
                                                 "first": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "last": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "prev": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "next": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
                                         },
                                         "meta": {
                                             "type": "object",
@@ -2828,7 +3382,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `permissions`, `permissionsCount`, `permissionsExists`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `permissions`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
@@ -2869,18 +3423,36 @@
                                             "type": "object",
                                             "properties": {
                                                 "first": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "last": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "prev": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "next": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
                                         },
                                         "meta": {
                                             "type": "object",
@@ -3429,6 +4001,15 @@
                                                         "$ref": "#/components/schemas/User"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/TicketAction"
                                                     }
                                                 ]
@@ -3489,6 +4070,15 @@
                                                         "$ref": "#/components/schemas/User"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/TicketAction"
                                                     }
                                                 ]
@@ -3521,7 +4111,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `customer`, `customerCount`, `customerExists`, `budget`, `budgetCount`, `budgetExists`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `customer`, `budget`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
@@ -3590,18 +4180,36 @@
                                             "type": "object",
                                             "properties": {
                                                 "first": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "last": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "prev": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "next": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
                                         },
                                         "meta": {
                                             "type": "object",
@@ -3692,7 +4300,37 @@
                                                         "$ref": "#/components/schemas/Customer"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Entry"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Overtime"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/OvertimeType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Correction"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
                                                     }
                                                 ]
                                             }
@@ -3749,7 +4387,37 @@
                                                         "$ref": "#/components/schemas/Customer"
                                                     },
                                                     {
+                                                        "$ref": "#/components/schemas/User"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Role"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Permission"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/Budget"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Entry"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Overtime"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/OvertimeType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Correction"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/BudgetType"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/Period"
                                                     }
                                                 ]
                                             }
@@ -3820,7 +4488,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `team`, `teamCount`, `teamExists`, `permissions`, `permissionsCount`, `permissionsExists`, `roles`, `rolesCount`, `rolesExists`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `team`, `permissions`, `roles`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
@@ -3868,18 +4536,36 @@
                                             "type": "object",
                                             "properties": {
                                                 "first": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "last": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "prev": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "next": {
-                                                    "type": "string"
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 }
-                                            }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
                                         },
                                         "meta": {
                                             "type": "object",
@@ -3967,13 +4653,13 @@
                                             "items": {
                                                 "anyOf": [
                                                     {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/Role"
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Permission"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Team"
                                                     }
                                                 ]
                                             }
@@ -4002,6 +4688,7 @@
                     "User"
                 ],
                 "requestBody": {
+                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
@@ -4026,13 +4713,13 @@
                                             "items": {
                                                 "anyOf": [
                                                     {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/Role"
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Permission"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Team"
                                                     }
                                                 ]
                                             }
@@ -4093,13 +4780,13 @@
                                             "items": {
                                                 "anyOf": [
                                                     {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/Role"
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Permission"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Team"
                                                     }
                                                 ]
                                             }
@@ -4143,6 +4830,7 @@
                     }
                 ],
                 "requestBody": {
+                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
@@ -4167,13 +4855,13 @@
                                             "items": {
                                                 "anyOf": [
                                                     {
+                                                        "$ref": "#/components/schemas/Team"
+                                                    },
+                                                    {
                                                         "$ref": "#/components/schemas/Role"
                                                     },
                                                     {
                                                         "$ref": "#/components/schemas/Permission"
-                                                    },
-                                                    {
-                                                        "$ref": "#/components/schemas/Team"
                                                     }
                                                 ]
                                             }
@@ -4252,9 +4940,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "activities"
-                        ]
+                        "const": "activities"
                     },
                     "attributes": {
                         "type": "object",
@@ -4329,21 +5015,7 @@
                                 ],
                                 "format": "date-time"
                             }
-                        },
-                        "required": [
-                            "sourceId",
-                            "eventTypeId",
-                            "customerId",
-                            "ticketId",
-                            "entrySuggestionId",
-                            "startedAt",
-                            "endedAt",
-                            "title",
-                            "description",
-                            "isInternal",
-                            "createdAt",
-                            "updatedAt"
-                        ]
+                        }
                     },
                     "relationships": {
                         "type": "object",
@@ -4354,7 +5026,20 @@
                                     "data": {
                                         "type": "array",
                                         "items": {
-                                            "$ref": "#/components/schemas/EventIdentifier"
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "const": "events"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "type"
+                                            ]
                                         }
                                     }
                                 },
@@ -4366,13 +5051,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/EventTypeIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "eventTypes"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -4389,25 +5080,6 @@
                 ],
                 "title": "Activity"
             },
-            "ActivityIdentifier": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "activities"
-                        ]
-                    },
-                    "id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "type",
-                    "id"
-                ],
-                "title": "ActivityIdentifier"
-            },
             "Budget": {
                 "type": "object",
                 "properties": {
@@ -4416,9 +5088,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "budgets"
-                        ]
+                        "const": "budgets"
                     },
                     "attributes": {
                         "type": "object",
@@ -4454,7 +5124,7 @@
                                 ]
                             },
                             "totalPrice": {
-                                "type": "string"
+                                "type": "number"
                             },
                             "startedAt": {
                                 "type": [
@@ -4490,85 +5160,31 @@
                                 "type": "string",
                                 "format": "date-time"
                             }
-                        },
-                        "required": [
-                            "budgetTypeId",
-                            "customerId",
-                            "showToCustomer",
-                            "changeId",
-                            "contractId",
-                            "title",
-                            "description",
-                            "totalPrice",
-                            "startedAt",
-                            "endedAt",
-                            "initialMinutes",
-                            "isArchived",
-                            "renewalFrequency",
-                            "createdAt",
-                            "updatedAt"
-                        ]
+                        }
                     },
                     "relationships": {
                         "type": "object",
                         "properties": {
-                            "currentPeriod": {
-                                "type": "object",
-                                "properties": {
-                                    "data": {
-                                        "anyOf": [
-                                            {
-                                                "anyOf": [
-                                                    {
-                                                        "$ref": "#/components/schemas/PeriodIdentifier"
-                                                    },
-                                                    {
-                                                        "type": "null"
-                                                    }
-                                                ]
-                                            },
-                                            {
-                                                "type": "object"
-                                            }
-                                        ]
-                                    }
-                                },
-                                "required": [
-                                    "data"
-                                ]
-                            },
-                            "lastPeriod": {
-                                "type": "object",
-                                "properties": {
-                                    "data": {
-                                        "anyOf": [
-                                            {
-                                                "anyOf": [
-                                                    {
-                                                        "$ref": "#/components/schemas/PeriodIdentifier"
-                                                    },
-                                                    {
-                                                        "type": "null"
-                                                    }
-                                                ]
-                                            },
-                                            {
-                                                "type": "object"
-                                            }
-                                        ]
-                                    }
-                                },
-                                "required": [
-                                    "data"
-                                ]
-                            },
                             "entries": {
                                 "type": "object",
                                 "properties": {
                                     "data": {
                                         "type": "array",
                                         "items": {
-                                            "$ref": "#/components/schemas/EntryIdentifier"
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "const": "entries"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "type"
+                                            ]
                                         }
                                     }
                                 },
@@ -4580,13 +5196,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/BudgetTypeIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "budgetTypes"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -4598,13 +5220,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/CustomerIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "customers"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -4618,7 +5246,20 @@
                                     "data": {
                                         "type": "array",
                                         "items": {
-                                            "$ref": "#/components/schemas/UserIdentifier"
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "const": "users"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "type"
+                                            ]
                                         }
                                     }
                                 },
@@ -4630,13 +5271,67 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/UserIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "users"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "data"
+                                ]
+                            },
+                            "currentPeriod": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
+                                            },
+                                            "type": {
+                                                "type": "string",
+                                                "const": "periods"
+                                            }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "data"
+                                ]
+                            },
+                            "lastPeriod": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
+                                            },
+                                            "type": {
+                                                "type": "string",
+                                                "const": "periods"
+                                            }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -4672,7 +5367,7 @@
                                         "type": "string"
                                     },
                                     "initialMinutes": {
-                                        "type": "number"
+                                        "type": "integer"
                                     },
                                     "changeId": {
                                         "type": "string"
@@ -4695,7 +5390,7 @@
                                         "format": "date-time"
                                     },
                                     "customerId": {
-                                        "type": "integer"
+                                        "type": "string"
                                     },
                                     "showToCustomer": {
                                         "type": "boolean"
@@ -4733,7 +5428,22 @@
                                             "data": {
                                                 "type": "array",
                                                 "items": {
-                                                    "type": "string"
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "users"
+                                                            ]
+                                                        },
+                                                        "id": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "type",
+                                                        "id"
+                                                    ]
                                                 }
                                             }
                                         }
@@ -4751,25 +5461,6 @@
                 ],
                 "title": "BudgetCreateRequest"
             },
-            "BudgetIdentifier": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "budgets"
-                        ]
-                    },
-                    "id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "type",
-                    "id"
-                ],
-                "title": "BudgetIdentifier"
-            },
             "BudgetType": {
                 "type": "object",
                 "properties": {
@@ -4778,9 +5469,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "budgetTypes"
-                        ]
+                        "const": "budgetTypes"
                     },
                     "attributes": {
                         "type": "object",
@@ -4815,18 +5504,7 @@
                             "defaultTitle": {
                                 "type": "string"
                             }
-                        },
-                        "required": [
-                            "title",
-                            "isArchived",
-                            "hasChangeTicket",
-                            "renewalFrequencies",
-                            "hasSupervisor",
-                            "hasContractId",
-                            "hasTotalPrice",
-                            "ticketIsRequired",
-                            "defaultTitle"
-                        ]
+                        }
                     }
                 },
                 "required": [
@@ -4834,25 +5512,6 @@
                     "type"
                 ],
                 "title": "BudgetType"
-            },
-            "BudgetTypeIdentifier": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "budgetTypes"
-                        ]
-                    },
-                    "id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "type",
-                    "id"
-                ],
-                "title": "BudgetTypeIdentifier"
             },
             "BudgetUpdateRequest": {
                 "type": "object",
@@ -4866,6 +5525,9 @@
                                     "budgets"
                                 ]
                             },
+                            "id": {
+                                "type": "string"
+                            },
                             "attributes": {
                                 "type": "object",
                                 "properties": {
@@ -4873,7 +5535,7 @@
                                         "type": "string"
                                     },
                                     "initialMinutes": {
-                                        "type": "number"
+                                        "type": "integer"
                                     },
                                     "changeId": {
                                         "type": "string"
@@ -4915,7 +5577,18 @@
                                             "data": {
                                                 "type": "array",
                                                 "items": {
-                                                    "type": "string"
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": [
+                                                                "users"
+                                                            ]
+                                                        },
+                                                        "id": {
+                                                            "type": "string"
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
@@ -4942,9 +5615,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "corrections"
-                        ]
+                        "const": "corrections"
                     },
                     "attributes": {
                         "type": "object",
@@ -4963,11 +5634,7 @@
                                 ],
                                 "format": "date-time"
                             }
-                        },
-                        "required": [
-                            "createdAt",
-                            "updatedAt"
-                        ]
+                        }
                     },
                     "relationships": {
                         "type": "object",
@@ -4976,13 +5643,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/EntryIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "entries"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -4994,13 +5667,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/EntryIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "entries"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -5012,13 +5691,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/EntryIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "entries"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -5072,25 +5757,6 @@
                 ],
                 "title": "CorrectionCreateRequest"
             },
-            "CorrectionIdentifier": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "corrections"
-                        ]
-                    },
-                    "id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "type",
-                    "id"
-                ],
-                "title": "CorrectionIdentifier"
-            },
             "CorrectionUpdateRequest": {
                 "type": "object",
                 "properties": {
@@ -5102,6 +5768,9 @@
                                 "enum": [
                                     "corrections"
                                 ]
+                            },
+                            "id": {
+                                "type": "string"
                             },
                             "attributes": {
                                 "type": "object",
@@ -5124,9 +5793,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "customers"
-                        ]
+                        "const": "customers"
                     },
                     "attributes": {
                         "type": "object",
@@ -5163,15 +5830,7 @@
                                 ],
                                 "format": "date-time"
                             }
-                        },
-                        "required": [
-                            "externalId",
-                            "name",
-                            "hourlyRate",
-                            "isOwnOrganization",
-                            "createdAt",
-                            "updatedAt"
-                        ]
+                        }
                     },
                     "relationships": {
                         "type": "object",
@@ -5180,13 +5839,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/UserIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "users"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -5202,25 +5867,6 @@
                     "type"
                 ],
                 "title": "Customer"
-            },
-            "CustomerIdentifier": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "customers"
-                        ]
-                    },
-                    "id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "type",
-                    "id"
-                ],
-                "title": "CustomerIdentifier"
             },
             "CustomerRequest": {
                 "type": "object",
@@ -5270,9 +5916,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "entries"
-                        ]
+                        "const": "entries"
                     },
                     "attributes": {
                         "type": "object",
@@ -5302,7 +5946,10 @@
                                 "type": "number"
                             },
                             "hadEmergencyShift": {
-                                "type": "boolean"
+                                "type": [
+                                    "boolean",
+                                    "object"
+                                ]
                             },
                             "budgetId": {
                                 "type": [
@@ -5311,7 +5958,7 @@
                                 ]
                             },
                             "isPaidPerHour": {
-                                "type": "string"
+                                "type": "boolean"
                             },
                             "minutesSpent": {
                                 "type": "integer"
@@ -5390,35 +6037,7 @@
                             "isBasedOnSuggestion": {
                                 "type": "boolean"
                             }
-                        },
-                        "required": [
-                            "ticketId",
-                            "ticketNumber",
-                            "ticketTitle",
-                            "ticketType",
-                            "customerId",
-                            "customerName",
-                            "hourlyRate",
-                            "budgetId",
-                            "isPaidPerHour",
-                            "minutesSpent",
-                            "userId",
-                            "userEmail",
-                            "userFullName",
-                            "createdByUserId",
-                            "createdByUserEmail",
-                            "createdByUserFullName",
-                            "entryType",
-                            "description",
-                            "isInternal",
-                            "startedAt",
-                            "endedAt",
-                            "invoicedAt",
-                            "isInvoiced",
-                            "createdAt",
-                            "updatedAt",
-                            "isBasedOnSuggestion"
-                        ]
+                        }
                     },
                     "relationships": {
                         "type": "object",
@@ -5427,13 +6046,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/OvertimeIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "overtimes"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -5445,13 +6070,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/OvertimeIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "overtimes"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -5463,13 +6094,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/CorrectionIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "corrections"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -5481,13 +6118,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/CorrectionIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "corrections"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -5499,13 +6142,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/CorrectionIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "corrections"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -5517,13 +6166,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/CustomerIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "customers"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -5535,13 +6190,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/BudgetIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "budgets"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -5592,7 +6253,7 @@
                                         "type": "string"
                                     },
                                     "customerId": {
-                                        "type": "integer"
+                                        "type": "string"
                                     },
                                     "customerName": {
                                         "type": "string"
@@ -5610,7 +6271,7 @@
                                         "type": "integer"
                                     },
                                     "userId": {
-                                        "type": "integer"
+                                        "type": "string"
                                     },
                                     "userFullName": {
                                         "type": "string"
@@ -5648,11 +6309,7 @@
                                         "format": "date-time"
                                     },
                                     "isInvoiced": {
-                                        "type": "boolean",
-                                        "enum": [
-                                            "true",
-                                            "1"
-                                        ]
+                                        "type": "boolean"
                                     }
                                 },
                                 "required": [
@@ -5675,25 +6332,6 @@
                 ],
                 "title": "EntryCreateRequest"
             },
-            "EntryIdentifier": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "entries"
-                        ]
-                    },
-                    "id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "type",
-                    "id"
-                ],
-                "title": "EntryIdentifier"
-            },
             "EntrySuggestion": {
                 "type": "object",
                 "properties": {
@@ -5702,9 +6340,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "entrySuggestions"
-                        ]
+                        "const": "entrySuggestions"
                     },
                     "attributes": {
                         "type": "object",
@@ -5771,19 +6407,7 @@
                                     "null"
                                 ]
                             }
-                        },
-                        "required": [
-                            "ticketId",
-                            "ticketNumber",
-                            "customerId",
-                            "userId",
-                            "date",
-                            "ticketTitle",
-                            "ticketType",
-                            "createdAt",
-                            "updatedAt",
-                            "budgetId"
-                        ]
+                        }
                     },
                     "relationships": {
                         "type": "object",
@@ -5794,7 +6418,20 @@
                                     "data": {
                                         "type": "array",
                                         "items": {
-                                            "$ref": "#/components/schemas/ActivityIdentifier"
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "const": "activities"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "type"
+                                            ]
                                         }
                                     }
                                 },
@@ -5823,6 +6460,9 @@
                                     "entries"
                                 ]
                             },
+                            "id": {
+                                "type": "string"
+                            },
                             "attributes": {
                                 "type": "object",
                                 "properties": {
@@ -5845,7 +6485,7 @@
                                         "type": "string"
                                     },
                                     "customerId": {
-                                        "type": "integer"
+                                        "type": "string"
                                     },
                                     "customerName": {
                                         "type": "string"
@@ -5890,11 +6530,7 @@
                                         "format": "date-time"
                                     },
                                     "isInvoiced": {
-                                        "type": "boolean",
-                                        "enum": [
-                                            "true",
-                                            "1"
-                                        ]
+                                        "type": "boolean"
                                     }
                                 }
                             }
@@ -5911,9 +6547,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "events"
-                        ]
+                        "const": "events"
                     },
                     "attributes": {
                         "type": "object",
@@ -6009,24 +6643,7 @@
                                     "null"
                                 ]
                             }
-                        },
-                        "required": [
-                            "userId",
-                            "budgetId",
-                            "ticketId",
-                            "sourceId",
-                            "ticketNumber",
-                            "ticketType",
-                            "title",
-                            "description",
-                            "customerId",
-                            "eventTypeId",
-                            "startedAt",
-                            "endedAt",
-                            "createdAt",
-                            "updatedAt",
-                            "isInternal"
-                        ]
+                        }
                     },
                     "relationships": {
                         "type": "object",
@@ -6035,13 +6652,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/SourceIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "sources"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -6057,25 +6680,6 @@
                     "type"
                 ],
                 "title": "Event"
-            },
-            "EventIdentifier": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "events"
-                        ]
-                    },
-                    "id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "type",
-                    "id"
-                ],
-                "title": "EventIdentifier"
             },
             "EventRequest": {
                 "type": "object",
@@ -6096,7 +6700,7 @@
                                         "type": "string"
                                     },
                                     "userId": {
-                                        "type": "integer"
+                                        "type": "string"
                                     },
                                     "userExternalId": {
                                         "type": "string"
@@ -6120,7 +6724,7 @@
                                         "type": "string"
                                     },
                                     "customerId": {
-                                        "type": "integer"
+                                        "type": "string"
                                     },
                                     "customerExternalId": {
                                         "type": "string"
@@ -6156,24 +6760,33 @@
                 ],
                 "title": "EventRequest"
             },
-            "EventTypeIdentifier": {
+            "EventType": {
                 "type": "object",
                 "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "eventTypes"
-                        ]
-                    },
                     "id": {
                         "type": "string"
+                    },
+                    "type": {
+                        "type": "string",
+                        "const": "eventTypes"
+                    },
+                    "attributes": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            }
+                        }
                     }
                 },
                 "required": [
-                    "type",
-                    "id"
+                    "id",
+                    "type"
                 ],
-                "title": "EventTypeIdentifier"
+                "title": "EventType"
             },
             "ExportFormat": {
                 "type": "object",
@@ -6182,7 +6795,8 @@
                         "type": "string"
                     },
                     "type": {
-                        "type": "string"
+                        "type": "string",
+                        "const": "exportFormats"
                     },
                     "attributes": {
                         "type": "object",
@@ -6196,12 +6810,7 @@
                             "extension": {
                                 "type": "string"
                             }
-                        },
-                        "required": [
-                            "label",
-                            "periodOptions",
-                            "extension"
-                        ]
+                        }
                     }
                 },
                 "required": [
@@ -6217,13 +6826,14 @@
                         "type": "string"
                     },
                     "type": {
-                        "type": "string"
+                        "type": "string",
+                        "const": "git-repository-mappings"
                     },
                     "attributes": {
                         "type": "object",
                         "properties": {
                             "customerId": {
-                                "type": "integer"
+                                "type": "string"
                             },
                             "budgetId": {
                                 "type": [
@@ -6231,11 +6841,7 @@
                                     "null"
                                 ]
                             }
-                        },
-                        "required": [
-                            "customerId",
-                            "budgetId"
-                        ]
+                        }
                     }
                 },
                 "required": [
@@ -6252,9 +6858,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "overtimes"
-                        ]
+                        "const": "overtimes"
                     },
                     "attributes": {
                         "type": "object",
@@ -6301,19 +6905,7 @@
                                 "type": "string",
                                 "format": "date-time"
                             }
-                        },
-                        "required": [
-                            "entryId",
-                            "overtimeTypeId",
-                            "startedAt",
-                            "endedAt",
-                            "percentages",
-                            "approvedAt",
-                            "approvedByUserId",
-                            "exportedAt",
-                            "createdAt",
-                            "updatedAt"
-                        ]
+                        }
                     },
                     "relationships": {
                         "type": "object",
@@ -6322,13 +6914,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/OvertimeTypeIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "overtimeTypes"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -6340,13 +6938,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/EntryIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "entries"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -6363,25 +6967,6 @@
                 ],
                 "title": "Overtime"
             },
-            "OvertimeIdentifier": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "overtimes"
-                        ]
-                    },
-                    "id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "type",
-                    "id"
-                ],
-                "title": "OvertimeIdentifier"
-            },
             "OvertimeType": {
                 "type": "object",
                 "properties": {
@@ -6390,9 +6975,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "overtimeTypes"
-                        ]
+                        "const": "overtimeTypes"
                     },
                     "attributes": {
                         "type": "object",
@@ -6400,10 +6983,7 @@
                             "title": {
                                 "type": "string"
                             }
-                        },
-                        "required": [
-                            "title"
-                        ]
+                        }
                     }
                 },
                 "required": [
@@ -6411,25 +6991,6 @@
                     "type"
                 ],
                 "title": "OvertimeType"
-            },
-            "OvertimeTypeIdentifier": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "overtimeTypes"
-                        ]
-                    },
-                    "id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "type",
-                    "id"
-                ],
-                "title": "OvertimeTypeIdentifier"
             },
             "Period": {
                 "type": "object",
@@ -6439,9 +7000,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "periods"
-                        ]
+                        "const": "periods"
                     }
                 },
                 "required": [
@@ -6450,25 +7009,6 @@
                 ],
                 "title": "Period"
             },
-            "PeriodIdentifier": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "periods"
-                        ]
-                    },
-                    "id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "type",
-                    "id"
-                ],
-                "title": "PeriodIdentifier"
-            },
             "Permission": {
                 "type": "object",
                 "properties": {
@@ -6476,7 +7016,8 @@
                         "type": "string"
                     },
                     "type": {
-                        "type": "string"
+                        "type": "string",
+                        "const": "permissions"
                     },
                     "attributes": {
                         "type": "object",
@@ -6490,11 +7031,7 @@
                                     "null"
                                 ]
                             }
-                        },
-                        "required": [
-                            "name",
-                            "values"
-                        ]
+                        }
                     }
                 },
                 "required": [
@@ -6538,22 +7075,6 @@
                 ],
                 "title": "PermissionCreateRequest"
             },
-            "PermissionIdentifier": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "type",
-                    "id"
-                ],
-                "title": "PermissionIdentifier"
-            },
             "ProjectMapping": {
                 "type": "object",
                 "properties": {
@@ -6562,9 +7083,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "jira-project-mappings"
-                        ]
+                        "const": "jira-project-mappings"
                     },
                     "attributes": {
                         "type": "object",
@@ -6577,7 +7096,7 @@
                             },
                             "customerId": {
                                 "type": [
-                                    "integer",
+                                    "string",
                                     "null"
                                 ]
                             },
@@ -6587,13 +7106,7 @@
                                     "null"
                                 ]
                             }
-                        },
-                        "required": [
-                            "projectKey",
-                            "projectName",
-                            "customerId",
-                            "budgetId"
-                        ]
+                        }
                     }
                 },
                 "required": [
@@ -6610,9 +7123,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "roles"
-                        ]
+                        "const": "roles"
                     },
                     "attributes": {
                         "type": "object",
@@ -6634,12 +7145,7 @@
                                 ],
                                 "format": "date-time"
                             }
-                        },
-                        "required": [
-                            "name",
-                            "createdAt",
-                            "updatedAt"
-                        ]
+                        }
                     },
                     "relationships": {
                         "type": "object",
@@ -6650,7 +7156,20 @@
                                     "data": {
                                         "type": "array",
                                         "items": {
-                                            "$ref": "#/components/schemas/PermissionIdentifier"
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "const": "permissions"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "type"
+                                            ]
                                         }
                                     }
                                 },
@@ -6732,25 +7251,6 @@
                 ],
                 "title": "RoleCreateRequest"
             },
-            "RoleIdentifier": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "roles"
-                        ]
-                    },
-                    "id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "type",
-                    "id"
-                ],
-                "title": "RoleIdentifier"
-            },
             "RoleUpdateRequest": {
                 "type": "object",
                 "properties": {
@@ -6762,6 +7262,9 @@
                                 "enum": [
                                     "roles"
                                 ]
+                            },
+                            "id": {
+                                "type": "string"
                             },
                             "attributes": {
                                 "type": "object",
@@ -6824,9 +7327,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "sources"
-                        ]
+                        "const": "sources"
                     },
                     "attributes": {
                         "type": "object",
@@ -6840,12 +7341,7 @@
                             "iconUrl": {
                                 "type": "string"
                             }
-                        },
-                        "required": [
-                            "key",
-                            "title",
-                            "iconUrl"
-                        ]
+                        }
                     }
                 },
                 "required": [
@@ -6854,25 +7350,6 @@
                 ],
                 "title": "Source"
             },
-            "SourceIdentifier": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "sources"
-                        ]
-                    },
-                    "id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "type",
-                    "id"
-                ],
-                "title": "SourceIdentifier"
-            },
             "SuggestionIntegration": {
                 "type": "object",
                 "properties": {
@@ -6880,7 +7357,8 @@
                         "type": "string"
                     },
                     "type": {
-                        "type": "string"
+                        "type": "string",
+                        "const": "suggestionIntegrations"
                     },
                     "attributes": {
                         "type": "object",
@@ -6912,16 +7390,7 @@
                                     "null"
                                 ]
                             }
-                        },
-                        "required": [
-                            "label",
-                            "iconUrl",
-                            "instructions",
-                            "isCompanyManaged",
-                            "isActive",
-                            "connectUrl",
-                            "connectLabel"
-                        ]
+                        }
                     }
                 },
                 "required": [
@@ -6938,9 +7407,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "teams"
-                        ]
+                        "const": "teams"
                     },
                     "attributes": {
                         "type": "object",
@@ -6971,13 +7438,7 @@
                                 ],
                                 "format": "date-time"
                             }
-                        },
-                        "required": [
-                            "externalId",
-                            "name",
-                            "createdAt",
-                            "updatedAt"
-                        ]
+                        }
                     }
                 },
                 "required": [
@@ -6985,25 +7446,6 @@
                     "type"
                 ],
                 "title": "Team"
-            },
-            "TeamIdentifier": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "teams"
-                        ]
-                    },
-                    "id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "type",
-                    "id"
-                ],
-                "title": "TeamIdentifier"
             },
             "TeamRequest": {
                 "type": "object",
@@ -7031,7 +7473,10 @@
                                     "name"
                                 ]
                             }
-                        }
+                        },
+                        "required": [
+                            "type"
+                        ]
                     }
                 },
                 "required": [
@@ -7046,7 +7491,8 @@
                         "type": "string"
                     },
                     "type": {
-                        "type": "string"
+                        "type": "string",
+                        "const": "tickets"
                     },
                     "attributes": {
                         "type": "object",
@@ -7074,7 +7520,7 @@
                             },
                             "customerId": {
                                 "type": [
-                                    "integer",
+                                    "string",
                                     "null"
                                 ]
                             },
@@ -7084,16 +7530,7 @@
                                     "null"
                                 ]
                             }
-                        },
-                        "required": [
-                            "key",
-                            "title",
-                            "createdAt",
-                            "closedAt",
-                            "url",
-                            "customerId",
-                            "budgetId"
-                        ]
+                        }
                     },
                     "relationships": {
                         "type": "object",
@@ -7102,13 +7539,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/CustomerIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "customers"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -7122,7 +7565,20 @@
                                     "data": {
                                         "type": "array",
                                         "items": {
-                                            "$ref": "#/components/schemas/TicketActionIdentifier"
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "const": "actions"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "type"
+                                            ]
                                         }
                                     }
                                 },
@@ -7146,7 +7602,8 @@
                         "type": "string"
                     },
                     "type": {
-                        "type": "string"
+                        "type": "string",
+                        "const": "actions"
                     },
                     "attributes": {
                         "type": "object",
@@ -7175,14 +7632,7 @@
                                     "null"
                                 ]
                             }
-                        },
-                        "required": [
-                            "id",
-                            "entryDate",
-                            "text",
-                            "personDisplayName",
-                            "personEmail"
-                        ]
+                        }
                     }
                 },
                 "required": [
@@ -7190,22 +7640,6 @@
                     "type"
                 ],
                 "title": "TicketAction"
-            },
-            "TicketActionIdentifier": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "type",
-                    "id"
-                ],
-                "title": "TicketActionIdentifier"
             },
             "TrackedDomain": {
                 "type": "object",
@@ -7215,9 +7649,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "trackedDomains"
-                        ]
+                        "const": "trackedDomains"
                     },
                     "attributes": {
                         "type": "object",
@@ -7232,7 +7664,7 @@
                                 ]
                             },
                             "customerId": {
-                                "type": "integer"
+                                "type": "string"
                             },
                             "budgetId": {
                                 "type": [
@@ -7245,7 +7677,7 @@
                             },
                             "userId": {
                                 "type": [
-                                    "integer",
+                                    "string",
                                     "null"
                                 ]
                             },
@@ -7269,18 +7701,7 @@
                                 ],
                                 "format": "date-time"
                             }
-                        },
-                        "required": [
-                            "domain",
-                            "path",
-                            "customerId",
-                            "budgetId",
-                            "isInternal",
-                            "userId",
-                            "parentId",
-                            "createdAt",
-                            "updatedAt"
-                        ]
+                        }
                     },
                     "relationships": {
                         "type": "object",
@@ -7289,13 +7710,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/CustomerIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "customers"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -7307,13 +7734,19 @@
                                 "type": "object",
                                 "properties": {
                                     "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/BudgetIdentifier"
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
                                             },
-                                            {
-                                                "type": "null"
+                                            "type": {
+                                                "type": "string",
+                                                "const": "budgets"
                                             }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
                                         ]
                                     }
                                 },
@@ -7339,7 +7772,7 @@
                             "type": {
                                 "type": "string",
                                 "enum": [
-                                    "tracked-domains"
+                                    "trackedDomains"
                                 ]
                             },
                             "attributes": {
@@ -7359,7 +7792,7 @@
                                         "maxLength": 255
                                     },
                                     "customerId": {
-                                        "type": "integer"
+                                        "type": "string"
                                     },
                                     "budgetId": {
                                         "type": [
@@ -7371,10 +7804,7 @@
                                         "type": "boolean"
                                     },
                                     "userId": {
-                                        "type": "integer",
-                                        "enum": [
-                                            ""
-                                        ]
+                                        "type": "string"
                                     },
                                     "parentId": {
                                         "type": [
@@ -7408,9 +7838,7 @@
                     },
                     "type": {
                         "type": "string",
-                        "enum": [
-                            "users"
-                        ]
+                        "const": "users"
                     },
                     "attributes": {
                         "type": "object",
@@ -7462,28 +7890,55 @@
                                 ],
                                 "format": "date-time"
                             }
-                        },
-                        "required": [
-                            "externalId",
-                            "email",
-                            "givenName",
-                            "familyName",
-                            "isImpersonated",
-                            "impersonatedById",
-                            "createdAt",
-                            "updatedAt"
-                        ]
+                        }
                     },
                     "relationships": {
                         "type": "object",
                         "properties": {
+                            "team": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
+                                            },
+                                            "type": {
+                                                "type": "string",
+                                                "const": "teams"
+                                            }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "data"
+                                ]
+                            },
                             "roles": {
                                 "type": "object",
                                 "properties": {
                                     "data": {
                                         "type": "array",
                                         "items": {
-                                            "$ref": "#/components/schemas/RoleIdentifier"
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "const": "roles"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "type"
+                                            ]
                                         }
                                     }
                                 },
@@ -7496,28 +7951,22 @@
                                 "properties": {
                                     "data": {
                                         "type": "array",
-                                        "description": "Convert to Permission resources",
                                         "items": {
-                                            "$ref": "#/components/schemas/PermissionIdentifier"
-                                        }
-                                    }
-                                },
-                                "required": [
-                                    "data"
-                                ]
-                            },
-                            "team": {
-                                "type": "object",
-                                "properties": {
-                                    "data": {
-                                        "anyOf": [
-                                            {
-                                                "$ref": "#/components/schemas/TeamIdentifier"
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "const": "permissions"
+                                                }
                                             },
-                                            {
-                                                "type": "null"
-                                            }
-                                        ]
+                                            "required": [
+                                                "id",
+                                                "type"
+                                            ]
+                                        }
                                     }
                                 },
                                 "required": [
@@ -7532,25 +7981,6 @@
                     "type"
                 ],
                 "title": "User"
-            },
-            "UserIdentifier": {
-                "type": "object",
-                "properties": {
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "users"
-                        ]
-                    },
-                    "id": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "type",
-                    "id"
-                ],
-                "title": "UserIdentifier"
             },
             "UserRequest": {
                 "type": "object",
@@ -7671,9 +8101,15 @@
                                     }
                                 }
                             }
-                        }
+                        },
+                        "required": [
+                            "type"
+                        ]
                     }
                 },
+                "required": [
+                    "data"
+                ],
                 "title": "UserRequest"
             }
         },

@@ -5,13 +5,15 @@ namespace App\Http\Resources;
 use App\DataTransferObjects\DerivedPermission;
 use Exception;
 use Illuminate\Http\Request;
-use TiMacDonald\JsonApi\JsonApiResource;
 
 /**
  * @mixin DerivedPermission|\Spatie\Permission\Models\Permission
  */
 class Permission extends JsonApiResource
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function toAttributes(Request $request): array
     {
         return [

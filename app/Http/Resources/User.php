@@ -4,13 +4,16 @@ namespace App\Http\Resources;
 
 use App\DataTransferObjects\DerivedPermission;
 use Illuminate\Http\Request;
-use TiMacDonald\JsonApi\JsonApiResource;
+use Illuminate\Http\Resources\Json\ResourceCollection;
 
 /**
  * @mixin \App\Models\User
  */
 class User extends JsonApiResource
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function toAttributes(Request $request): array
     {
         return [
@@ -30,35 +33,20 @@ class User extends JsonApiResource
      */
     public array $relationships = [
         'team' => Team::class,
+        'roles' => Role::class,
     ];
 
     /**
-     * @return array<string, callable>
+     * @return array<string, \Closure(): ResourceCollection>
      */
-    public function toRelationships(Request $request): array
+    public function toCustomRelationships(Request $request): array
     {
-        $relationships = [];
-
-        if ($this->relationLoaded('roles')) {
-            $relationships['roles'] = fn () => Role::collection($this->roles);
-        }
-
-        // Add permissions relationship with derived permissions
-        if ($this->resource && $this->relationLoaded('permissions')) {
-            $relationships['permissions'] = function () {
-                // Get all permissions (real + derived) as Permission resources
-                $allPermissions = $this->getAllPermissions()->map(fn ($permission) => new DerivedPermission(
-                    $permission->name,
-                ));
-
-                // Merge with derived permissions
-                $combinedPermissions = $allPermissions->merge($this->derivedPermissions);
-
-                // Convert to Permission resources
-                return Permission::collection($combinedPermissions);
-            };
-        }
-
-        return $relationships;
+        return [
+            'permissions' => fn () => Permission::collection(
+                $this->getAllPermissions()
+                    ->map(fn ($permission) => new DerivedPermission($permission->name))
+                    ->merge($this->derivedPermissions)
+            ),
+        ];
     }
 }

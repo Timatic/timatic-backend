@@ -67,7 +67,7 @@ it('stores an event and finds a customer by its external id', function () {
         'customer_external_id' => $customer->external_id,
     ]))
         ->assertCreated()
-        ->assertJsonPath('data.attributes.customerId', $customer->id);
+        ->assertJsonPath('data.attributes.customerId', (string) $customer->id);
 });
 
 it('stores an event and ignores a non existing customer', function () {
@@ -127,7 +127,9 @@ function eventRequestBody(array $attributes): array
 
     $eventAttributes = (new Collection($event->toArray()))
         ->mapWithKeys(function (mixed $item, string $key) {
-            return [Str::camel($key) => $item];
+            $isId = in_array($key, ['user_id', 'customer_id'], true) && $item !== null;
+
+            return [Str::camel($key) => $isId ? (string) $item : $item];
         });
 
     return [
@@ -156,7 +158,7 @@ it('refuses an event that ends in the future', function () {
             'attributes' => [
                 'sourceId' => $source->id,
                 'eventTypeId' => $eventType->id,
-                'userId' => $user->id,
+                'userId' => (string) $user->id,
                 'endedAt' => Carbon::now()->addHour()->toIso8601String(),
             ],
         ],
@@ -181,7 +183,7 @@ it('refuses an event that ends before it starts', function () {
             'attributes' => [
                 'sourceId' => $source->id,
                 'eventTypeId' => $eventType->id,
-                'userId' => $user->id,
+                'userId' => (string) $user->id,
                 'startedAt' => Carbon::now()->subHour()->toIso8601String(),
                 'endedAt' => Carbon::now()->subHours(2)->toIso8601String(),
             ],
@@ -207,7 +209,7 @@ it('refuses an event that spans more than a day', function () {
             'attributes' => [
                 'sourceId' => $source->id,
                 'eventTypeId' => $eventType->id,
-                'userId' => $user->id,
+                'userId' => (string) $user->id,
                 'startedAt' => Carbon::now()->subHours(30)->toIso8601String(),
                 'endedAt' => Carbon::now()->subMinutes(5)->toIso8601String(),
             ],

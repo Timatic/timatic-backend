@@ -25,7 +25,7 @@ it('accepts a bearer token without any cookie', function () {
             'type' => 'entries',
             'attributes' => [
                 'isPaidPerHour' => false,
-                'customerId' => $customer->id,
+                'customerId' => (string) $customer->id,
                 'startedAt' => Carbon::now()->subDay(),
                 'endedAt' => Carbon::now()->subDay()->addHour(),
                 'entryType' => 'regular',

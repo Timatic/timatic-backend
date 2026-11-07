@@ -6,13 +6,15 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use TiMacDonald\JsonApi\JsonApiResource;
 
 /**
  * @mixin \App\DataTransferObjects\SuggestionIntegration
  */
 class SuggestionIntegration extends JsonApiResource
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function toAttributes(Request $request): array
     {
         return [

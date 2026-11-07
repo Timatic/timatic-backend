@@ -15,14 +15,16 @@ use App\Services\EntryEnricher;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Gate;
 use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\AllowedInclude;
 use Spatie\QueryBuilder\AllowedSort;
+use Spatie\QueryBuilder\Includes\IncludedRelationship;
 use Spatie\QueryBuilder\QueryBuilder;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
 
 class EntryController extends Controller implements HasMiddleware
 {
@@ -38,7 +40,7 @@ class EntryController extends Controller implements HasMiddleware
         ];
     }
 
-    public function index(EntryCollectionRequest $request): JsonApiResourceCollection
+    public function index(EntryCollectionRequest $request): AnonymousResourceCollection
     {
         $entries = QueryBuilder::for(Entry::class)
             ->allowedFilters([
@@ -55,13 +57,11 @@ class EntryController extends Controller implements HasMiddleware
                 AllowedFilter::scope('isInvoiceable'),
             ])
             ->allowedIncludes([
-                'customer',
-                'personalOvertime',
-                'customerOvertime',
-                'correctionEntryCorrection',
-                'correctedEntryCorrection',
-                'newEntryCorrection',
-                'budget',
+                AllowedInclude::custom('customer', new IncludedRelationship),
+                AllowedInclude::custom('correctionEntryCorrection', new IncludedRelationship),
+                AllowedInclude::custom('correctedEntryCorrection', new IncludedRelationship),
+                AllowedInclude::custom('newEntryCorrection', new IncludedRelationship),
+                AllowedInclude::custom('budget', new IncludedRelationship),
             ])
             ->allowedSorts([
                 'id',

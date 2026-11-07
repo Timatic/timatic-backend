@@ -29,6 +29,7 @@ class EntryUpdateRequest extends FormRequest
     {
         return $this->addPatchOptionalValidation([
             'data.type' => 'required|in:entries',
+            'data.id' => ['sometimes', 'string', $this->matchesRouteResourceId()],
             'data.attributes.isPaidPerHour' => [
                 Rule::requiredIf(
                     fn () => is_null($this->input('data.attributes.budgetId')) && $this->input('data.attributes.isInternal') == false
@@ -40,7 +41,7 @@ class EntryUpdateRequest extends FormRequest
             'data.attributes.ticketType' => 'string',
             'data.attributes.ticketTitle' => 'string',
             'data.attributes.ticketNumber' => 'string',
-            'data.attributes.customerId' => 'required|integer|exists:customers,id',
+            'data.attributes.customerId' => 'required|string|exists:customers,id',
             'data.attributes.customerName' => 'string',
             'data.attributes.entryType' => 'required|in:regular,correction,closing_budget_to_profit',
             'data.attributes.budgetId' => 'required_without:data.attributes.isInternal|integer|exists:budgets,id',
@@ -52,7 +53,7 @@ class EntryUpdateRequest extends FormRequest
             'data.attributes.overtimeEndedAt' => 'date',
             'data.attributes.startedAt' => 'required|date',
             'data.attributes.endedAt' => 'required|date',
-            'data.attributes.isInvoiced' => 'bool|in:true,1',
+            'data.attributes.isInvoiced' => 'boolean',
         ]);
     }
 }

@@ -9,11 +9,11 @@ use App\Exceptions\InvalidGitRemoteException;
 use App\Http\Requests\GitRepositoryMappingCollectionRequest;
 use App\Http\Resources\GitRepositoryMapping as GitRepositoryMappingResource;
 use App\Integrations\Git\GitRepositoryService;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class GitRepositoryMappingController extends Controller
 {
-    public function index(GitRepositoryMappingCollectionRequest $request, GitRepositoryService $gitRepositoryService): JsonApiResourceCollection
+    public function index(GitRepositoryMappingCollectionRequest $request, GitRepositoryService $gitRepositoryService): AnonymousResourceCollection
     {
         try {
             $mapping = $gitRepositoryService->findMappingByRemote(GitRemote::fromUrl($request->string('filter.remote')->toString()));

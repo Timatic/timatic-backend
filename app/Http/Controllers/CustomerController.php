@@ -7,12 +7,14 @@ use App\Http\Resources;
 use App\Models\Customer;
 use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\AllowedInclude;
+use Spatie\QueryBuilder\Includes\IncludedRelationship;
 use Spatie\QueryBuilder\QueryBuilder;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
 
 class CustomerController extends Controller implements HasMiddleware
 {
@@ -27,14 +29,14 @@ class CustomerController extends Controller implements HasMiddleware
         ];
     }
 
-    public function index(Request $request): JsonApiResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
         $customers = QueryBuilder::for(Customer::class)
             ->allowedFilters([
                 AllowedFilter::exact('externalId', 'external_id'),
             ])
             ->allowedIncludes([
-                'accountManager',
+                AllowedInclude::custom('accountManager', new IncludedRelationship),
             ])
             ->jsonPaginate();
 

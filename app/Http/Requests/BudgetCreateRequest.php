@@ -42,20 +42,22 @@ class BudgetCreateRequest extends FormRequest
                     }
                 },
             ],
-            'data.attributes.initialMinutes' => 'required|numeric',
+            'data.attributes.initialMinutes' => 'required|integer',
             'data.attributes.changeId' => '',
             'data.attributes.contractId' => '',
             'data.attributes.description' => '',
             'data.attributes.totalPrice' => 'required|numeric',
             'data.attributes.startedAt' => 'required|date',
             'data.attributes.endedAt' => 'required|date',
-            'data.attributes.customerId' => 'required|integer|exists:customers,id',
+            'data.attributes.customerId' => 'required|string|exists:customers,id',
             'data.attributes.showToCustomer' => 'boolean',
             'data.attributes.budgetTypeId' => 'required|exists:budget_types,id',
             'data.attributes.supervisorUserId' => 'exists:users,id',
             'data.attributes.renewalFrequency' => 'in:monthly,yearly',
             'data.relationships.allowedUsers' => '',
             'data.relationships.allowedUsers.data' => 'array',
+            'data.relationships.allowedUsers.data.*.type' => 'required|string|in:users',
+            'data.relationships.allowedUsers.data.*.id' => 'required|string|exists:users,id',
         ];
     }
 }

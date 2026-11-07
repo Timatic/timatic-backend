@@ -30,7 +30,7 @@ class TrackedDomainCreateRequest extends FormRequest
         $ownUserId = $user instanceof User ? $user->id : null;
 
         return [
-            'data.type' => ['required', 'in:tracked-domains'],
+            'data.type' => ['required', 'in:trackedDomains'],
             'data.attributes.domain' => [
                 'required',
                 'string',
@@ -42,7 +42,7 @@ class TrackedDomainCreateRequest extends FormRequest
                     ->where('user_id', $ownUserId),
             ],
             'data.attributes.path' => ['nullable', 'string', 'max:255', 'regex:#^(/[^?\#\s]*[^/?\#\s])?$#'],
-            'data.attributes.customerId' => ['required', 'integer', 'exists:customers,id'],
+            'data.attributes.customerId' => ['required', 'string', 'exists:customers,id'],
             'data.attributes.budgetId' => [
                 'bail',
                 'nullable',
@@ -66,7 +66,15 @@ class TrackedDomainCreateRequest extends FormRequest
                 },
             ],
             'data.attributes.isInternal' => ['boolean'],
-            'data.attributes.userId' => ['required', 'integer', Rule::in($ownUserId === null ? [] : [$ownUserId])],
+            'data.attributes.userId' => [
+                'required',
+                'string',
+                function (string $attribute, mixed $value, Closure $fail) use ($ownUserId): void {
+                    if ($value !== (string) $ownUserId) {
+                        $fail('You can only map a domain for yourself.');
+                    }
+                },
+            ],
             'data.attributes.parentId' => [
                 'bail',
                 'nullable',

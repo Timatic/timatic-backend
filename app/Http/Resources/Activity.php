@@ -3,19 +3,21 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
-use TiMacDonald\JsonApi\JsonApiResource;
 
 /**
  * @mixin \App\Models\Activity
  */
 class Activity extends JsonApiResource
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function toAttributes(Request $request): array
     {
         return [
             'sourceId' => $this->source_id,
             'eventTypeId' => $this->event_type_id,
-            'customerId' => $this->customer_id,
+            'customerId' => $this->customer_id === null ? null : (string) $this->customer_id,
             'ticketId' => $this->ticket_id,
             'entrySuggestionId' => $this->entry_suggestion_id,
             'startedAt' => $this->started_at,

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Traits;
 
+use Closure;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
 trait ValidatedAttributes
@@ -30,5 +33,20 @@ trait ValidatedAttributes
     public function relationships(string $key): ?array
     {
         return $this->validated('data.relationships.'.$key) ?? null;
+    }
+
+    /**
+     * @return Closure(string, mixed, Closure): void
+     */
+    public function matchesRouteResourceId(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            $routeResource = Arr::first($this->route()?->parameters() ?? []);
+            $routeResourceId = $routeResource instanceof Model ? $routeResource->getKey() : $routeResource;
+
+            if ($value !== (string) $routeResourceId) {
+                $fail('The id does not match the resource in the URL.');
+            }
+        };
     }
 }

@@ -4,13 +4,15 @@ namespace App\Http\Resources;
 
 use App\Models\Source as SourceModel;
 use Illuminate\Http\Request;
-use TiMacDonald\JsonApi\JsonApiResource;
 
 /**
  * @mixin SourceModel
  */
 class Source extends JsonApiResource
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function toAttributes(Request $request): array
     {
         return [

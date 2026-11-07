@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use App\Http\Requests\RoleCreateRequest;
 use App\Http\Requests\RoleUpdateRequest;
 use App\Http\Resources;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Arr;
 use Spatie\Permission\Models\Role;
+use Spatie\QueryBuilder\AllowedInclude;
+use Spatie\QueryBuilder\Includes\IncludedRelationship;
 use Spatie\QueryBuilder\QueryBuilder;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
 
 class RoleController extends Controller implements HasMiddleware
 {
@@ -23,10 +25,12 @@ class RoleController extends Controller implements HasMiddleware
         ];
     }
 
-    public function index(): JsonApiResourceCollection
+    public function index(): AnonymousResourceCollection
     {
         $roles = QueryBuilder::for(Role::class)
-            ->allowedIncludes(['permissions'])
+            ->allowedIncludes([
+                AllowedInclude::custom('permissions', new IncludedRelationship),
+            ])
             ->jsonPaginate();
 
         return Resources\Role::collection($roles);

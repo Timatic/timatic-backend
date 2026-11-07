@@ -4,13 +4,15 @@ namespace App\Http\Resources;
 
 use App\Models\UserCustomerHoursRecord;
 use Illuminate\Http\Request;
-use TiMacDonald\JsonApi\JsonApiResource;
 
 /**
  * @mixin UserCustomerHoursRecord
  */
 class UserCustomerHoursAggregate extends JsonApiResource
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function toAttributes(Request $request): array
     {
         return [

@@ -32,7 +32,6 @@
         "spatie/laravel-permission": "^6.17",
         "spatie/laravel-query-builder": "^6.3",
         "spatie/period": "^2.4",
-        "timacdonald/json-api": "dev-main as 1.0.0-beta.99",
         "timatic/bitbucket-integration": "1.0.0",
         "timatic/claude-code-integration": "1.0.0",
         "timatic/exact-globe-integration": "1.0.0",
@@ -88,10 +87,6 @@
         {
             "type": "path",
             "url": "integrations/claude-code"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/timatic/json-api"
         }
     ],
     "config": {
@@ -151,6 +146,15 @@
         "fix": "vendor/bin/pint -v --ansi",
         "analyse": "vendor/bin/phpstan analyse --memory-limit=-1 --ansi",
         "test": "vendor/bin/pest --colors=always",
+        "docs:api": [
+            "Composer\\Config::disableProcessTimeout",
+            "cp composer.json composer.json.bak && cp composer.lock composer.lock.bak",
+            "@composer config repositories.scramble-pro composer https://satis.dedoc.co",
+            "@composer require dedoc/scramble-pro:^0.8.4 --no-interaction --no-progress",
+            "@php artisan scramble:export --path=public/api.json",
+            "mv composer.json.bak composer.json && mv composer.lock.bak composer.lock",
+            "@composer install --no-interaction --no-progress"
+        ],
         "prepare-commit": [
             "@fix",
             "@analyse",

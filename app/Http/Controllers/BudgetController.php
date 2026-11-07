@@ -14,15 +14,16 @@ use Exception;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Arr;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\AllowedInclude;
+use Spatie\QueryBuilder\Includes\IncludedRelationship;
 use Spatie\QueryBuilder\QueryBuilder;
 use Throwable;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
 
 class BudgetController extends Controller implements HasMiddleware
 {
@@ -37,7 +38,7 @@ class BudgetController extends Controller implements HasMiddleware
         ];
     }
 
-    public function index(Request $request): JsonApiResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
         $budgets = QueryBuilder::for(Budget::class)
             ->allowedFilters([
@@ -48,9 +49,9 @@ class BudgetController extends Controller implements HasMiddleware
                 AllowedFilter::scope('showToCustomer'),
             ])
             ->allowedIncludes([
-                'customer',
-                'allowedUsers',
-                'supervisor',
+                AllowedInclude::custom('customer', new IncludedRelationship),
+                AllowedInclude::custom('allowedUsers', new IncludedRelationship),
+                AllowedInclude::custom('supervisor', new IncludedRelationship),
                 AllowedInclude::custom('lastPeriod', new CustomRelationInclude),
                 AllowedInclude::custom('currentPeriod', new CustomRelationInclude),
             ])

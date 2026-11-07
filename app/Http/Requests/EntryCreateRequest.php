@@ -38,7 +38,7 @@ class EntryCreateRequest extends FormRequest
             'data.attributes.ticketType' => 'string',
             'data.attributes.ticketTitle' => 'string',
             'data.attributes.ticketNumber' => 'string',
-            'data.attributes.customerId' => 'required|integer|exists:customers,id',
+            'data.attributes.customerId' => 'required|string|exists:customers,id',
             'data.attributes.customerName' => 'string',
             'data.attributes.entryType' => 'required|in:regular,correction,custom,closing_budget_to_profit',
             'data.attributes.budgetId' => [
@@ -51,7 +51,7 @@ class EntryCreateRequest extends FormRequest
                         ->where('ended_at', '>=', $this->input('data.attributes.endedAt'));
                 }),
             ],
-            'data.attributes.userId' => 'integer|exists:users,id',
+            'data.attributes.userId' => 'string|exists:users,id',
             'data.attributes.userFullName' => 'string',
             'data.attributes.userEmail' => 'email|string',
             'data.attributes.description' => 'string',
@@ -62,7 +62,7 @@ class EntryCreateRequest extends FormRequest
             'data.attributes.overtimeEndedAt' => 'date',
             'data.attributes.startedAt' => 'required|date',
             'data.attributes.endedAt' => 'required|date',
-            'data.attributes.isInvoiced' => 'bool|in:true,1',
+            'data.attributes.isInvoiced' => 'boolean',
         ];
     }
 

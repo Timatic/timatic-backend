@@ -15,12 +15,18 @@ use App\Models\User;
 use App\Policies\PermissionPolicy;
 use App\Support\Scramble\RenamePathParametersTransformer;
 use BezhanSalleh\FilamentShield\Facades\FilamentShield;
+use Dedoc\Scramble\Configuration\ParametersExtractors;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
+use Dedoc\Scramble\Support\OperationExtensions\ParameterExtractor\FormRequestParametersExtractor;
+use Dedoc\Scramble\Support\OperationExtensions\ParameterExtractor\PathParametersExtractor;
+use Dedoc\Scramble\Support\OperationExtensions\ParameterExtractor\ValidateCallParametersExtractor;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\JsonApi\AnonymousResourceCollection as JsonApiResourceCollection;
 use Illuminate\Routing\Route;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -33,7 +39,6 @@ use SocialiteProviders\Azure\Provider as AzureProvider;
 use SocialiteProviders\Google\Provider as GoogleProvider;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 use Spatie\Permission\Models\Permission;
-use TiMacDonald\JsonApi\JsonApiResourceCollection;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -78,7 +83,18 @@ class AppServiceProvider extends ServiceProvider
             return Str::plural(Str::kebab($subject)).'.'.$action;
         });
 
-        JsonApiResourceCollection::camelCasePaginationMeta();
+        // Keep the camelCase pagination meta the API exposed before the native JsonApiResource
+        JsonApiResourceCollection::macro('paginationInformation', function (Request $request, array $paginated, array $default): array {
+            // Macros are shared by every JsonResource, so leave non JSON:API collections alone
+            if (! $this instanceof JsonApiResourceCollection) { // @phpstan-ignore instanceof.alwaysTrue
+                return $default;
+            }
+
+            return [
+                'links' => $default['links'],
+                'meta' => Arr::mapWithKeys($default['meta'], fn (mixed $value, string $key) => [Str::camel($key) => $value]),
+            ];
+        });
 
         Relation::enforceMorphMap([
             'user' => User::class,
@@ -91,6 +107,12 @@ class AppServiceProvider extends ServiceProvider
 
         Scramble::configure()
             ->preferPatchMethod()
+            // Document includes from each controller's allowedIncludes() only, not every nested relation of the resource
+            ->withParametersExtractors(fn (ParametersExtractors $extractors) => $extractors->use([
+                PathParametersExtractor::class,
+                FormRequestParametersExtractor::class,
+                ValidateCallParametersExtractor::class,
+            ]))
             ->withDocumentTransformers(RenamePathParametersTransformer::class)
             ->withDocumentTransformers(function (OpenApi $openApi) {
                 $openApi->secure(
