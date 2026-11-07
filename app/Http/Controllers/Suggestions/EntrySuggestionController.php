@@ -34,7 +34,7 @@ class EntrySuggestionController extends Controller implements HasMiddleware
 
     public function index(EntrySuggestionCollectionRequest $request): AnonymousResourceCollection
     {
-        $query = EntrySuggestion::query();
+        $query = EntrySuggestion::query()->with('activities');
 
         /** @var Authenticatable $user */
         $user = $request->user();

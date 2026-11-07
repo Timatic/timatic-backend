@@ -85,6 +85,26 @@ class EntrySuggestion extends Model
     }
 
     /**
+     * Overlapping activities are counted once, so their intervals are merged before summing.
+     */
+    public function minutesSpent(): int
+    {
+        $seconds = 0;
+        $coveredUntil = null;
+
+        foreach ($this->activities->sortBy('started_at') as $activity) {
+            $start = $coveredUntil?->max($activity->started_at) ?? $activity->started_at;
+
+            if ($activity->ended_at->greaterThan($start)) {
+                $seconds += $start->diffInSeconds($activity->ended_at);
+                $coveredUntil = $activity->ended_at;
+            }
+        }
+
+        return (int) round($seconds / 60);
+    }
+
+    /**
      * @return HasMany<Activity, $this>
      */
     public function activities(): HasMany
