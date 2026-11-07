@@ -262,7 +262,9 @@ class ActivityProjector
             return $event->is_internal;
         }
 
-        return $this->previousBookingOf($event)->isInternal ?? $event->is_internal;
+        $previousBooking = $this->previousBookingOf($event);
+
+        return $previousBooking === null ? $event->is_internal : $previousBooking->isInternal;
     }
 
     private function previousBookingOf(Event $event): ?PreviousSequenceBooking
