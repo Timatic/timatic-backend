@@ -26,3 +26,14 @@ it('returns a customer with account manager relation loaded', function () {
 
     expect($response->json('data.relationships.accountManager.data.id'))->toEqual((string) $customer->account_manager_user_id);
 });
+
+it('returns the email domains of a customer', function () {
+    $this->loginUser(permissions: ['customers.read']);
+    $customer = Customer::factory()->create();
+    $customer->emailDomains()->create(['domain' => 'acme.nl']);
+    $customer->emailDomains()->create(['domain' => 'acme.com']);
+
+    $response = $this->get('customers/'.$customer->id)->assertSuccessful();
+
+    expect($response->json('data.attributes.emailDomains'))->toBe(['acme.com', 'acme.nl']);
+});
