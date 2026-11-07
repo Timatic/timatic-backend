@@ -12,7 +12,7 @@ uses(LoginUser::class);
 it('renames the integration', function () {
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
-    $integration = Integration::create(['title' => 'Exact', 'type' => 'exact-globe', 'config' => []]);
+    $integration = Integration::factory()->create(['type' => 'exact-globe']);
 
     Livewire::test(SettingsPage::class, ['record' => $integration->id])
         ->fillForm(['title' => 'Exact Globe'])
@@ -25,7 +25,7 @@ it('renames the integration', function () {
 it('deletes the integration', function () {
     $this->loginUser(permissions: ['integrations.read', 'integrations.delete']);
     Filament::setCurrentPanel('admin');
-    $integration = Integration::create(['title' => 'Exact', 'type' => 'exact-globe', 'config' => []]);
+    $integration = Integration::factory()->create(['type' => 'exact-globe']);
 
     Livewire::test(SettingsPage::class, ['record' => $integration->id])
         ->callAction(DeleteAction::class);
