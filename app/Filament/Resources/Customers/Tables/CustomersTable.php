@@ -32,6 +32,11 @@ class CustomersTable
                     ->icon(fn (mixed $state): ?Heroicon => (int) $state === 0 ? Heroicon::ExclamationTriangle : null)
                     ->tooltip(fn (mixed $state): ?string => (int) $state === 0 ? 'No domains are tracked for this customer' : null)
                     ->sortable(),
+                TextColumn::make('emailDomains.domain')
+                    ->label(__('customers.email_domains.label'))
+                    ->badge()
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
                 EditAction::make(),

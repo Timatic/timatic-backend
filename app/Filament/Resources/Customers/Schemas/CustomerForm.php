@@ -10,6 +10,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class CustomerForm
@@ -25,10 +26,16 @@ class CustomerForm
                 ->options(User::pluck('email', 'id'))
                 ->searchable(),
             Toggle::make('is_own_organization')
-                ->label('Own organization'),
+                ->label('Own organization')
+                ->helperText(__('customers.own_organization.helper'))
+                ->live(),
             TagsInput::make('email_domains')
                 ->label(__('customers.email_domains.label'))
-                ->helperText(__('customers.email_domains.helper'))
+                ->helperText(fn (Get $get): string => $get('is_own_organization')
+                    ? __('customers.email_domains.helper_own')
+                    : __('customers.email_domains.helper'))
+                ->placeholder('acme.com')
+                ->splitKeys([',', ';', ' '])
                 ->loadStateFromRelationshipsUsing(fn (TagsInput $component, Customer $record) => $component->state(
                     $record->emailDomains()->orderBy('domain')->pluck('domain')->all()
                 ))
@@ -42,13 +49,14 @@ class CustomerForm
                             return;
                         }
 
-                        $isTaken = CustomerEmailDomain::query()
+                        $holder = CustomerEmailDomain::query()
                             ->where('domain', $domain)
                             ->when($record?->id !== null, fn ($query) => $query->where('customer_id', '!=', $record?->id))
-                            ->exists();
+                            ->first()
+                            ?->customer;
 
-                        if ($isTaken) {
-                            $fail(__('customers.email_domains.taken', ['domain' => $domain]));
+                        if ($holder !== null) {
+                            $fail(__('customers.email_domains.taken', ['domain' => $domain, 'customer' => $holder->name]));
                         }
                     },
                 ])
