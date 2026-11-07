@@ -7,17 +7,17 @@ use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Timatic\Nmbrs\DataTransferObjects\NmbrsCompany;
+use Timatic\Nmbrs\DataTransferObjects\NmbrsTokens;
+use Timatic\Nmbrs\Requests\ExchangeCodeRequest;
 use Timatic\Nmbrs\Requests\GetCompaniesRequest;
+use Timatic\Nmbrs\Requests\RefreshTokenRequest;
 
 class OAuthService
 {
     private const AUTHORIZE_URL = 'https://identityservice.nmbrs.com/connect/authorize';
-
-    private const TOKEN_URL = 'https://identityservice.nmbrs.com/connect/token';
 
     private const SCOPES = 'offline_access employee.info.read employee.leave.read employee.payment employee.employment.read company.info.read company.payrollsettings.read';
 
@@ -47,29 +47,24 @@ class OAuthService
             throw new RuntimeException('Invalid OAuth state parameter.');
         }
 
-        $tokenResponse = Http::asForm()->post(self::TOKEN_URL, [
-            'grant_type' => 'authorization_code',
-            'client_id' => config('nmbrs.client_id'),
-            'client_secret' => config('nmbrs.client_secret'),
-            'code' => $code,
-            'redirect_uri' => $this->redirectUri(),
-        ]);
+        $tokenResponse = new OAuthConnector()->send(new ExchangeCodeRequest($code, $this->redirectUri()));
 
         if ($tokenResponse->failed()) {
             throw new RuntimeException('Token exchange failed: '.$tokenResponse->body());
         }
 
-        $tokens = $tokenResponse->json();
+        /** @var NmbrsTokens $tokens */
+        $tokens = $tokenResponse->dto();
 
-        $company = $this->fetchFirstCompany($tokens['access_token']);
+        $company = $this->fetchFirstCompany($tokens->accessToken);
 
         $integration->update([
             'config' => array_merge(
                 Arr::except($integration->config ?? [], ['oauth_nonce']),
                 [
-                    'access_token' => $tokens['access_token'],
-                    'refresh_token' => $tokens['refresh_token'] ?? null,
-                    'expires_at' => now()->addSeconds($tokens['expires_in'] - 60)->timestamp,
+                    'access_token' => $tokens->accessToken,
+                    'refresh_token' => $tokens->refreshToken,
+                    'expires_at' => now()->addSeconds($tokens->expiresIn - 60)->timestamp,
                     'company_id' => $company->companyId,
                     'company_name' => $company->name,
                 ]
@@ -129,12 +124,7 @@ class OAuthService
     {
         $config = $integration->config ?? [];
 
-        $response = Http::asForm()->post(self::TOKEN_URL, [
-            'grant_type' => 'refresh_token',
-            'client_id' => config('nmbrs.client_id'),
-            'client_secret' => config('nmbrs.client_secret'),
-            'refresh_token' => $config['refresh_token'] ?? '',
-        ]);
+        $response = new OAuthConnector()->send(new RefreshTokenRequest($config['refresh_token'] ?? ''));
 
         if ($response->status() === 400) {
             $this->disconnect($integration);
@@ -146,13 +136,14 @@ class OAuthService
             throw new RuntimeException('Token refresh failed.');
         }
 
-        $tokens = $response->json();
+        /** @var NmbrsTokens $tokens */
+        $tokens = $response->dto();
 
         $integration->update([
             'config' => array_merge($config, [
-                'access_token' => $tokens['access_token'],
-                'refresh_token' => $tokens['refresh_token'] ?? $config['refresh_token'],
-                'expires_at' => now()->addSeconds($tokens['expires_in'] - 60)->timestamp,
+                'access_token' => $tokens->accessToken,
+                'refresh_token' => $tokens->refreshToken ?? $config['refresh_token'],
+                'expires_at' => now()->addSeconds($tokens->expiresIn - 60)->timestamp,
             ]),
         ]);
 
