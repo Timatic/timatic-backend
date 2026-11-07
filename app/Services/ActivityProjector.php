@@ -54,7 +54,9 @@ class ActivityProjector
         $unclaimed = collect();
 
         foreach ($sorted as $event) {
-            if ($this->customerId($event) === null) {
+            $customerId = $this->customerId($event);
+
+            if ($customerId === null) {
                 $this->createActivity($event);
 
                 continue;
@@ -62,7 +64,7 @@ class ActivityProjector
 
             if ($event->ticket_number === null) {
                 $match = $this->findChainableActivity($event,
-                    fn (Activity $a) => $a->customer_id === $this->customerId($event)
+                    fn (Activity $a) => $a->customer_id === $customerId
                 );
 
                 if ($match) {
@@ -75,7 +77,7 @@ class ActivityProjector
             }
 
             $match = $this->findChainableActivity($event,
-                fn (Activity $a) => $a->customer_id === $this->customerId($event)
+                fn (Activity $a) => $a->customer_id === $customerId
                     && $a->ticket_number === $event->ticket_number
                     && $a->event_type_id === $event->event_type_id
             );
@@ -88,8 +90,9 @@ class ActivityProjector
         }
 
         foreach ($unclaimed as $event) {
+            $customerId = $this->customerId($event);
             $match = $this->findChainableActivity($event,
-                fn (Activity $a) => $a->customer_id === $this->customerId($event)
+                fn (Activity $a) => $a->customer_id === $customerId
             );
 
             if ($match) {
@@ -110,9 +113,11 @@ class ActivityProjector
 
         // Fully covered, the event has no time of its own left, but it still underlines the work of
         // the same customer that covers it.
-        if ($newActivityPartsWithoutOverlap === [] && $this->customerId($event) !== null) {
+        $customerId = $this->customerId($event);
+
+        if ($newActivityPartsWithoutOverlap === [] && $customerId !== null) {
             $this->activities
-                ->first(fn (Activity $activity) => $activity->customer_id === $this->customerId($event)
+                ->first(fn (Activity $activity) => $activity->customer_id === $customerId
                     && $activity->started_at->lt($event->ended_at)
                     && $activity->ended_at->gt($event->effectiveStart()))
                 ?->events->push($event);

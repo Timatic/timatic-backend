@@ -756,11 +756,11 @@ test('a meeting booked like its previous sequence entry chains with adjacent wor
     $work = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
-        'event_type_id' => 'commit_pushed',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 10:30'),
         'ended_at' => Carbon::parse('2026-07-16 10:50'),
     ]);
-    $work->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
+    $work->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 1]));
     $previousBooking = new PreviousSequenceBooking(
         sourceId: 'google_calendar',
         externalId: 'weekly-sync',
