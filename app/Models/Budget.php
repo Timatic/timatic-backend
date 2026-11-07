@@ -32,7 +32,7 @@ use UnexpectedValueException;
  * @property Collection|Entry[] $entries
  * @property Collection|BudgetVersion[] $budgetVersions
  * @property BudgetType $budgetType
- * @property ?Customer $customer
+ * @property Customer $customer
  * @property ?User $supervisor
  * @property Collection<int, User> $allowedUsers
  *

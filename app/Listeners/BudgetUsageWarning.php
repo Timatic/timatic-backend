@@ -9,7 +9,6 @@ use Exception;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Log\LogManager;
 use Illuminate\Support\Facades\Mail;
-use UnexpectedValueException;
 
 class BudgetUsageWarning implements ShouldQueue
 {
@@ -92,10 +91,6 @@ class BudgetUsageWarning implements ShouldQueue
 
     private function notifyOnUsedBudget(Budget $budget, string $amountUsed): void
     {
-        if (is_null($budget->customer)) {
-            throw new UnexpectedValueException("Budget {$budget->id} has no customer.");
-        }
-
         $mailTo[] = $budget->customer->accountManager->email ?? config('timatic.account_management_mail_address');
 
         if ($budget->supervisor) {
