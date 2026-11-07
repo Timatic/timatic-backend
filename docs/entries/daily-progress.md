@@ -8,8 +8,9 @@ An engineer should see at a glance whether a day is fully booked. Daily progress
 
 ## Rules
 
-- **Progress uses clock time, not minutes spent.** Overtime percentages must not make a day look fuller than it was. No pinning test yet.
+- **Progress uses clock time, not minutes spent.** Overtime percentages must not make a day look fuller than it was. Test: `measures progress in clock time, not minutes spent`.
 
 ## Where in the code
 
 - `app/Services/DailyProgressCalculator.php`, `app/Models/DailyProgress.php`, `app/Http/Controllers/Reports/GetDailyProgressController.php`
+- Tests: `tests/Feature/Reports/DailyProgressTest.php`
