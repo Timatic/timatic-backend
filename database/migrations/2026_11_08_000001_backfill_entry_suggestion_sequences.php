@@ -7,7 +7,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::table('entry_suggestion_sequences')->insertUsing(
+        DB::table('entry_suggestion_sequences')->insertOrIgnoreUsing(
             ['entry_suggestion_id', 'source_id', 'external_id'],
             DB::table('activities')
                 ->join('activity_event', 'activity_event.activity_id', '=', 'activities.id')
