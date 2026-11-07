@@ -8,13 +8,10 @@ A budget that had 20 hours a month for a year and 30 hours a month after that mu
 
 ## Rules
 
-- **The first version starts with the budget.** When a budget is created, its first version is effective from the budget's start date; a posted effective-from on any other day is refused. Test: `stores a budget`.
-- **A one-time budget has one version for its whole duration.** Without a renewal frequency, a new version may only be effective from the budget's start date, so it replaces the previous one entirely. Guards the single period of a one-time budget, which has no boundary a change could align with. No pinning test yet.
-- **A renewing budget changes at a period boundary.** The effective-from date of a new version must be the start date of one of the budget's periods; any other day is refused. Guards the per-period reporting: a period always has one version. No pinning test yet.
-- **An update without an effective-from date applies from the budget's start.** That retires every existing version (see the next rule), so a client that means "from now on" must send the start of the current period. Test: `can update a budget without explicit effective from date`.
-- **A partial update keeps what it did not post.** Missing mutable fields are copied from the version active at the moment of the update, so a new version is always complete. Test: `can update a budget with renewal frequencies`.
-- **The new version wins over everything from its date onward.** An older version that starts on or after the new effective-from date becomes obsolete and is soft-deleted. An older version that started earlier and ran into the new date gets an effective-to of one minute before it. Backdating is allowed and can retire several versions at once. No pinning test yet.
-- **Looking up the version for a moment before the budget started returns the first version.** Entries can be moved onto a budget created after them, and they must still resolve a version. A budget whose versions do not cover the moment falls back to its open-ended version. Test: `always returns an active version`.
+- **A version changes at a period boundary, never inside a period.** The effective-from date of a new version must be the start of one of the budget's periods; for a one-time budget that is only the budget's start, so its single version is replaced whole. Guards per-period reporting: a period always has one version. No pinning test yet.
+- **An update without an effective-from date applies from the budget's start**, which retires every existing version. A client that means "from now on" must send the start of the current period. Test: `can update a budget without explicit effective from date`.
+- **The new version wins from its date onward.** An older version starting on or after the new effective-from date is soft-deleted; one that started earlier gets an effective-to of one minute before. Backdating is allowed and may retire several versions at once. No pinning test yet.
+- **A moment before the budget started resolves to the first version.** Entries can be moved onto a budget created after them, and they must still find a rate and hours. Test: `always returns an active version`.
 
 ## Where in the code
 

@@ -6,8 +6,8 @@ Read this when you touch anything that creates, changes, archives or reads a bud
 
 A customer buys a pot of hours. Engineers book entries on that pot, and the business needs to know at any moment, and for any past month, how much was bought, used, overrun and left. Two things must stay true:
 
-- **History never changes.** A price or hours change applies from a date forward; every earlier month still reports what was true then.
-- **Nothing about a period is stored.** Periods are derived from the budget's start, end, renewal frequency and archive date, so they can never disagree with those fields.
+- **History never changes.** A price or hours change applies from a date forward; every earlier month still reports what was true then. That is why the mutable fields live in [versions](versions.md).
+- **Nothing about a period is stored.** [Periods](periods.md) are derived from the budget's start, end, renewal frequency and archive date, so they can never disagree with those fields.
 
 ```
 Customer
@@ -17,18 +17,16 @@ Customer
                     └── Entry   consumes minutes spent from the period it starts in
 ```
 
+The budget type is the template: it lists the renewal frequencies a budget may have and which fields and rules apply (end date, supervisor, contract id, total price, a ticket on every entry).
+
 ## Rules
 
-- **Four fields are immutable** once a budget exists: budget type, customer, renewal frequency and start date. Updates that send them are ignored rather than rejected. Guards the history of every period already derived. Test: `does not update budget fields`.
-- **The budget type decides the shape.** It lists the renewal frequencies a budget of that type may have and whether a start and end date, supervisor, contract id, change ticket, total price and a ticket on every entry are required. Test: `has renewal frequency returns value based on renewal frequencies`.
-- **Every change to the mutable fields creates a version**, never an update in place. An update that posts none of the mutable fields creates no version. See [versions](versions.md). Test: `does not create a budget version if none of its fields are posted`.
-- **The hourly rate is derived**: total price of the active version divided by its initial minutes as hours. A version with zero minutes has a rate of zero. An entry on a budget carries no rate of its own; an entry without a budget takes the customer's rate. Tests: `returns hourly rate with budget`, `returns hourly rate without budget`.
-- **Archiving ends a budget early.** The archive date closes the last period and no later period exists, even when the end date lies further ahead. Tests: `it can archive budgets and set archived at`, `periods should not be created after budget is archived`.
-- **A budget may restrict who books on it.** With an empty list every user may create entries on the budget; with a non-empty list only the listed users may. Entries before the budget's start are refused for everyone. Tests: `stores an entry if the budget has no allowed users`, `does not store an entry if the current user is not an allowed user on the budget`, `does not store an entry when the budget has not started`.
-- **A budget may be visible to the customer.** The flag is a filter for client-facing views and changes nothing else. Test: `returns budgets filtered on show to customer`.
-- **Budgets are reachable by the customer's external id**, for integrations that only know their own customer id. Test: `returns budgets filtered on customer by external id`.
+- **The four immutable fields are silently ignored on update**, not rejected: budget type, customer, renewal frequency and start date. A client that sends them gets a success response and an unchanged budget. Test: `does not update budget fields`.
+- **The hourly rate is derived, never entered**: total price of the active version divided by its initial minutes as hours, so a change of price or hours changes the rate from that version on. An entry on a budget carries no rate of its own; an entry without a budget snapshots the customer's rate when saved. Tests: `returns hourly rate with budget`, `returns hourly rate without budget`.
+- **Archiving ends a budget early.** The archive date closes the last period, whatever the end date says, so credit stops expiring and renewing from that day. Tests: `it can archive budgets and set archived at`, `periods should not be created after budget is archived`.
+- **An empty allowed-users list means everyone.** Only a non-empty list restricts who may create entries on the budget. Entries before the budget's start are refused for everyone. Tests: `stores an entry if the budget has no allowed users`, `does not store an entry if the current user is not an allowed user on the budget`, `does not store an entry when the budget has not started`.
 
 ## Where in the code
 
-- `app/Models/Budget.php` (immutable fields, hourly rate, period generation), `app/Models/BudgetType.php`
-- Tests: `tests/Feature/Budgets/StoreTest.php`, `tests/Feature/Budgets/IndexTest.php`, `tests/Feature/Budgets/AssignUsersToBudgetsTest.php`, `tests/Feature/Entries/StoreTest.php`, `tests/Feature/BudgetTypes/RenewalFrequenciesTest.php`, `tests/Integration/Entry/HourlyRateTest.php`, `tests/Feature/Periods/GetFromBudgetTest.php`
+- `app/Models/Budget.php` (immutable fields, hourly rate, period generation), `app/Models/BudgetType.php`, `app/Policies/EntryPolicy.php` (allowed users)
+- Tests: `tests/Feature/Budgets/StoreTest.php`, `tests/Feature/Budgets/IndexTest.php`, `tests/Feature/Budgets/AssignUsersToBudgetsTest.php`, `tests/Feature/Entries/StoreTest.php`, `tests/Integration/Entry/HourlyRateTest.php`, `tests/Feature/Periods/GetFromBudgetTest.php`
