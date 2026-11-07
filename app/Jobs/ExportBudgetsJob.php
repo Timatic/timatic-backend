@@ -21,7 +21,7 @@ class ExportBudgetsJob implements ShouldQueue
     public function __construct(
         protected User $user,
         protected string $exportType,
-        protected ExportParameters $period,
+        public readonly ExportParameters $period,
     ) {}
 
     public function handle(ExportService $exportService): void
@@ -66,6 +66,6 @@ class ExportBudgetsJob implements ShouldQueue
 
     private function sendExportEmail(string $fileName): void
     {
-        Mail::to($this->user->email)->queue(new ExportEmail($fileName, $this->period->year, $this->period->month, $this->exportType));
+        Mail::to($this->user->email)->queue(new ExportEmail($fileName, $this->period, $this->exportType));
     }
 }
