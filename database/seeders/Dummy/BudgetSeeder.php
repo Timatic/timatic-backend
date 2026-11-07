@@ -29,7 +29,7 @@ class BudgetSeeder extends Seeder
         $developers = $developmentTeam !== null ? $developmentTeam->users : new Collection;
 
         if ($customers->isEmpty()) {
-            $this->command->warn('No customers found. Skipping budget creation.');
+            $this->command?->warn('No customers found. Skipping budget creation.');
 
             return;
         }

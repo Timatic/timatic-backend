@@ -99,7 +99,7 @@ class EntriesExport implements ExportInterface
             }
 
             $hoursSpent = BigDecimal::of($entry->minutes_spent ?? 0)
-                ->dividedBy(60, 4, RoundingMode::HALF_UP);
+                ->dividedBy(60, 4, RoundingMode::HalfUp);
             $row->hoursSpent = $hoursSpent->toFloat();
 
             if ($entry->budget) {

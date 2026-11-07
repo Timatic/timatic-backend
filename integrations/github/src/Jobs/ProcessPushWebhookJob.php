@@ -74,9 +74,7 @@ class ProcessPushWebhookJob extends ProcessWebhookJob
             return;
         }
 
-        $timestamp = collect($knownCommits)
-            ->map(fn (array $commit) => Carbon::parse($commit['timestamp'])->utc())
-            ->max();
+        $timestamp = max(array_map(fn (array $commit) => Carbon::parse($commit['timestamp'])->utc(), $knownCommits));
 
         $title = sprintf('Rebased %d commits on %s', count($knownCommits), $branchName ?? 'unknown branch');
 

@@ -17,7 +17,7 @@ class CustomerSeeder extends Seeder
         $users = User::all();
 
         if ($users->isEmpty()) {
-            $this->command->warn('No users found. Creating customers without account managers.');
+            $this->command?->warn('No users found. Creating customers without account managers.');
         }
 
         $serviceManagementTeam = Team::firstWhere('name', 'service management');

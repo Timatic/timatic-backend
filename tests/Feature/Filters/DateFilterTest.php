@@ -5,6 +5,7 @@ namespace Tests\Feature\Filters;
 use App\Models\Entry;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class DateFilterTest extends TestCase
@@ -21,7 +22,7 @@ class DateFilterTest extends TestCase
         $this->actingAs($this->user, 'api');
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_entries_with_greater_than_or_equal_operator()
     {
         // Create entries with different dates
@@ -36,7 +37,7 @@ class DateFilterTest extends TestCase
         $response->assertJsonCount(2, 'data'); // Should return 2 entries
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_entries_with_date_range_using_multiple_operators()
     {
         // Create entries spanning multiple months
@@ -54,7 +55,7 @@ class DateFilterTest extends TestCase
         $response->assertJsonCount(2, 'data'); // Should return only January entries
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_with_less_than_operator()
     {
         Entry::factory()->create(['started_at' => '2025-01-01 10:00:00']);
@@ -67,7 +68,7 @@ class DateFilterTest extends TestCase
         $response->assertJsonCount(1, 'data'); // Should return 1 entry
     }
 
-    /** @test */
+    #[Test]
     public function it_ignores_unknown_operators()
     {
         Entry::factory()->create(['started_at' => '2025-01-01 10:00:00']);

@@ -220,9 +220,7 @@ class ProcessWebhookJob implements ShouldQueue
             return;
         }
 
-        $timestamp = collect($knownCommits)
-            ->map(fn (array $commit) => Carbon::parse($commit['date'])->utc())
-            ->max();
+        $timestamp = max(array_map(fn (array $commit) => Carbon::parse($commit['date'])->utc(), $knownCommits));
 
         $title = sprintf('Rebased %d commits on %s', count($knownCommits), $branchName ?? 'unknown branch');
 

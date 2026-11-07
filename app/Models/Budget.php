@@ -333,13 +333,13 @@ class Budget extends Model
         $version = $this->activeVersion($timestamp);
 
         $hours = BigDecimal::of($version->initial_minutes)
-            ->dividedBy(60, 4, RoundingMode::HALF_UP);
+            ->dividedBy(60, 4, RoundingMode::HalfUp);
 
         if ($hours->isEqualTo(0)) {
             return BigDecimal::of(0);
         }
 
-        return BigDecimal::of($version->total_price)->dividedBy($hours, 4, RoundingMode::HALF_UP);
+        return BigDecimal::of($version->total_price)->dividedBy($hours, 4, RoundingMode::HalfUp);
     }
 
     public function activeVersion(?Carbon $timestamp = null): BudgetVersion

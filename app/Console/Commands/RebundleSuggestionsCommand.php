@@ -18,8 +18,8 @@ class RebundleSuggestionsCommand extends Command
 
     public function handle(): int
     {
-        $from = $this->option('from') ? Carbon::parse($this->option('from'))->startOfDay() : now()->subMonth()->startOfMonth();
-        $to = $this->option('to') ? Carbon::parse($this->option('to'))->startOfDay() : now()->startOfDay();
+        $from = is_string($this->option('from')) ? Carbon::parse($this->option('from'))->startOfDay() : now()->subMonth()->startOfMonth();
+        $to = is_string($this->option('to')) ? Carbon::parse($this->option('to'))->startOfDay() : now()->startOfDay();
 
         $userIds = Event::query()
             ->where('ended_at', '>=', $from)
