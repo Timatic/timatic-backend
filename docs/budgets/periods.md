@@ -18,7 +18,7 @@ A period is one renewal window of a budget: the hours of the active version are 
 - **An entry belongs to the period its start falls in.** The first period also counts entries that start before the budget, the last period also counts entries that start after it, so hours booked slightly outside the budget's dates still land on the budget. Deleted and internal entries count for nothing. Tests: `takes entries before the budget start date and after budget end date into account`, `doesnt count minutes spent on deleted entries`.
 - **Remaining minutes are the initial minutes of the active version minus the spent minutes of the period.** Views clamp at zero; the usage calculation asks for the negative value to measure overrun. Remaining credit is the remaining hours times the hourly rate of the version active at the period's start.
 - **A period can be observed as of a date.** Spent minutes then only count entries that started before that date, which is how the monthly usage report sees a period at the first and at the last day of a month. See [usage](usage.md).
-- **Period figures are cached per budget** and flushed whenever the budget or an entry on it is saved.
+- **The period response of the API is cached for a day per budget** and flushed whenever the budget or an entry on it is saved, so a fresh booking shows up in remaining minutes immediately.
 
 ## Where in the code
 
