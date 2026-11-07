@@ -32,7 +32,7 @@ One definition per term. Pages in `docs/` use these words and nothing else for t
 - **Event**: one observed signal that work happened: a commit, an issue transition, a browser focus, a calendar meeting. Has an end, an optional start, an optional customer, budget and ticket, and an event type.
 - **Event type**: the kind of event, with a **weight**. Lower weight is stronger evidence of work; higher weight only fills time nothing stronger claimed.
 - **Sequence**: the recurring thing an event is an occurrence of, identified by source plus external id (a recurring calendar meeting is the typical case).
-- **Activity**: a span of time on one customer (and ticket, when known) that one or more events of the same day support. Projected from the day's events; never edited by hand.
+- **Activity**: one stretch of work on one customer (and ticket, when known) that one or more events of the same day support, from any source and of any event type. Projected from the day's events; never edited by hand.
 - **Suggestion**: a proposed entry for one user and one day, made of one or more activities that chain together. Accepting it creates an entry; dismissing it soft-deletes it.
 - **Unknown** (on an event, activity or suggestion): a missing customer, budget or internal flag means the source did not know it. Later activities may fill it. It never means paid per hour.
 - **Dismissed suggestion**: a suggestion the user rejected. Its customer, budget, ticket and internal flag form a key; a rebuild projects no new suggestion with that key on that day.
