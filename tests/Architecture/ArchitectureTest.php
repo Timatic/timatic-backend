@@ -18,7 +18,16 @@ use App\Models\TimeSpentTotal;
 use App\Models\User;
 use App\Providers\Filament\AdminPanelProvider;
 use App\Support\Scramble\CustomRelationshipsExtension;
+use Filament\Pages\Page;
+use Illuminate\Console\Command;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Mail\Mailable;
+use Illuminate\Support\ServiceProvider;
+use Saloon\Http\Connector;
 use Saloon\Http\Request;
+use Timatic\ExactGlobe\BudgetsExactExport;
+use Timatic\ExactGlobe\ExportProvider;
 use Timatic\Jira\Requests\GetIssueRequest;
 
 // Pest does not expand wildcards in namespaces, so list each integration package's root namespace
@@ -58,11 +67,70 @@ arch('controllers have no private methods')
 
 arch('app does not depend on integration packages')
     ->expect('App')
-    ->not->toUse('Timatic');
+    ->not->toUse($integrationNamespaces->values()->all());
 
-arch('integrations make HTTP calls through Saloon only')
-    ->expect(['Illuminate\Support\Facades\Http', 'GuzzleHttp'])
-    ->not->toBeUsedIn('Timatic');
+// Pest negates an array of namespaces as a whole, so negative rules run per integration
+arch('integrations make HTTP calls through Saloon only', function (string $namespace): void {
+    expect($namespace)->not->toUse(['Illuminate\Support\Facades\Http', 'GuzzleHttp']);
+})->with($integrationNamespaces->values()->all());
+
+// Integrations may use the app's models, contracts and data, never its behaviour
+$appNamespacesHiddenFromIntegrations = collect(glob(__DIR__.'/../../app/*', GLOB_ONLYDIR))
+    ->map(fn (string $path): string => 'App\\'.basename($path))
+    ->reject(fn (string $namespace): bool => in_array($namespace, ['App\\Models', 'App\\Integrations', 'App\\DataTransferObjects', 'App\\Enums', 'App\\Filament', 'App\\Http']))
+    ->merge(['App\\Http\\Concerns', 'App\\Http\\Middleware', 'App\\Http\\Requests'])
+    ->merge(collect(['Controllers', 'Resources'])
+        ->flatMap(fn (string $folder): array => glob(__DIR__."/../../app/Http/{$folder}/*"))
+        ->map(fn (string $path): string => 'App\\Http\\'.basename(dirname($path)).'\\'.basename($path, '.php'))
+        ->reject(fn (string $class): bool => in_array($class, ['App\\Http\\Controllers\\Controller', 'App\\Http\\Resources\\JsonApiResource'])))
+    ->values()
+    ->all();
+
+arch('integrations only use the app models, contracts and data', function (string $namespace) use ($appNamespacesHiddenFromIntegrations): void {
+    expect($namespace)
+        ->not->toUse($appNamespacesHiddenFromIntegrations)
+        // The Exact export reuses the budget mutations of the core monthly export
+        ->ignoring([BudgetsExactExport::class, ExportProvider::class]);
+})->with($integrationNamespaces->values()->all());
+
+arch('integrations do not use each other', function (string $namespace) use ($integrationNamespaces): void {
+    expect($namespace)->not->toUse($integrationNamespaces->reject(fn (string $other): bool => $other === $namespace)->values()->all());
+})->with($integrationNamespaces->values()->all());
+
+test('integrations have a service provider', function () use ($integrationNamespaces): void {
+    $serviceProviders = $integrationNamespaces->map(fn (string $namespace): string => "{$namespace}\\ServiceProvider");
+
+    expect($serviceProviders->every(fn (string $class): bool => is_subclass_of($class, ServiceProvider::class)))->toBeTrue();
+});
+
+arch('integration connectors extend the saloon connector')
+    ->expect($integrationNamespaces->map(fn (string $namespace): string => "{$namespace}\\Connector")->filter(fn (string $class): bool => class_exists($class))->values()->all())
+    ->toExtend(Connector::class);
+
+arch('integration classes follow the convention of their folder', function (string $folder, ?string $suffix, string $parent) use ($integrationNamespaces): void {
+    $namespaces = $integrationNamespaces->map(fn (string $namespace): string => "{$namespace}\\{$folder}")->values()->all();
+
+    if ($suffix !== null) {
+        expect($namespaces)->classes()->toHaveSuffix($suffix);
+    }
+
+    interface_exists($parent)
+        ? expect($namespaces)->classes()->toImplement($parent)
+        : expect($namespaces)->classes()->toExtend($parent);
+})->with([
+    'requests' => ['Requests', 'Request', Request::class],
+    'jobs' => ['Jobs', 'Job', ShouldQueue::class],
+    'commands' => ['Commands', 'Command', Command::class],
+    'exceptions' => ['Exceptions', 'Exception', Exception::class],
+    'filament pages' => ['Filament\\Pages', 'Page', Page::class],
+    'mail' => ['Mail', 'Mail', Mailable::class],
+    'models' => ['Models', null, Model::class],
+]);
+
+arch('integration controllers are suffixed')
+    ->expect($integrationNamespaces->map(fn (string $namespace): string => "{$namespace}\\Http\\Controllers")->values()->all())
+    ->classes()
+    ->toHaveSuffix('Controller');
 
 arch('models do not depend on the HTTP or Filament layer')
     ->expect('App\Models')
@@ -77,10 +145,6 @@ arch('data transfer objects are readonly')
     ->expect($integrationNamespaces->map(fn (string $namespace): string => "{$namespace}\\DataTransferObjects")->values()->push('App\DataTransferObjects')->all())
     ->toBeReadonly()
     ->ignoring([EntryExportRow::class, BudgetMutation::class]);
-
-arch('saloon requests extend the saloon request')
-    ->expect($integrationNamespaces->map(fn (string $namespace): string => "{$namespace}\\Requests")->values()->all())
-    ->toExtend(Request::class);
 
 // Saloon's base request already defines createDtoFromResponse(), so check each request declares its own
 test('saloon requests map their response to a DTO', function () use ($integrationNamespaces): void {
