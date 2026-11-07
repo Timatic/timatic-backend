@@ -5,6 +5,7 @@ namespace Tests\Feature\Filters;
 use App\Models\Entry;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class TextFilterTest extends TestCase
@@ -21,7 +22,7 @@ class TextFilterTest extends TestCase
         $this->actingAs($this->user, 'api');
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_entries_with_exact_match_on_user_full_name()
     {
         Entry::factory()->create(['user_full_name' => 'John Doe']);
@@ -33,7 +34,7 @@ class TextFilterTest extends TestCase
         $response->assertJsonCount(1, 'data');
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_entries_with_contains_operator_on_user_full_name()
     {
         Entry::factory()->create(['user_full_name' => 'John Doe']);
@@ -46,7 +47,7 @@ class TextFilterTest extends TestCase
         $response->assertJsonCount(2, 'data');
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_entries_with_exact_match_on_ticket_number()
     {
         Entry::factory()->create(['ticket_number' => 'TICKET-123']);
@@ -58,7 +59,7 @@ class TextFilterTest extends TestCase
         $response->assertJsonCount(1, 'data');
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_entries_with_contains_operator_on_ticket_number()
     {
         Entry::factory()->create(['ticket_number' => 'TICKET-123']);
@@ -71,7 +72,7 @@ class TextFilterTest extends TestCase
         $response->assertJsonCount(2, 'data');
     }
 
-    /** @test */
+    #[Test]
     public function it_is_case_insensitive_for_contains_operator()
     {
         Entry::factory()->create(['user_full_name' => 'John Doe']);
