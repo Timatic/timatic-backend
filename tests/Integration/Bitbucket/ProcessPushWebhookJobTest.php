@@ -3,6 +3,7 @@
 use App\Integrations\Tickets\TicketService;
 use App\Models\Customer;
 use App\Models\Event;
+use App\Models\GitCommitEmail;
 use App\Models\Integration;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -64,6 +65,20 @@ it('creates a commit_pushed event for a new commit', function () {
 
     expect(Event::where('event_type_id', 'commit_pushed')->count())->toBe(1)
         ->and(Event::where('event_type_id', 'rebase')->count())->toBe(0);
+});
+
+it('attributes a commit made with a known git commit email to its user', function () {
+    EventFacade::fake();
+    $user = User::factory()->create(['email' => 'dev@example.com']);
+    GitCommitEmail::query()->create(['user_id' => $user->id, 'email' => 'dev@home.example']);
+    $mapping = pushMapping();
+    $payload = pushPayload('Dev@Home.example', [
+        ['message' => 'add vite', 'date' => '2026-06-05T09:38:30+00:00'],
+    ]);
+
+    new ProcessWebhookJob($payload, $mapping, 'repo:push')->handle(app(TicketService::class));
+
+    expect(Event::sole()->user_id)->toBe($user->id);
 });
 
 it('stores a commit as a point event without a start time', function () {
