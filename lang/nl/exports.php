@@ -9,7 +9,8 @@ return [
             'customer' => 'Klant',
             'ticketType' => 'Tickettype',
         ],
-        'without_budget' => 'Geen budget',
+        'internal' => 'Intern',
+        'per_hour' => 'Per uur',
         'without_ticket_type' => 'Geen tickettype',
     ],
 ];
