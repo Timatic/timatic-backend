@@ -91,7 +91,7 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return [
-                'links' => array_filter($default['links']),
+                'links' => $default['links'],
                 'meta' => Arr::mapWithKeys($default['meta'], fn (mixed $value, string $key) => [Str::camel($key) => $value]),
             ];
         });

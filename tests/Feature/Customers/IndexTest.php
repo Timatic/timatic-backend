@@ -34,7 +34,7 @@ it('returns the pagination meta in camelCase', function () {
         ->assertJsonPath('meta.currentPage', 1)
         ->assertJsonPath('meta.perPage', 5)
         ->assertJsonMissingPath('meta.current_page')
-        ->assertJsonMissingPath('links.prev');
+        ->assertJsonPath('links.prev', null);
 });
 
 it('rejects the count and exists variants of an include', function () {
