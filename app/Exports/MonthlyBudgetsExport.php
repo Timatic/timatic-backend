@@ -58,7 +58,7 @@ class MonthlyBudgetsExport implements ExportInterface
             $row->budgetTitle,
             $row->budget->renewal_frequency,
             $row->budget->started_at->format('d-m-Y'),
-            $row->budget->ended_at->format('d-m-Y'),
+            $row->budget->ended_at?->format('d-m-Y'),
             (bool) $row->budget->archived_at?->isBefore($this->month->endOfMonth()),
             $row->budget->getHourlyRateBigDecimal()->toFloat(),
             (float) $row->budget->getTotalPrice(),

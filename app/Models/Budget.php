@@ -23,7 +23,7 @@ use UnexpectedValueException;
  * @property bool $show_to_customer
  * @property string $budget_type_id
  * @property Carbon $started_at
- * @property Carbon $ended_at
+ * @property ?Carbon $ended_at
  * @property ?string $renewal_frequency
  * @property ?Carbon $archived_at
  * @property Carbon $created_at
@@ -168,6 +168,10 @@ class Budget extends Model
         $periods = new \Illuminate\Support\Collection;
 
         $endDate = $this->ended_at;
+
+        if (is_null($endDate)) {
+            throw new UnexpectedValueException("Budget {$this->id} has no end date.");
+        }
         if ($this->archived_at) {
             $endDate = $this->archived_at->isBefore($endDate) ? $this->archived_at : $endDate;
         }
@@ -192,6 +196,10 @@ class Budget extends Model
         $startDate = $this->started_at->clone();
         $maxPeriodEndDate = Carbon::now()->add($frequency, 1);
         $endDate = $this->archived_at ?? $this->ended_at;
+
+        if (is_null($endDate)) {
+            throw new UnexpectedValueException("Budget {$this->id} has no end date.");
+        }
 
         $alignToMonthStart = config('timatic.feature.align_periods_to_month_start') && $frequency === 'month';
         $isFirstPeriod = true;
@@ -264,6 +272,10 @@ class Budget extends Model
     public function getLastPeriodRelationData(): ?Period
     {
         $endedAt = $this->ended_at;
+
+        if (is_null($endedAt)) {
+            throw new UnexpectedValueException("Budget {$this->id} has no end date.");
+        }
 
         if ($endedAt < Carbon::today()) {
             return $this->getPeriodAt($endedAt->clone()->subDay());
