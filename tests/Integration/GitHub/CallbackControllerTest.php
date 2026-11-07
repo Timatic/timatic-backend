@@ -2,11 +2,11 @@
 
 use App\Models\Integration;
 use Filament\Facades\Filament;
-use Illuminate\Support\Facades\Http;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
 use Timatic\GitHub\Filament\Pages\SettingsPage;
 use Timatic\GitHub\OAuthService;
+use Timatic\GitHub\Requests\ExchangeCodeRequest;
 use Timatic\GitHub\Requests\GetAuthenticatedUserRequest;
 use Timatic\GitHub\Requests\GetUserInstallationsRequest;
 
@@ -20,8 +20,8 @@ it('returns an admin to the settings page after connecting', function () {
     Filament::setCurrentPanel('admin');
     $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
     parse_str(parse_url(app(OAuthService::class)->buildAuthorizationUrl($integration), PHP_URL_QUERY), $query);
-    Http::fake(['github.com/login/oauth/access_token' => Http::response(['access_token' => 'ghu_user_token'])]);
     MockClient::global([
+        ExchangeCodeRequest::class => MockResponse::make(['access_token' => 'ghu_user_token']),
         GetAuthenticatedUserRequest::class => MockResponse::make(['id' => 99, 'login' => 'octocat']),
         GetUserInstallationsRequest::class => MockResponse::make([
             'total_count' => 1,
@@ -42,8 +42,8 @@ it('returns a delegate to the share link page after connecting', function () {
     $integration->generateShareToken();
     parse_str(parse_url(app(OAuthService::class)->buildAuthorizationUrl($integration), PHP_URL_QUERY), $query);
     $integration->update(['config' => array_merge($integration->config, ['delegate_return_token' => $integration->share_token])]);
-    Http::fake(['github.com/login/oauth/access_token' => Http::response(['access_token' => 'ghu_user_token'])]);
     MockClient::global([
+        ExchangeCodeRequest::class => MockResponse::make(['access_token' => 'ghu_user_token']),
         GetAuthenticatedUserRequest::class => MockResponse::make(['id' => 99, 'login' => 'octocat']),
         GetUserInstallationsRequest::class => MockResponse::make([
             'total_count' => 1,
