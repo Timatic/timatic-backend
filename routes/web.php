@@ -16,7 +16,7 @@ use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\RedirectController;
 use App\Http\Controllers\Auth\Token\ApproveAuthorizationController;
 use App\Http\Controllers\Auth\Token\AuthorizeController;
-use App\Http\Controllers\DownloadExportController;
+use App\Http\Controllers\Exports\DownloadExportController;
 use Dedoc\Scramble\Generator;
 use Dedoc\Scramble\Scramble;
 use Illuminate\Support\Facades\Route;

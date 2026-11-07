@@ -65,6 +65,10 @@ arch('controllers have no private methods')
     ->expect('App\Http\Controllers')
     ->not->toHavePrivateMethods();
 
+test('controllers are grouped in a folder per resource', function (): void {
+    expect(array_map(basename(...), glob(__DIR__.'/../../app/Http/Controllers/*.php')))->toBe(['Controller.php']);
+});
+
 arch('app does not depend on integration packages')
     ->expect('App')
     ->not->toUse($integrationNamespaces->values()->all());
