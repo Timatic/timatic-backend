@@ -30,6 +30,7 @@ class EntrySuggestion extends JsonApiResource
             'createdAt' => $this->created_at,
             'updatedAt' => $this->updated_at,
             'budgetId' => $this->budget_id,
+            'minutesSpent' => $this->minutesSpent(),
         ];
     }
 

@@ -12,3 +12,17 @@ test('an activity on another ticket can not be added to a suggestion', function 
 
     $suggestion->addActivity($activity);
 })->throws(ConflictingSuggestionFieldException::class);
+
+test('overlapping activities are counted once in the minutes spent', function () {
+    $suggestion = new EntrySuggestion;
+    $suggestion->addActivity(new Activity([
+        'started_at' => '2026-11-02 09:00:00',
+        'ended_at' => '2026-11-02 09:30:00',
+    ]));
+    $suggestion->addActivity(new Activity([
+        'started_at' => '2026-11-02 09:20:00',
+        'ended_at' => '2026-11-02 09:45:00',
+    ]));
+
+    expect($suggestion->minutesSpent())->toBe(45);
+});
