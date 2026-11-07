@@ -5,12 +5,16 @@ namespace App\Http\Requests;
 use App\Enums\HoursExportDimension;
 use App\Exports\HoursExport;
 use App\Integrations\Exports\ExportService;
+use Carbon\CarbonImmutable;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class ExportRequest extends FormRequest
 {
+    private const int MAX_MONTHS = 24;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -43,7 +47,17 @@ class ExportRequest extends FormRequest
             /** First month (`Y-m`) of an export with period option `month-range`. */
             'fromMonth' => [Rule::requiredIf($monthRangeIsRequired), 'nullable', 'date_format:Y-m'],
             /** Last month (`Y-m`) of an export with period option `month-range`. */
-            'toMonth' => [Rule::requiredIf($monthRangeIsRequired), 'nullable', 'date_format:Y-m', 'after_or_equal:fromMonth'],
+            'toMonth' => [
+                Rule::requiredIf($monthRangeIsRequired), 'nullable', 'bail', 'date_format:Y-m', 'after_or_equal:fromMonth',
+                function (string $attribute, string $toMonth, Closure $fail): void {
+                    $fromMonth = $this->string('fromMonth')->toString();
+
+                    if (CarbonImmutable::canBeCreatedFromFormat($fromMonth, '!Y-m')
+                        && CarbonImmutable::createFromFormat('!Y-m', $fromMonth)?->addMonths(self::MAX_MONTHS)->format('Y-m') <= $toMonth) {
+                        $fail(__('exports.hours.max_months', ['months' => self::MAX_MONTHS]));
+                    }
+                },
+            ],
             /** Rows of the `hours-excel` export, one per value of this dimension. */
             'groupBy' => [Rule::requiredIf($format?->key === HoursExport::KEY), 'nullable', Rule::enum(HoursExportDimension::class)],
             /** Optional second row level of the `hours-excel` export, inside each group. */

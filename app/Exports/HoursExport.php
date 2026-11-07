@@ -6,6 +6,7 @@ namespace App\Exports;
 
 use App\DataTransferObjects\ExportParameters;
 use App\DataTransferObjects\HoursExportRow;
+use App\Enums\HoursExportDimension;
 use App\Integrations\Exports\ExportInterface;
 use App\Models\Entry;
 use Carbon\CarbonInterface;
@@ -63,8 +64,11 @@ class HoursExport implements ExportInterface
         $months = $this->months();
         $timezone = config('timatic.preferred_timezone');
 
+        $budgetIsDimension = in_array(HoursExportDimension::Budget, [$groupBy, $splitBy], true);
+
         return Entry::query()
-            ->with('budget.budgetVersions')
+            ->select(['user_id', 'user_full_name', 'budget_id', 'is_internal', 'customer_id', 'customer_name', 'ticket_type', 'started_at', 'minutes_spent'])
+            ->when($budgetIsDimension, fn (Builder $query) => $query->with('budget.budgetVersions'))
             ->whereBetween('started_at', [
                 $this->period->rangeStart()->setTimezone(config('app.timezone')),
                 $this->period->rangeEnd()->setTimezone(config('app.timezone')),
@@ -72,6 +76,8 @@ class HoursExport implements ExportInterface
             ->when($this->period->customerId, fn (Builder $query, int $customerId) => $query->where('customer_id', $customerId))
             ->when($this->period->budgetId, fn (Builder $query, int $budgetId) => $query->where('budget_id', $budgetId))
             ->when($this->period->userId, fn (Builder $query, int $userId) => $query->where('user_id', $userId))
+            // Latest first, so a row is labelled with the most recent name on its entries.
+            ->orderByDesc('started_at')
             ->get()
             ->groupBy(fn (Entry $entry) => $groupBy->keyOf($entry).'|'.$splitBy?->keyOf($entry))
             ->map(function (Collection $entries) use ($groupBy, $splitBy, $months, $timezone) {

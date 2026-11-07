@@ -10,6 +10,7 @@ return [
             'ticketType' => 'Ticket type',
         ],
         'internal' => 'Internal',
+        'max_months' => 'The month range can span at most :months months.',
         'per_hour' => 'Paid per hour',
         'without_ticket_type' => 'No ticket type',
     ],
