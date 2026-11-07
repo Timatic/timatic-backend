@@ -15,11 +15,11 @@ class CustomerEmailDomainResolver
      * The customer of the first address whose domain a customer lists. Domains listed on the own
      * organization are the company's own and never resolve: every mail has one of those in it.
      *
-     * @param  iterable<int, string>  $emailAddresses  ordered by priority, e.g. the recipients of a mail
+     * @param  iterable<int, string>  $emailAddresses  ordered by priority, e.g. the recipients of a mail; "Jane <jane@acme.com>" works too
      */
     public function resolve(iterable $emailAddresses): ?Customer
     {
-        $domains = collect($emailAddresses)->map(fn (string $address) => CustomerEmailDomain::normalise(Str::afterLast($address, '@')));
+        $domains = collect($emailAddresses)->map(fn (string $address) => CustomerEmailDomain::normalise(Str::afterLast(Str::between($address, '<', '>'), '@')));
 
         $emailDomains = CustomerEmailDomain::query()
             ->whereIn('domain', $domains->unique()->values())

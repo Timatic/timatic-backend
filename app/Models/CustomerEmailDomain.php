@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Database\Factories\CustomerEmailDomainFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 /**
- * A domain the email addresses of a customer end in, stored lowercase without a leading "@".
+ * A domain the email addresses of a customer end in, stored lowercase without a leading "@" or trailing dot.
  *
  * @property int $customer_id
  * @property string $domain
@@ -17,6 +19,9 @@ use Illuminate\Support\Str;
  */
 class CustomerEmailDomain extends Model
 {
+    /** @use HasFactory<CustomerEmailDomainFactory> */
+    use HasFactory;
+
     protected $fillable = [
         'customer_id',
         'domain',
@@ -24,7 +29,7 @@ class CustomerEmailDomain extends Model
 
     public static function normalise(string $domain): string
     {
-        return ltrim(Str::lower(trim($domain)), '@');
+        return rtrim(ltrim(Str::lower(trim($domain)), '@'), '.');
     }
 
     public static function isValid(string $domain): bool
