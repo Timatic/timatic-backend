@@ -9,6 +9,7 @@ use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
+use UnexpectedValueException;
 
 class BudgetsExport implements ExportInterface
 {
@@ -50,7 +51,10 @@ class BudgetsExport implements ExportInterface
                         $accountManagerName = $accountManager?->given_name.' '.$accountManager?->family_name;
                     }
 
-                    $customer = $budget->requireCustomer();
+                    $customer = $budget->customer;
+                    if (is_null($customer)) {
+                        throw new UnexpectedValueException("Budget {$budget->id} has no customer.");
+                    }
 
                     $row = new BudgetExportRow(
                         id: $budget->id,
@@ -59,8 +63,8 @@ class BudgetsExport implements ExportInterface
                         customer: $customer->name,
                         type: $budget->budgetType->title,
                         renewalFrequency: $budget->renewal_frequency,
-                        startDate: $budget->started_at?->format('d-m-Y'),
-                        expirationDate: $budget->requireEndedAt()->format('d-m-Y'),
+                        startDate: $budget->started_at->format('d-m-Y'),
+                        expirationDate: $budget->ended_at->format('d-m-Y'),
                         totalHours: $this->formatDuration($period->getInitialMinutes()),
                         hoursRemaining: $this->formatDuration($period->getRemainingMinutes(true)),
                         accountManagerName: $accountManagerName ?? '',

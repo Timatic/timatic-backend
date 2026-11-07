@@ -11,6 +11,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
+use UnexpectedValueException;
 
 class MonthlyBudgetsExport implements ExportInterface
 {
@@ -50,15 +51,19 @@ class MonthlyBudgetsExport implements ExportInterface
             $accountManagerName = $row->accountManager->given_name.' '.$row->accountManager->family_name;
         }
 
+        if (is_null($row->budget->customer)) {
+            throw new UnexpectedValueException("Budget {$row->budget->id} has no customer.");
+        }
+
         return [
             $row->budget->id,
             $row->budget->budgetType->title,
-            $row->budget->requireCustomer()->external_id,
+            $row->budget->customer->external_id,
             $row->customerName,
             $row->budgetTitle,
             $row->budget->renewal_frequency,
-            $row->budget->started_at?->format('d-m-Y'),
-            $row->budget->requireEndedAt()->format('d-m-Y'),
+            $row->budget->started_at->format('d-m-Y'),
+            $row->budget->ended_at->format('d-m-Y'),
             (bool) $row->budget->archived_at?->isBefore($this->month->endOfMonth()),
             $row->budget->getHourlyRateBigDecimal()->toFloat(),
             (float) $row->budget->getTotalPrice(),

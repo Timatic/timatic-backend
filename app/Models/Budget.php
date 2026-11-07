@@ -22,8 +22,8 @@ use UnexpectedValueException;
  * @property string $customer_id
  * @property bool $show_to_customer
  * @property string $budget_type_id
- * @property ?Carbon $started_at
- * @property ?Carbon $ended_at
+ * @property Carbon $started_at
+ * @property Carbon $ended_at
  * @property ?string $renewal_frequency
  * @property ?Carbon $archived_at
  * @property Carbon $created_at
@@ -167,14 +167,14 @@ class Budget extends Model
     {
         $periods = new \Illuminate\Support\Collection;
 
-        $endDate = $this->requireEndedAt();
+        $endDate = $this->ended_at;
         if ($this->archived_at) {
             $endDate = $this->archived_at->isBefore($endDate) ? $this->archived_at : $endDate;
         }
         $periods->push(
             Period::create()
                 ->setBudget($this)
-                ->setStartDate($this->requireStartedAt())
+                ->setStartDate($this->started_at)
                 ->setEndDate($endDate)
                 ->setIsFirstPeriod(true)
                 ->setIsLastPeriod(true)
@@ -189,9 +189,9 @@ class Budget extends Model
         $periods = new \Illuminate\Support\Collection;
 
         $frequency = ($this->renewal_frequency == 'yearly' ? 'year' : 'month');
-        $startDate = $this->requireStartedAt()->clone();
+        $startDate = $this->started_at->clone();
         $maxPeriodEndDate = Carbon::now()->add($frequency, 1);
-        $endDate = $this->archived_at ?? $this->requireEndedAt();
+        $endDate = $this->archived_at ?? $this->ended_at;
 
         $alignToMonthStart = config('timatic.feature.align_periods_to_month_start') && $frequency === 'month';
         $isFirstPeriod = true;
@@ -263,7 +263,7 @@ class Budget extends Model
 
     public function getLastPeriodRelationData(): ?Period
     {
-        $endedAt = $this->requireEndedAt();
+        $endedAt = $this->ended_at;
 
         if ($endedAt < Carbon::today()) {
             return $this->getPeriodAt($endedAt->clone()->subDay());
@@ -348,7 +348,7 @@ class Budget extends Model
             $timestamp = Carbon::now();
         }
 
-        $startedAt = $this->requireStartedAt();
+        $startedAt = $this->started_at;
 
         // entries can be moved to a budget that is created later than the entries themselves
         if ($timestamp->isBefore($startedAt)) {
@@ -366,21 +366,6 @@ class Budget extends Model
 
         return $this->budgetVersions->whereNull('effective_to')->first()
             ?? throw new UnexpectedValueException("Budget {$this->id} has no active version.");
-    }
-
-    public function requireCustomer(): Customer
-    {
-        return $this->customer ?? throw new UnexpectedValueException("Budget {$this->id} has no customer.");
-    }
-
-    public function requireStartedAt(): Carbon
-    {
-        return $this->started_at ?? throw new UnexpectedValueException("Budget {$this->id} has no start date.");
-    }
-
-    public function requireEndedAt(): Carbon
-    {
-        return $this->ended_at ?? throw new UnexpectedValueException("Budget {$this->id} has no end date.");
     }
 
     public function getTotalPrice(?Carbon $timestamp = null): string
