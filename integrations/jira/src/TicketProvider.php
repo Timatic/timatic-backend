@@ -9,12 +9,12 @@ use App\Integrations\Tickets\TicketProviderInterface;
 use App\Models\Customer;
 use App\Models\Integration;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Timatic\Jira\DataTransferObjects\JiraChangelogEntry;
 use Timatic\Jira\DataTransferObjects\JiraComment;
 use Timatic\Jira\DataTransferObjects\JiraIssue;
+use Timatic\Jira\DataTransferObjects\JiraIssueDetails;
 use Timatic\Jira\DataTransferObjects\JiraUser;
 use Timatic\Jira\Models\ProjectMapping;
 use Timatic\Jira\Requests\GetIssueRequest;
@@ -132,28 +132,14 @@ final class TicketProvider implements TicketProviderInterface
             return null;
         }
 
-        $data = $response->json();
+        /** @var JiraIssueDetails $issueDetails */
+        $issueDetails = $response->dto();
 
         $projectKey = strtoupper(explode('-', $key)[0]);
         $mapping = ProjectMapping::where('project_key', $projectKey)->active()->first();
 
-        $actions = $this->mergeActions(
-            $this->mapComments($data['renderedFields']['comment']['comments'] ?? [], $data['fields']['comment']['comments'] ?? []),
-            $this->mapChangelog($data['changelog']['histories'] ?? []),
-        );
-
-        $details = new Ticket(
-            type: $data['fields']['issuetype']['name'] ?? '',
-            id: $data['key'],
-            number: $data['key'],
-            title: $data['fields']['summary'] ?? '',
-            created_at: CarbonImmutable::parse($data['fields']['created']),
-            closed_at: isset($data['fields']['resolutiondate']) ? CarbonImmutable::parse($data['fields']['resolutiondate']) : null,
-            url: ($this->config['cloud_url'] ?? '').'/browse/'.$data['key'],
-            actions: $actions,
-        );
-
-        return $details->withMapping($mapping?->customer_id, $mapping?->budget_id);
+        return $this->mapToTicket($issueDetails->issue, $this->mergeActions($issueDetails->comments, $issueDetails->statusChanges))
+            ->withMapping($mapping?->customer_id, $mapping?->budget_id);
     }
 
     public function findMappingByTicketKey(string $key): ?TicketMapping
@@ -226,7 +212,8 @@ final class TicketProvider implements TicketProviderInterface
         return str_replace(['\\', '"'], ['\\\\', '\\"'], $value);
     }
 
-    private function mapToTicket(JiraIssue $issue): Ticket
+    /** @param  Collection<int, TicketAction>  $actions */
+    private function mapToTicket(JiraIssue $issue, Collection $actions = new Collection): Ticket
     {
         return new Ticket(
             type: $issue->issueType,
@@ -236,58 +223,8 @@ final class TicketProvider implements TicketProviderInterface
             created_at: $issue->createdAt,
             closed_at: $issue->resolvedAt,
             url: ($this->config['cloud_url'] ?? '').'/browse/'.$issue->key,
+            actions: $actions,
         );
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $renderedComments
-     * @param  array<int, array<string, mixed>>  $rawComments
-     * @return Collection<int, JiraComment>
-     */
-    private function mapComments(array $renderedComments, array $rawComments): Collection
-    {
-        $renderedById = collect($renderedComments)->keyBy('id');
-
-        return collect($rawComments)->map(function (array $comment) use ($renderedById): JiraComment {
-            $rendered = $renderedById->get($comment['id']);
-            $body = $rendered ? strip_tags((string) $rendered['body']) : ($comment['body'] ?? '');
-
-            return new JiraComment(
-                id: $comment['id'],
-                authorDisplayName: $comment['author']['displayName'] ?? '',
-                authorEmail: $comment['author']['emailAddress'] ?? null,
-                body: trim($body),
-                createdAt: CarbonImmutable::parse($comment['created']),
-            );
-        });
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $histories
-     * @return Collection<int, JiraChangelogEntry>
-     */
-    private function mapChangelog(array $histories): Collection
-    {
-        $entries = collect();
-
-        foreach ($histories as $history) {
-            foreach ($history['items'] ?? [] as $index => $item) {
-                if ($item['field'] !== 'status') {
-                    continue;
-                }
-
-                $entries->push(new JiraChangelogEntry(
-                    id: $history['id'].'-'.$index,
-                    authorDisplayName: $history['author']['displayName'] ?? '',
-                    authorEmail: $history['author']['emailAddress'] ?? null,
-                    fromStatus: $item['fromString'] ?? '',
-                    toStatus: $item['toString'] ?? '',
-                    createdAt: CarbonImmutable::parse($history['created']),
-                ));
-            }
-        }
-
-        return $entries;
     }
 
     /**
