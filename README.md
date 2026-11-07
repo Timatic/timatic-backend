@@ -2,6 +2,8 @@
 
 Timatic registers the work of engineers: who worked, for which customer, on which ticket, from when to when, and on what account. The hours feed invoicing and consume customer budgets.
 
+Everything users do day to day goes through the JSON:API, consumed by the frontend and the browser extension. The admin panel is for setup only: integrations, suggestion sources, roles. A user should rarely need it.
+
 ## Concepts
 
 ```

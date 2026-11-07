@@ -31,7 +31,7 @@ php artisan migrate --seed
 
 ## Architecture
 
-**Timatic is a time-tracking system** for engineers to log work against customers, tickets, and budgets. There are two interfaces: a Filament admin panel (subdomain `admin.*`) and a JSON:API (subdomain `api.*`).
+**Timatic is a time-tracking system** for engineers to log work against customers, tickets, and budgets. There are two interfaces: a JSON:API (subdomain `api.*`) that serves the frontend, the extension and every day-to-day feature, and a Filament admin panel (subdomain `admin.*`) that exists only for setup. A new feature that users touch regularly belongs in the API; the admin panel is for configuration that is set once, such as a new suggestion source or an integration.
 
 ### Domain model
 
