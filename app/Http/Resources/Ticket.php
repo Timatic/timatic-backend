@@ -43,7 +43,11 @@ class Ticket extends JsonApiResource
     public function toCustomRelationships(Request $request): array
     {
         return [
-            'customers' => fn () => transform(CustomerModel::query()->find($this->customer_id), fn (CustomerModel $customer) => Customer::make($customer)),
+            'customers' => function () {
+                $customer = CustomerModel::query()->find($this->customer_id);
+
+                return $customer ? Customer::make($customer) : null;
+            },
             'actions' => fn () => TicketAction::collection($this->actions),
         ];
     }
