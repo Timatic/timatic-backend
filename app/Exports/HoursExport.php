@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Exports;
 
-use App\DataTransferObjects\ExportPeriod;
+use App\DataTransferObjects\ExportParameters;
 use App\DataTransferObjects\HoursExportRow;
 use App\Integrations\Exports\ExportInterface;
 use App\Models\Entry;
@@ -20,7 +20,7 @@ class HoursExport implements ExportInterface
     public const string KEY = 'hours-excel';
 
     public function __construct(
-        private ExportPeriod $period,
+        private ExportParameters $period,
     ) {}
 
     public function export(string $filePath): void

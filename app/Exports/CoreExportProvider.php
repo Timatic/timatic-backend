@@ -3,7 +3,7 @@
 namespace App\Exports;
 
 use App\DataTransferObjects\ExportFormat;
-use App\DataTransferObjects\ExportPeriod;
+use App\DataTransferObjects\ExportParameters;
 use App\Enums\ExportPeriodOptions;
 use App\Integrations\Exports\ExportInterface;
 use App\Integrations\Exports\ExportProviderInterface;
@@ -24,7 +24,7 @@ final class CoreExportProvider implements ExportProviderInterface
         ]);
     }
 
-    public function createExport(string $key, ExportPeriod $period): ExportInterface
+    public function createExport(string $key, ExportParameters $period): ExportInterface
     {
         return match ($key) {
             'budgets-monthly-excel' => new MonthlyBudgetsExport($period->requireYear(), $period->requireMonth(), app(BudgetUsageService::class)),

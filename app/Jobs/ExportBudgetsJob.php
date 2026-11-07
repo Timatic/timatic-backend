@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\DataTransferObjects\ExportPeriod;
+use App\DataTransferObjects\ExportParameters;
 use App\Integrations\Exports\ExportService;
 use App\Mail\ExportEmail;
 use App\Models\User;
@@ -21,7 +21,7 @@ class ExportBudgetsJob implements ShouldQueue
     public function __construct(
         protected User $user,
         protected string $exportType,
-        protected ExportPeriod $period,
+        protected ExportParameters $period,
     ) {}
 
     public function handle(ExportService $exportService): void
