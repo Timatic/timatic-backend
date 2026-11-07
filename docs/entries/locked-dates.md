@@ -8,12 +8,9 @@ Hours are invoiced per month. Once finance has closed a month, no entry in it ma
 
 ## Rules
 
-- **A default user edits up to 10 days back.** The locked date is today minus the configured number of days (`entries_locked_after_days`). Tests: `returns entry editable date for default users`, `denies to update an entry by the owner when 10 days have passed`.
-- **A user with the permission to update entries from the previous month edits back to the first of the previous month.** Finance and backoffice fix last month's entries before invoicing. Tests: `returns entry editable date for users that can update entries from previous month`, `updates a month old entry when edited with proper permissions`.
-- **The closed month wins.** The locked date never lies before the first day after the closed month, whatever the user's permission. Test: `denies to update a two month old entry when edited with proper permissions`.
-- **A month closes on a day of the next month.** Before the closing day (the 6th by default) the previous month is still open and the month before it is closed; from the closing day on, the previous month is closed. Users with the previous-month permission get a later closing day (the 15th by default). Tests: `returns closed month date correctly when today is before month end closing day of month`, `returns closed month date correctly when today is after month end closing day of month`.
-- **Clients read the locked date from the API** next to the user's team and permissions, so a frontend can grey out days before fetching anything. Tests: `returns a locked date permission of entries locked after days`, `returns a locked date permission of previous month before month end with permission to update from previous month`, `returns a locked date with extended closing date with permission to edit previous month`.
-- **Days are counted in the preferred timezone.** Guards users working around midnight UTC.
+- **A default user edits 10 days back; a user with the previous-month permission edits back to the first of the previous month.** The short window is deliberate: it forces prompt booking. The permission exists for finance and backoffice fixing last month before invoicing. Tests: `returns entry editable date for default users`, `returns entry editable date for users that can update entries from previous month`.
+- **The closed month always wins.** No permission reaches into a closed month. Test: `denies to update a two month old entry when edited with proper permissions`.
+- **A month closes on a day of the next month, later for privileged users.** Before the closing day (the 6th by default) the previous month is still open; from that day on it is closed. Users with the previous-month permission get the extended closing day (the 15th by default), so they can finish corrections after everyone else is locked out. Tests: `returns closed month date correctly when today is before month end closing day of month`, `returns closed month date correctly when today is after month end closing day of month`.
 
 ## Where in the code
 

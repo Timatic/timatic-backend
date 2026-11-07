@@ -8,10 +8,9 @@ Managers need, per unit of time (week, month), how many minutes were internal an
 
 ## Rules
 
-- **Totals per unit split minutes into internal and billable.** Billable is paid-per-hour minutes plus budget minutes; the split follows the entry's settlement (see [entries](overview.md)). Filters narrow to one team or one user. Tests: `shows total time spent in weeks`, `serves time spent totals`.
-- **An entry belongs to the unit its start falls in.** Deleted entries count for nothing. Test: `ignores deleted entries`.
-- **Totals per budget walk from the budget's start to its end or today**, whichever is earlier, and report the remaining minutes after each unit: the active version's initial minutes minus the minutes spent so far. Test: `returns correct time spent totals for budget`.
-- **Minutes here are minutes spent**, so overtime percentages are included, like everywhere budgets are consumed.
+- **Billable is paid-per-hour plus budget minutes**; internal is the rest. The split follows the entry's [settlement](overview.md). Tests: `shows total time spent in weeks`, `serves time spent totals`.
+- **Minutes here are minutes spent**, overtime included, like everywhere budgets are consumed. The daily progress indicator is the one place that uses clock time instead, see [daily progress](daily-progress.md).
+- **Per-budget totals stop at today**, not at the budget's end date, and report the remaining minutes after each unit. Test: `returns correct time spent totals for budget`.
 
 ## Where in the code
 
