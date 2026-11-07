@@ -1,5 +1,6 @@
 <?php
 
+use App\DataTransferObjects\PreviousSequenceBooking;
 use App\Models\Entry;
 use App\Models\Event;
 use App\Models\EventType;
@@ -660,4 +661,120 @@ test('a high-weight event inside a low-weight event splits the low-weight into t
         ->and($meetingActivities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 09:45'))
         ->and($meetingActivities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
         ->and($meetingActivities[1]->events->contains($meeting))->toBeTrue();
+});
+
+test('a customerless event is booked like the previous entry of its event sequence', function () {
+    $meeting = new Event([
+        'user_id' => 1,
+        'source_id' => 'google_calendar',
+        'external_id' => 'weekly-sync',
+        'event_type_id' => 'calendar',
+        'started_at' => Carbon::parse('2026-07-16 10:00'),
+        'ended_at' => Carbon::parse('2026-07-16 10:30'),
+    ]);
+    $meeting->setRelation('eventType', new EventType(['id' => 'calendar', 'weight' => 1]));
+    $previousBooking = new PreviousSequenceBooking(
+        sourceId: 'google_calendar',
+        externalId: 'weekly-sync',
+        customerId: 'customerX',
+        budgetId: 7,
+        isInternal: true,
+        startedAt: Carbon::parse('2026-07-09 10:00'),
+    );
+
+    $activities = (new ActivityProjector)->project(collect([$meeting]), collect(), collect([$previousBooking]));
+
+    expect($activities)->toHaveCount(1)
+        ->and($activities[0]->customer_id)->toBe('customerX')
+        ->and($activities[0]->budget_id)->toBe(7)
+        ->and($activities[0]->is_internal)->toBeTrue()
+        ->and($meeting->customer_id)->toBeNull();
+});
+
+test('an event with a customer of its own ignores a previous sequence entry of another customer', function () {
+    $meeting = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerY',
+        'source_id' => 'google_calendar',
+        'external_id' => 'weekly-sync',
+        'event_type_id' => 'calendar',
+        'started_at' => Carbon::parse('2026-07-16 10:00'),
+        'ended_at' => Carbon::parse('2026-07-16 10:30'),
+    ]);
+    $meeting->setRelation('eventType', new EventType(['id' => 'calendar', 'weight' => 1]));
+    $previousBooking = new PreviousSequenceBooking(
+        sourceId: 'google_calendar',
+        externalId: 'weekly-sync',
+        customerId: 'customerX',
+        budgetId: 7,
+        isInternal: false,
+        startedAt: Carbon::parse('2026-07-09 10:00'),
+    );
+
+    $activities = (new ActivityProjector)->project(collect([$meeting]), collect(), collect([$previousBooking]));
+
+    expect($activities[0]->customer_id)->toBe('customerY')
+        ->and($activities[0]->budget_id)->toBeNull();
+});
+
+test('a budgetless event takes the budget from the previous sequence entry of the same customer', function () {
+    $meeting = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'source_id' => 'google_calendar',
+        'external_id' => 'weekly-sync',
+        'event_type_id' => 'calendar',
+        'started_at' => Carbon::parse('2026-07-16 10:00'),
+        'ended_at' => Carbon::parse('2026-07-16 10:30'),
+    ]);
+    $meeting->setRelation('eventType', new EventType(['id' => 'calendar', 'weight' => 1]));
+    $previousBooking = new PreviousSequenceBooking(
+        sourceId: 'google_calendar',
+        externalId: 'weekly-sync',
+        customerId: 'customerX',
+        budgetId: 7,
+        isInternal: false,
+        startedAt: Carbon::parse('2026-07-09 10:00'),
+    );
+
+    $activities = (new ActivityProjector)->project(collect([$meeting]), collect(), collect([$previousBooking]));
+
+    expect($activities[0]->customer_id)->toBe('customerX')
+        ->and($activities[0]->budget_id)->toBe(7);
+});
+
+test('a meeting booked like its previous sequence entry chains with adjacent work of that customer', function () {
+    $meeting = new Event([
+        'user_id' => 1,
+        'source_id' => 'google_calendar',
+        'external_id' => 'weekly-sync',
+        'event_type_id' => 'calendar',
+        'started_at' => Carbon::parse('2026-07-16 10:00'),
+        'ended_at' => Carbon::parse('2026-07-16 10:30'),
+    ]);
+    $meeting->setRelation('eventType', new EventType(['id' => 'calendar', 'weight' => 1]));
+    $work = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'event_type_id' => 'commit_pushed',
+        'started_at' => Carbon::parse('2026-07-16 10:30'),
+        'ended_at' => Carbon::parse('2026-07-16 10:50'),
+    ]);
+    $work->setRelation('eventType', new EventType(['id' => 'commit_pushed', 'weight' => 1]));
+    $previousBooking = new PreviousSequenceBooking(
+        sourceId: 'google_calendar',
+        externalId: 'weekly-sync',
+        customerId: 'customerX',
+        budgetId: null,
+        isInternal: false,
+        startedAt: Carbon::parse('2026-07-09 10:00'),
+    );
+
+    $activities = (new ActivityProjector)->project(collect([$meeting, $work]), collect(), collect([$previousBooking]));
+
+    expect($activities)->toHaveCount(1)
+        ->and($activities[0]->customer_id)->toBe('customerX')
+        ->and($activities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
+        ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:50'))
+        ->and($activities[0]->events->all())->toBe([$meeting, $work]);
 });
