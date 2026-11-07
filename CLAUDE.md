@@ -11,6 +11,7 @@ When the user brings up a new idea that falls outside the current task (e.g. a r
 ```bash
 composer dev           # Start dev server, queue worker, log viewer, and Vite concurrently
 composer test          # Run full Pest test suite
+composer architecture  # Run only the architecture tests (fast, needs no database)
 composer fix           # Fix code style with Pint
 composer lint          # Check code style (no write)
 composer analyse       # Run PHPStan (level 8)

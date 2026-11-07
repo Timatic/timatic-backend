@@ -17,6 +17,12 @@ class SuggestionProviderRegistry
         $this->classes[$type] = $providerClass;
     }
 
+    /** @return array<string, class-string<SuggestionProviderInterface>> */
+    public function all(): array
+    {
+        return $this->classes;
+    }
+
     /** @return Collection<string, SuggestionProviderInterface> */
     public function available(): Collection
     {

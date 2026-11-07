@@ -6,8 +6,6 @@ use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Models\BudgetType;
 use App\Models\Integration;
 use Filament\Actions\Action;
-use Filament\Actions\ActionGroup;
-use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Navigation\NavigationItem;
@@ -48,6 +46,9 @@ class LedgerMappingPage extends Page
         $record = $this->getRecord();
 
         return [
+            NavigationItem::make('Settings')
+                ->url(SettingsPage::getUrl(['record' => $record]))
+                ->isActiveWhen(fn () => request()->url() === SettingsPage::getUrl(['record' => $record])),
             NavigationItem::make('Ledger mapping')
                 ->url(LedgerMappingPage::getUrl(['record' => $record]))
                 ->isActiveWhen(fn () => request()->url() === LedgerMappingPage::getUrl(['record' => $record])),
@@ -62,7 +63,6 @@ class LedgerMappingPage extends Page
         $ledgerMapping = $config['ledger_mapping'] ?? [];
 
         $this->form->fill([
-            'title' => $this->getIntegration()->title,
             'ledger_mapping' => $ledgerMapping,
             'enabled' => array_fill_keys(array_keys($ledgerMapping), true),
         ]);
@@ -70,24 +70,12 @@ class LedgerMappingPage extends Page
 
     public function form(Schema $form): Schema
     {
-        return $form->schema([
-            TextInput::make('title')
-                ->label('Integration title')
-                ->autocomplete(false)
-                ->helperText(__('integrations.title_helper')),
-
-            ...$this->budgetTypeSections(),
-        ])->statePath('data');
+        return $form->schema($this->budgetTypeSections())->statePath('data');
     }
 
     protected function getHeaderActions(): array
     {
         return [
-            ActionGroup::make([
-                DeleteAction::make()
-                    ->successRedirectUrl(IntegrationResource::getUrl('index')),
-            ]),
-
             Action::make('save')
                 ->label('Save')
                 ->action(function (): void {
@@ -100,10 +88,7 @@ class LedgerMappingPage extends Page
                         ),
                     ]);
 
-                    $this->getIntegration()->update([
-                        'title' => $data['title'],
-                        'config' => $config,
-                    ]);
+                    $this->getIntegration()->update(['config' => $config]);
 
                     Notification::make()->title('Ledger mapping saved.')->success()->send();
                 }),
