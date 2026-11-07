@@ -1,12 +1,10 @@
 <?php
 
 use App\Filament\Resources\Customers\Pages\EditCustomer;
-use App\Filament\Resources\Customers\Pages\ListCustomers;
 use App\Models\Customer;
 use App\Models\CustomerEmailDomain;
 use App\Models\User;
 use Filament\Facades\Filament;
-use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 
@@ -15,11 +13,6 @@ beforeEach(function () {
     $user->assignRole(Role::findOrCreate('super_admin'));
     $this->actingAs($user);
     Filament::setCurrentPanel('admin');
-
-    // Without ADMIN_URL the panel has no domain, so the API's GET /customers overwrites the panel's
-    // customer index route, which the page breadcrumbs link to.
-    Route::get('admin/customers', ListCustomers::class)->name('filament.admin.resources.customers.index');
-    Route::getRoutes()->refreshNameLookups();
 });
 
 it('saves the email domains of a customer normalised', function () {
