@@ -32,12 +32,17 @@ class RestrictShareTokenToSharedBudget
         /** @var Route $route */
         $route = $request->route();
         $requestedBudgetId = $route->originalParameter('budget') ?? $request->input('filter.budgetId');
-        $includes = array_filter(explode(',', $request->string('include')->toString()));
+        $include = $request->input('include') ?? '';
+
+        // Array query params (?include[]=x) are refused instead of cast, which would throw
+        abort_unless(is_string($requestedBudgetId) && is_string($include), 403);
+
+        $includes = array_filter(explode(',', $include));
 
         abort_unless(
             $request->isMethod('GET')
                 && in_array($route->getName(), self::ALLOWED_ROUTES, true)
-                && (string) $requestedBudgetId === (string) $viewer->budget->id
+                && $requestedBudgetId === (string) $viewer->budget->id
                 && array_diff($includes, self::ALLOWED_INCLUDES) === [],
             403,
         );

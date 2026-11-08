@@ -207,6 +207,8 @@ it('denies a share token everything but reading its own budget', function (strin
     'entries' => ['GET', 'entries?filter[budgetId]={budget}'],
     'included entries' => ['GET', 'budgets/{budget}?include=entries'],
     'included users' => ['GET', 'budgets/{budget}?include=allowedUsers'],
+    'includes as an array' => ['GET', 'budgets/{budget}?include[]=customer'],
+    'a budget filter as an array' => ['GET', 'budget-time-spent-totals?filter[budgetId][]={budget}&periodUnit=month'],
     'updating the budget' => ['PATCH', 'budgets/{budget}'],
     'a new share link' => ['POST', 'budgets/{budget}/share-link'],
 ]);
