@@ -779,7 +779,7 @@ test('a meeting booked like its previous sequence entry chains with adjacent wor
         ->and($activities[0]->events->all())->toBe([$meeting, $work]);
 });
 
-test('a commit, a pull request comment and an approval on one ticket become one activity whatever order they are projected in', function () {
+test('a commit, a pull request comment and an approval on one ticket become one activity in any input order', function () {
     $commit = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
@@ -805,12 +805,15 @@ test('a commit, a pull request comment and an approval on one ticket become one 
     ]);
     $approved->setRelation('eventType', new EventType(['id' => 'pr_approved', 'weight' => 50]));
 
-    $activities = (new ActivityProjector)->project(collect([$approved, $commit, $commented]), collect());
+    $fromShuffled = (new ActivityProjector)->project(collect([$approved, $commit, $commented]), collect());
+    $fromChronological = (new ActivityProjector)->project(collect([$commit, $commented, $approved]), collect());
 
-    expect($activities)->toHaveCount(1)
-        ->and($activities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 09:00'))
-        ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:45'))
-        ->and($activities[0]->events->all())->toBe([$commented, $approved, $commit]);
+    foreach ([$fromShuffled, $fromChronological] as $activities) {
+        expect($activities)->toHaveCount(1)
+            ->and($activities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 09:00'))
+            ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:45'))
+            ->and($activities[0]->events->all())->toEqualCanonicalizing([$commit, $commented, $approved]);
+    }
 });
 
 test('an activity widened up to an earlier projected activity of the same ticket merges with it', function () {
@@ -844,7 +847,7 @@ test('an activity widened up to an earlier projected activity of the same ticket
     expect($activities)->toHaveCount(1)
         ->and($activities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 08:45'))
         ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:40'))
-        ->and($activities[0]->events->all())->toBe([$commented, $approved, $changesRequested]);
+        ->and($activities[0]->events->all())->toEqualCanonicalizing([$commented, $approved, $changesRequested]);
 });
 
 test('an entry booked between two activities of the same ticket keeps them apart', function () {
@@ -882,10 +885,10 @@ test('an entry booked between two activities of the same ticket keeps them apart
     expect($activities)->toHaveCount(2)
         ->and($activities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 09:25'))
         ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:40'))
-        ->and($activities[0]->events->all())->toBe([$commented])
+        ->and($activities[0]->events->all())->toEqualCanonicalizing([$commented])
         ->and($activities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 08:45'))
         ->and($activities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:20'))
-        ->and($activities[1]->events->all())->toBe([$approved, $changesRequested]);
+        ->and($activities[1]->events->all())->toEqualCanonicalizing([$approved, $changesRequested]);
 });
 
 test('a merged pull request joins the review on its ticket', function () {
@@ -911,7 +914,7 @@ test('a merged pull request joins the review on its ticket', function () {
     expect($activities)->toHaveCount(1)
         ->and($activities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 09:00'))
         ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:30'))
-        ->and($activities[0]->events->all())->toBe([$approved, $merged]);
+        ->and($activities[0]->events->all())->toEqualCanonicalizing([$approved, $merged]);
 });
 
 test('adjacent events on different tickets stay separate activities', function () {
@@ -935,6 +938,158 @@ test('adjacent events on different tickets stay separate activities', function (
     $activities = (new ActivityProjector)->project(collect([$commit, $commented]), collect());
 
     expect($activities)->toHaveCount(2)
-        ->and($activities[0]->events->all())->toBe([$commented])
-        ->and($activities[1]->events->all())->toBe([$commit]);
+        ->and($activities[0]->events->all())->toEqualCanonicalizing([$commented])
+        ->and($activities[1]->events->all())->toEqualCanonicalizing([$commit]);
+});
+
+test('another ticket worked on in the gap keeps two activities of the same ticket apart', function () {
+    $approved = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'pr_approved',
+        'ended_at' => Carbon::parse('2026-07-16 09:00'),
+    ]);
+    $approved->setRelation('eventType', new EventType(['id' => 'pr_approved', 'weight' => 50]));
+    $changesRequested = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'pr_changes_requested',
+        'ended_at' => Carbon::parse('2026-07-16 09:20'),
+    ]);
+    $changesRequested->setRelation('eventType', new EventType(['id' => 'pr_changes_requested', 'weight' => 50]));
+    $commented = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'pr_commented',
+        'ended_at' => Carbon::parse('2026-07-16 09:40'),
+    ]);
+    $commented->setRelation('eventType', new EventType(['id' => 'pr_commented', 'weight' => 40]));
+    $otherTicket = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-2',
+        'event_type_id' => 'branch_created',
+        'started_at' => Carbon::parse('2026-07-16 09:20'),
+        'ended_at' => Carbon::parse('2026-07-16 09:25'),
+    ]);
+    $otherTicket->setRelation('eventType', new EventType(['id' => 'branch_created', 'weight' => 10]));
+
+    $activities = (new ActivityProjector)->project(collect([$approved, $changesRequested, $commented, $otherTicket]), collect());
+
+    expect($activities)->toHaveCount(3)
+        ->and($activities[0]->events->all())->toEqualCanonicalizing([$otherTicket])
+        ->and($activities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 09:25'))
+        ->and($activities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:40'))
+        ->and($activities[1]->events->all())->toEqualCanonicalizing([$commented])
+        ->and($activities[2]->started_at)->toEqual(Carbon::parse('2026-07-16 08:45'))
+        ->and($activities[2]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:20'))
+        ->and($activities[2]->events->all())->toEqualCanonicalizing([$approved, $changesRequested]);
+});
+
+test('a new activity next to an activity of the same ticket merges with it', function () {
+    $first = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'branch_created',
+        'ended_at' => Carbon::parse('2026-07-16 09:10'),
+    ]);
+    $first->setRelation('eventType', new EventType(['id' => 'branch_created', 'weight' => 10]));
+    $otherTicket = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-2',
+        'event_type_id' => 'prompt_submitted',
+        'ended_at' => Carbon::parse('2026-07-16 09:00'),
+    ]);
+    $otherTicket->setRelation('eventType', new EventType(['id' => 'prompt_submitted', 'weight' => 20]));
+    $commit = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'commit_created',
+        'ended_at' => Carbon::parse('2026-07-16 09:20'),
+    ]);
+    $commit->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 30]));
+
+    $activities = (new ActivityProjector)->project(collect([$first, $otherTicket, $commit]), collect());
+
+    expect($activities)->toHaveCount(2)
+        ->and($activities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 08:55'))
+        ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:20'))
+        ->and($activities[0]->events->all())->toEqualCanonicalizing([$first, $commit])
+        ->and($activities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 08:45'))
+        ->and($activities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 08:55'))
+        ->and($activities[1]->events->all())->toEqualCanonicalizing([$otherTicket]);
+});
+
+test('merging the parts of a split event lists each event once', function () {
+    $otherTicket = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-2',
+        'event_type_id' => 'branch_created',
+        'started_at' => Carbon::parse('2026-07-16 10:00'),
+        'ended_at' => Carbon::parse('2026-07-16 10:30'),
+    ]);
+    $otherTicket->setRelation('eventType', new EventType(['id' => 'branch_created', 'weight' => 10]));
+    $work = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'pr_commented',
+        'started_at' => Carbon::parse('2026-07-16 09:55'),
+        'ended_at' => Carbon::parse('2026-07-16 10:40'),
+    ]);
+    $work->setRelation('eventType', new EventType(['id' => 'pr_commented', 'weight' => 40]));
+    $long = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'browser_focus',
+        'started_at' => Carbon::parse('2026-07-16 09:00'),
+        'ended_at' => Carbon::parse('2026-07-16 12:00'),
+    ]);
+    $long->setRelation('eventType', new EventType(['id' => 'browser_focus', 'weight' => 100]));
+
+    $activities = (new ActivityProjector)->project(collect([$otherTicket, $work, $long]), collect());
+
+    expect($activities)->toHaveCount(2)
+        ->and($activities[1]->events->all())->toBe([$work, $long]);
+});
+
+test('a booked entry within the span keeps overlapping activities of the same ticket apart', function () {
+    $work = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'pr_commented',
+        'started_at' => Carbon::parse('2026-07-16 09:55'),
+        'ended_at' => Carbon::parse('2026-07-16 10:40'),
+    ]);
+    $work->setRelation('eventType', new EventType(['id' => 'pr_commented', 'weight' => 40]));
+    $long = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'browser_focus',
+        'started_at' => Carbon::parse('2026-07-16 09:00'),
+        'ended_at' => Carbon::parse('2026-07-16 12:00'),
+    ]);
+    $long->setRelation('eventType', new EventType(['id' => 'browser_focus', 'weight' => 100]));
+    $entry = new Entry([
+        'started_at' => Carbon::parse('2026-07-16 10:00'),
+        'ended_at' => Carbon::parse('2026-07-16 10:30'),
+    ]);
+
+    $activities = (new ActivityProjector)->project(collect([$work, $long]), collect([$entry]));
+
+    expect($activities)->toHaveCount(2)
+        ->and($activities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 09:55'))
+        ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
+        ->and($activities[0]->events->all())->toBe([$work])
+        ->and($activities[1]->events->all())->toBe([$work, $long]);
 });
