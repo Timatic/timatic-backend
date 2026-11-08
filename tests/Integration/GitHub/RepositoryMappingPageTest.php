@@ -289,3 +289,66 @@ it('ignores a repository from its row', function () {
     expect(Repository::sole()->only('integration_id', 'identifier', 'is_ignored'))
         ->toBe(['integration_id' => $integration->id, 'identifier' => 'acme/api', 'is_ignored' => true]);
 });
+
+it('ignores selected repositories', function () {
+    // Given
+    config()->set('github.app_id', '123456');
+    config()->set('github.private_key', 'private-key');
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
+    Cache::put('github.installation_token.4242', 'ghs_installation_token');
+    MockClient::global([
+        GetInstallationRepositoriesRequest::class => MockResponse::make([
+            'total_count' => 1,
+            'repositories' => [
+                ['id' => 1, 'name' => 'api', 'full_name' => 'acme/api', 'owner' => ['login' => 'acme']],
+            ],
+        ]),
+    ]);
+    $page = Livewire::test(RepositoryMappingPage::class, ['record' => $integration->id]);
+
+    // When
+    $page->callTableBulkAction('ignore', [RepositoryMapping::sole()->id]);
+
+    // Then
+    expect(Repository::sole()->only('identifier', 'is_ignored'))->toBe(['identifier' => 'acme/api', 'is_ignored' => true]);
+});
+
+it('stops ignoring a repository once it is linked to a customer', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
+    $customer = Customer::factory()->create();
+    $mapping = RepositoryMapping::create([
+        'integration_id' => $integration->id,
+        'installation_id' => 4242,
+        'owner_login' => 'acme',
+        'repository_name' => 'api',
+        'repository_full_name' => 'acme/api',
+    ]);
+    $mapping->ignore();
+    Cache::put('github.installation_token.4242', 'ghs_installation_token');
+    MockClient::global([
+        GetInstallationRepositoriesRequest::class => MockResponse::make([
+            'total_count' => 1,
+            'repositories' => [
+                ['id' => 1, 'name' => 'api', 'full_name' => 'acme/api', 'owner' => ['login' => 'acme']],
+            ],
+        ]),
+        CreateRepositoryWebhookRequest::class => MockResponse::make(['id' => 987654], 201),
+    ]);
+
+    // When
+    Livewire::test(RepositoryMappingPage::class, ['record' => $integration->id])
+        ->filterTable('is_ignored', true)
+        ->callAction(TestAction::make('assign')->table($mapping), [
+            'customer_id' => $customer->id,
+            'budget_id' => null,
+        ])
+        ->assertNotified('Repository gekoppeld');
+
+    // Then
+    expect(Repository::sole()->is_ignored)->toBeFalse();
+});

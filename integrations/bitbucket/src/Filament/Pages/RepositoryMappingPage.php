@@ -22,6 +22,7 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Livewire\Attributes\Url;
 use Saloon\Exceptions\Request\RequestException;
 use Timatic\Bitbucket\Connector;
@@ -110,12 +111,12 @@ class RepositoryMappingPage extends Page implements HasTable
                 TernaryFilter::make('is_ignored')
                     ->label(__('bitbucket::bitbucket.repository_mapping.filter_ignored'))
                     ->queries(
-                        true: fn (Builder $query) => $query->whereIn('id', RepositoryMapping::ignored()->select('id')),
-                        false: fn (Builder $query) => $query->whereIn('id', RepositoryMapping::active()->select('id')),
+                        true: fn (Builder $query) => $query->ignored(),
+                        false: fn (Builder $query) => $query->active(),
                     )
                     ->default(false),
             ])
-            ->actions([
+            ->recordActions([
                 Action::make('assign')
                     ->label(__('bitbucket::bitbucket.common.assign_action'))
                     ->fillForm(fn (RepositoryMapping $record): array => [
@@ -123,16 +124,14 @@ class RepositoryMappingPage extends Page implements HasTable
                         'budget_id' => $record->budget_id,
                     ])
                     ->schema($this->assignmentSchema())
-                    ->action(fn (RepositoryMapping $record, array $data) => $record->update([
-                        'customer_id' => $data['customer_id'] ?: null,
-                        'budget_id' => $data['budget_id'] ?: null,
-                    ])),
+                    ->action(fn (RepositoryMapping $record, array $data) => $this->assign(new Collection([$record]), $data)),
                 Action::make('ignore')
                     ->label(__('bitbucket::bitbucket.repository_mapping.action_ignore'))
                     ->icon('heroicon-o-eye-slash')
                     ->color('warning')
                     ->iconButton()
                     ->requiresConfirmation()
+                    ->modalDescription(__('bitbucket::bitbucket.repository_mapping.ignore_confirmation'))
                     ->visible(fn (RepositoryMapping $record) => ! $record->is_ignored)
                     ->action(fn (RepositoryMapping $record) => $record->ignore()),
                 Action::make('restore')
@@ -147,18 +146,14 @@ class RepositoryMappingPage extends Page implements HasTable
                 BulkAction::make('assign')
                     ->label(__('bitbucket::bitbucket.common.assign_action'))
                     ->schema($this->assignmentSchema())
-                    ->action(function (Collection $records, array $data): void {
-                        $records->each->update([
-                            'customer_id' => $data['customer_id'] ?: null,
-                            'budget_id' => $data['budget_id'] ?: null,
-                        ]);
-                    })
+                    ->action(fn (Collection $records, array $data) => $this->assign($records, $data))
                     ->deselectRecordsAfterCompletion(),
                 BulkAction::make('ignore')
                     ->label(__('bitbucket::bitbucket.repository_mapping.action_ignore'))
                     ->icon('heroicon-o-eye-slash')
                     ->color('warning')
                     ->requiresConfirmation()
+                    ->modalDescription(__('bitbucket::bitbucket.repository_mapping.ignore_confirmation'))
                     ->action(function (Collection $records): void {
                         /** @var RepositoryMapping $record */
                         foreach ($records as $record) {
@@ -206,6 +201,30 @@ class RepositoryMappingPage extends Page implements HasTable
                 ->nullable()
                 ->placeholder(__('bitbucket::bitbucket.common.no_budget')),
         ];
+    }
+
+    /**
+     * @param  Collection<int, covariant Model>  $mappings
+     * @param  array<string, mixed>  $data
+     */
+    private function assign(Collection $mappings, array $data): void
+    {
+        /** @var RepositoryMapping $mapping */
+        foreach ($mappings as $mapping) {
+            $mapping->update([
+                'customer_id' => $data['customer_id'] ?: null,
+                'budget_id' => $data['budget_id'] ?: null,
+            ]);
+
+            if ($mapping->customer_id !== null) {
+                $mapping->stopIgnoring();
+            }
+        }
+
+        Notification::make()
+            ->title(__('bitbucket::bitbucket.repository_mapping.assigned_title'))
+            ->success()
+            ->send();
     }
 
     private function hasCredentials(): bool

@@ -83,3 +83,28 @@ it('stops ignoring a repository from its row', function () {
     // Then
     expect(Repository::sole()->only('identifier', 'is_ignored'))->toBe(['identifier' => 'workspace/repo', 'is_ignored' => false]);
 });
+
+it('stops ignoring a repository once it is linked to a customer', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $integration = Integration::create(['title' => 'Bitbucket', 'type' => 'bitbucket', 'config' => ['access_token' => 'token', 'workspace' => 'workspace', 'expires_at' => now()->addHour()->timestamp]]);
+    $customer = Customer::factory()->create();
+    $mapping = RepositoryMapping::create(['integration_id' => $integration->id, 'workspace_slug' => 'workspace', 'repository_slug' => 'repo', 'repository_name' => 'Repo']);
+    $mapping->ignore();
+    MockClient::global([
+        GetRepositoriesRequest::class => MockResponse::make(['values' => []]),
+    ]);
+
+    // When
+    Livewire::test(RepositoryMappingPage::class, ['record' => $integration->id])
+        ->filterTable('is_ignored', true)
+        ->callAction(TestAction::make('assign')->table($mapping), [
+            'customer_id' => $customer->id,
+            'budget_id' => null,
+        ])
+        ->assertNotified('Repository gekoppeld');
+
+    // Then
+    expect(Repository::sole()->only('identifier', 'is_ignored'))->toBe(['identifier' => 'workspace/repo', 'is_ignored' => false]);
+});

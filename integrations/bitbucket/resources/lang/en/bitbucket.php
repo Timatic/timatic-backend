@@ -50,11 +50,13 @@ return [
         'column_repository' => 'Repository',
         'column_name' => 'Name',
         'empty_heading' => 'No repositories found',
-        'empty_description' => 'Click "Refresh" to fetch repositories from Bitbucket.',
+        'empty_description' => 'No repositories match the search and filters. Clear the filters, or click "Refresh" to fetch repositories from Bitbucket.',
+        'ignore_confirmation' => 'Work in this repository will no longer be linked to a customer, and the repository is left out of the mail about repositories without a customer. Use this for internal or abandoned repositories.',
+        'assigned_title' => 'Repository linked',
         'action_ignore' => 'Ignore',
         'action_restore' => 'Stop ignoring',
         'filter_ignored' => 'Ignored',
-        'filter_unmapped' => 'Unmapped only',
+        'filter_unmapped' => 'Not linked only',
     ],
 
     'consent' => [

@@ -114,8 +114,8 @@ class RepositoryMappingPage extends Page implements HasTable
                 TernaryFilter::make('is_ignored')
                     ->label(__('github::github.repository_mapping.filter_ignored'))
                     ->queries(
-                        true: fn (Builder $query) => $query->whereIn('id', RepositoryMapping::ignored()->select('id')),
-                        false: fn (Builder $query) => $query->whereIn('id', RepositoryMapping::active()->select('id')),
+                        true: fn (Builder $query) => $query->ignored(),
+                        false: fn (Builder $query) => $query->active(),
                     )
                     ->default(false),
             ])
@@ -134,6 +134,7 @@ class RepositoryMappingPage extends Page implements HasTable
                     ->color('warning')
                     ->iconButton()
                     ->requiresConfirmation()
+                    ->modalDescription(__('github::github.repository_mapping.ignore_confirmation'))
                     ->visible(fn (RepositoryMapping $record) => ! $record->is_ignored)
                     ->action(fn (RepositoryMapping $record) => $record->ignore()),
                 Action::make('restore')
@@ -149,6 +150,19 @@ class RepositoryMappingPage extends Page implements HasTable
                     ->label(__('github::github.common.assign_action'))
                     ->schema($this->assignmentSchema())
                     ->action(fn (Collection $records, array $data) => $this->assign($records, $data))
+                    ->deselectRecordsAfterCompletion(),
+                BulkAction::make('ignore')
+                    ->label(__('github::github.repository_mapping.action_ignore'))
+                    ->icon('heroicon-o-eye-slash')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalDescription(__('github::github.repository_mapping.ignore_confirmation'))
+                    ->action(function (Collection $records): void {
+                        /** @var RepositoryMapping $record */
+                        foreach ($records as $record) {
+                            $record->ignore();
+                        }
+                    })
                     ->deselectRecordsAfterCompletion(),
             ])
             ->heading(__('github::github.repository_mapping.table_heading'))
@@ -208,12 +222,21 @@ class RepositoryMappingPage extends Page implements HasTable
                 'budget_id' => $data['budget_id'] ?: null,
             ]);
 
+            if ($mapping->customer_id !== null) {
+                $mapping->stopIgnoring();
+            }
+
             try {
                 $webhookService->sync($mapping);
             } catch (GitHubException $e) {
                 $failedRepositories[] = $mapping->repository_full_name;
             }
         }
+
+        Notification::make()
+            ->title(__('github::github.repository_mapping.assigned_title'))
+            ->success()
+            ->send();
 
         if ($failedRepositories !== []) {
             Notification::make()
