@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Support\Auth\SharedBudgetViewer;
 use Closure;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\RateLimiter;
@@ -27,7 +28,11 @@ class RestrictShareTokenToSharedBudget
             return $next($request);
         }
 
-        abort_unless(RateLimiter::attempt('share-token:'.$viewer->budget->id, 60, fn () => true), 429);
+        $rateLimitKey = 'share-token:'.$viewer->budget->id;
+
+        if (! RateLimiter::attempt($rateLimitKey, 60, fn () => true)) {
+            throw new ThrottleRequestsException(headers: ['Retry-After' => RateLimiter::availableIn($rateLimitKey)]);
+        }
 
         /** @var Route $route */
         $route = $request->route();

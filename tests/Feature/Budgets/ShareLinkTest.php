@@ -221,11 +221,14 @@ it('does not accept the share token of a budget hidden from the customer', funct
 });
 
 it('throttles a share token to 60 requests a minute', function () {
+    $this->freezeTime();
     $budget = BudgetVersion::factory()->create()->budget;
     $budget->forceFill(['share_token_hash' => hash('sha256', 'secret-token')])->save();
     foreach (range(1, 60) as $request) {
         $this->getJson("budgets/{$budget->id}", ['X-Share-Token' => 'secret-token'])->assertSuccessful();
     }
 
-    $this->getJson("budgets/{$budget->id}", ['X-Share-Token' => 'secret-token'])->assertTooManyRequests();
+    $this->getJson("budgets/{$budget->id}", ['X-Share-Token' => 'secret-token'])
+        ->assertTooManyRequests()
+        ->assertHeader('Retry-After', 60);
 });
