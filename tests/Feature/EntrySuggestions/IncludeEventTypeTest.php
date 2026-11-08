@@ -67,7 +67,7 @@ it('includes the name of the event type of the events an activity was built from
         ]);
 });
 
-it('includes the name of the event type of the events an activity was built from', function () {
+it('includes the event type names on a single suggestion', function () {
     /** @var User $user */
     $user = $this->loginUser(permissions: ['entry-suggestions.read']);
 
@@ -89,10 +89,9 @@ it('includes the name of the event type of the events an activity was built from
     Activity::factory()->create([
         'user_id' => $user->id,
         'entry_suggestion_id' => $entrySuggestion->id,
-        'event_type_id' => $eventType->id,
     ])->events()->attach($event);
 
-    $this->getJson('entry-suggestions?include=activities.events.eventType')
+    $this->getJson("entry-suggestions/{$entrySuggestion->id}?include=activities.events.eventType")
         ->assertSuccessful()
         ->assertJson([
             'included' => [
