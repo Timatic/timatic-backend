@@ -26,3 +26,14 @@ it('returns a customer with account manager relation loaded', function () {
 
     expect($response->json('data.relationships.accountManager.data.id'))->toEqual((string) $customer->account_manager_user_id);
 });
+
+it('leaves the hourly rate empty when the customer has none', function () {
+    $this->loginUser(permissions: ['customers.read']);
+    config(['timatic.default_hourly_rate' => '85']);
+
+    $customer = Customer::factory()->create(['hourly_rate' => null]);
+
+    $this->getJson('customers/'.$customer->id)
+        ->assertSuccessful()
+        ->assertJsonPath('data.attributes.hourlyRate', null);
+});
