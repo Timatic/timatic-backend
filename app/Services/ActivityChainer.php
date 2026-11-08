@@ -26,7 +26,7 @@ class ActivityChainer
      * @param  Collection<int, Activity>  $activities
      * @param  Closure(Activity): bool  $matches
      */
-    public function findChainableActivity(Event $event, ?string $customerId, Collection $activities, Closure $matches): ?Activity
+    public function findChainableActivity(Event $event, string $customerId, Collection $activities, Closure $matches): ?Activity
     {
         $eventStart = $event->effectiveStart();
         $eventEnd = $event->ended_at->copy();
@@ -63,7 +63,8 @@ class ActivityChainer
      */
     public function appendEventToActivity(Activity $activity, Event $event, Collection $activities): void
     {
-        $alreadyCovered = $this->overlap->period($activity->started_at, $activity->ended_at);
+        $coveredFrom = $activity->started_at->copy();
+        $coveredUntil = $activity->ended_at->copy();
         $activity->events->push($event);
         $effectiveStart = $event->effectiveStart();
 
@@ -75,7 +76,7 @@ class ActivityChainer
             $activity->ended_at = $event->ended_at;
         }
 
-        $parts = $this->overlap->reduceOverlap($activity, $activities, $this->overlap->isFill($event), $alreadyCovered);
+        $parts = $this->overlap->reduceOverlap($activity, $activities, $this->overlap->isFill($event), $coveredFrom, $coveredUntil);
         $position = $activities->search($activity, true);
 
         if ($position === false) {

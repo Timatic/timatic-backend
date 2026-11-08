@@ -47,7 +47,7 @@ class ActivityOverlap
      * @param  Collection<int, Activity>  $activities
      * @return array<int, Activity>
      */
-    public function reduceOverlap(Activity $activity, Collection $activities, bool $isFill, ?Period $alreadyCovered = null): array
+    public function reduceOverlap(Activity $activity, Collection $activities, bool $isFill, ?CarbonInterface $coveredFrom = null, ?CarbonInterface $coveredUntil = null): array
     {
         $claimed = new PeriodCollection(
             ...$this->entries
@@ -60,8 +60,8 @@ class ActivityOverlap
                 ->all(),
         );
 
-        if ($alreadyCovered !== null) {
-            $claimed = $claimed->subtract($alreadyCovered);
+        if ($coveredFrom !== null && $coveredUntil !== null) {
+            $claimed = $claimed->subtract($this->period($coveredFrom, $coveredUntil));
         }
 
         $activityPeriod = $this->period($activity->started_at, $activity->ended_at);
@@ -115,7 +115,7 @@ class ActivityOverlap
                 && $claim->started_at->lt($gapEnd) && $claim->ended_at->gt($gapStart)));
     }
 
-    public function period(CarbonInterface $start, CarbonInterface $end): Period
+    private function period(CarbonInterface $start, CarbonInterface $end): Period
     {
         return new Period(
             DateTimeImmutable::createFromInterface($start),
