@@ -100,7 +100,7 @@ Route::middleware([
 
     Route::apiResource('permissions', PermissionController::class)->only('index', 'store');
 
-    Route::apiResource('roles', RoleController::class)->only('index', 'store', 'update');
+    Route::apiResource('roles', RoleController::class)->only('index', 'store', 'update', 'destroy');
 
     Route::apiResource('corrections', CorrectionController::class)->only('store', 'update');
 

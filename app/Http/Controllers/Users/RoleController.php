@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\RoleCreateRequest;
 use App\Http\Requests\RoleUpdateRequest;
 use App\Http\Resources;
+use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Arr;
@@ -23,6 +25,7 @@ class RoleController extends Controller implements HasMiddleware
             new Middleware('can:viewAny,Spatie\Permission\Models\Role', only: ['index']),
             new Middleware('can:create,Spatie\Permission\Models\Role', only: ['store']),
             new Middleware('can:update,role', only: ['update']),
+            new Middleware('can:delete,role', only: ['destroy']),
         ];
     }
 
@@ -64,5 +67,14 @@ class RoleController extends Controller implements HasMiddleware
         }
 
         return new Resources\Role($role->load('permissions'));
+    }
+
+    public function destroy(Role $role, ResponseFactory $responseFactory): Response
+    {
+        abort_if($role->users()->exists(), 409, 'Cannot delete a role that is still assigned to users.');
+
+        $role->delete();
+
+        return $responseFactory->noContent();
     }
 }
