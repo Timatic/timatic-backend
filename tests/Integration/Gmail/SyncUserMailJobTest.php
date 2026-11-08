@@ -5,6 +5,7 @@ use App\Models\Customer;
 use App\Models\CustomerEmailDomain;
 use App\Models\Event;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
 use Saloon\Http\Response;
@@ -315,4 +316,13 @@ it('asks gmail only for the recipient and subject headers of a message', functio
 
     $mock->assertSent(fn (GetMessageRequest $request, Response $response): bool => $response->getPsrRequest()->getUri()->getQuery()
         === 'format=metadata&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Bcc&metadataHeaders=Subject');
+});
+
+it('does not sync the same mailbox twice at once', function () {
+    $connection = GmailConnection::factory()->create();
+
+    $middleware = new SyncUserMailJob($connection)->middleware()[0];
+
+    expect($middleware)->toBeInstanceOf(WithoutOverlapping::class)
+        ->and($middleware->key)->toBe((string) $connection->id);
 });

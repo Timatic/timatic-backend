@@ -10,6 +10,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
 use Timatic\Gmail\Connector;
 use Timatic\Gmail\Models\GmailConnection;
@@ -27,6 +28,17 @@ class SyncUserMailJob implements ShouldQueue
     public bool $deleteWhenMissingModels = true;
 
     public function __construct(private readonly GmailConnection $gmailConnection) {}
+
+    /**
+     * Two runs at once would read the same history and race on the history id. A run that finds one
+     * busy is dropped: the next sync picks up where the busy one stops.
+     *
+     * @return array<int, object>
+     */
+    public function middleware(): array
+    {
+        return [new WithoutOverlapping((string) $this->gmailConnection->id)->dontRelease()->expireAfter(600)];
+    }
 
     public function handle(OAuthService $oauthService, CustomerEmailDomainResolver $customerResolver): void
     {
