@@ -11,6 +11,7 @@ use Carbon\CarbonInterface;
 use Closure;
 use DateTimeImmutable;
 use Illuminate\Support\Collection;
+use LogicException;
 use Spatie\Period\Boundaries;
 use Spatie\Period\Period;
 use Spatie\Period\PeriodCollection;
@@ -275,7 +276,13 @@ class ActivityProjector
         }
 
         $parts = $this->reduceOverlap($activity, $this->isFill($event), $alreadyCovered);
-        $this->activities->splice((int) $this->activities->search($activity, true), 1, $parts);
+        $position = $this->activities->search($activity, true);
+
+        if ($position === false) {
+            throw new LogicException('An event can only be appended to a projected activity.');
+        }
+
+        $this->activities->splice($position, 1, $parts);
 
         foreach ($parts as $part) {
             $this->mergeNeighbours($part);
@@ -285,6 +292,10 @@ class ActivityProjector
     /**
      * Events are projected by weight before time, so a widened activity can come to lie next to
      * an earlier projected activity of the same work item; they are one piece of work.
+     *
+     * ponytail: every merge rescans all activities and the gap check scans them again, O(n²) per
+     * call and O(n³) per day; fine for a day's events, index activities by customer and time if a
+     * user-day ever holds thousands.
      */
     private function mergeNeighbours(Activity $activity): void
     {
