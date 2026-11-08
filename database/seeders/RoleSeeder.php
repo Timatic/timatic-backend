@@ -16,6 +16,7 @@ class RoleSeeder extends Seeder
         $this->seedAccountManagerRole();
         $this->seedEmployeeRole();
         $this->seedTeamLeadRole();
+        $this->grantAdminSectionReadPermissions();
     }
 
     private function seedSuperAdminRole(): void
@@ -82,5 +83,16 @@ class RoleSeeder extends Seeder
             'user',
             'overtimes.approve',
         ]);
+    }
+
+    // Every role can see the admin section; only the admin role can change it
+    private function grantAdminSectionReadPermissions(): void
+    {
+        Role::query()->each(fn (Role $role) => $role->givePermissionTo([
+            'users.read',
+            'roles.read',
+            'permissions.read',
+            'customers.read',
+        ]));
     }
 }
