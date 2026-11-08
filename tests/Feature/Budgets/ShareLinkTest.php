@@ -77,6 +77,19 @@ it('does not share a budget that is hidden from the customer', function () {
     expect($budget->refresh()->share_token_hash)->toBeNull();
 });
 
+it('revokes the share link when the budget is hidden from the customer', function () {
+    $this->loginUser(permissions: ['budgets.update']);
+    $budget = BudgetVersion::factory()->create()->budget;
+    $budget->forceFill(['share_token_hash' => hash('sha256', 'secret-token')])->save();
+
+    $this->patchJson("budgets/{$budget->id}", ['type' => 'budgets', 'attributes' => ['showToCustomer' => false]])->assertSuccessful();
+    $this->patchJson("budgets/{$budget->id}", ['type' => 'budgets', 'attributes' => ['showToCustomer' => true]])->assertSuccessful();
+
+    expect($budget->refresh()->share_token_hash)->toBeNull();
+    Auth::forgetGuards();
+    $this->getJson("budgets/{$budget->id}", ['X-Share-Token' => 'secret-token'])->assertUnauthorized();
+});
+
 it('does not let a user who cannot update the budget revoke its share link', function () {
     $this->loginUser(permissions: ['budgets.read']);
     $budget = BudgetVersion::factory()->create()->budget;

@@ -93,6 +93,16 @@ class Budget extends Model
 
     protected $with = ['budgetType', 'budgetVersions'];
 
+    protected static function booted(): void
+    {
+        // Hiding a budget revokes its share link, so showing it again never revives an old link
+        static::saving(function (Budget $budget) {
+            if (! $budget->show_to_customer) {
+                $budget->share_token_hash = null;
+            }
+        });
+    }
+
     /**
      * @return array<string, string>
      */
