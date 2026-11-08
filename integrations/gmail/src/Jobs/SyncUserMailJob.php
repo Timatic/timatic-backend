@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Timatic\Gmail\Jobs;
 
+use App\Integrations\Suggestions\CustomerEmailDomainResolver;
 use App\Models\Event;
-use App\Services\CustomerEmailDomainResolver;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -19,7 +19,6 @@ use Timatic\Gmail\Requests\GetProfileRequest;
 use Timatic\Gmail\Requests\ListHistoryRequest;
 use Timatic\Gmail\ServiceProvider;
 
-// @arch-ignore app-boundary: customers are found by email domain in one place, shared with the core
 class SyncUserMailJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;

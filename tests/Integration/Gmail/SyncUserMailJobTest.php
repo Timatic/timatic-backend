@@ -1,9 +1,9 @@
 <?php
 
+use App\Integrations\Suggestions\CustomerEmailDomainResolver;
 use App\Models\Customer;
 use App\Models\CustomerEmailDomain;
 use App\Models\Event;
-use App\Services\CustomerEmailDomainResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
