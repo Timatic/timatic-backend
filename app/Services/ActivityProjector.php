@@ -7,18 +7,16 @@ use App\Models\Activity;
 use App\Models\Entry;
 use App\Models\Event;
 use Carbon\Carbon;
-use Closure;
 use Illuminate\Support\Collection;
-use LogicException;
 
 class ActivityProjector
 {
-    private const CHAIN_GAP_MINUTES = 15;
-
     /** @var Collection<int, Activity> */
     private Collection $activities;
 
     private ActivityOverlap $overlap;
+
+    private ActivityChainer $chainer;
 
     private EventAttribution $attribution;
 
@@ -36,6 +34,7 @@ class ActivityProjector
     public function project(Collection $events, Collection $entries, Collection $previousSequenceBookings = new Collection): Collection
     {
         $this->overlap = new ActivityOverlap($entries);
+        $this->chainer = new ActivityChainer($this->overlap);
         $this->attribution = new EventAttribution($previousSequenceBookings);
 
         $sorted = $events->sort(function (Event $a, Event $b) {
@@ -72,12 +71,12 @@ class ActivityProjector
             }
 
             if ($event->ticket_number === null) {
-                $match = $this->findChainableActivity($event,
+                $match = $this->chainer->findChainableActivity($event, $customerId, $this->activities,
                     fn (Activity $a) => $a->customer_id === $customerId
                 );
 
                 if ($match) {
-                    $this->appendEventToActivity($match, $event);
+                    $this->chainer->appendEventToActivity($match, $event, $this->activities);
                 } else {
                     $unclaimed->push($event);
                 }
@@ -85,13 +84,13 @@ class ActivityProjector
                 continue;
             }
 
-            $match = $this->findChainableActivity($event,
+            $match = $this->chainer->findChainableActivity($event, $customerId, $this->activities,
                 fn (Activity $a) => $a->customer_id === $customerId
                     && $a->ticket_number === $event->ticket_number
             );
 
             if ($match) {
-                $this->appendEventToActivity($match, $event);
+                $this->chainer->appendEventToActivity($match, $event, $this->activities);
             } else {
                 $this->createActivity($event);
             }
@@ -99,12 +98,12 @@ class ActivityProjector
 
         foreach ($unclaimed as $event) {
             $customerId = $this->attribution->customerId($event);
-            $match = $this->findChainableActivity($event,
+            $match = $this->chainer->findChainableActivity($event, $customerId, $this->activities,
                 fn (Activity $a) => $a->customer_id === $customerId
             );
 
             if ($match) {
-                $this->appendEventToActivity($match, $event);
+                $this->chainer->appendEventToActivity($match, $event, $this->activities);
             } else {
                 $this->createActivity($event);
             }
@@ -118,7 +117,7 @@ class ActivityProjector
         $this->activities->push(...$newActivityPartsWithoutOverlap);
 
         foreach ($newActivityPartsWithoutOverlap as $part) {
-            $this->mergeNeighbours($part, $this->overlap->isFill($event));
+            $this->chainer->mergeNeighbours($part, $this->activities, $this->overlap->isFill($event));
         }
 
         // Fully covered, the event has no time of its own left, but it still underlines the work of
@@ -136,44 +135,6 @@ class ActivityProjector
                 || $activity->ticket_number === $event->ticket_number) ?? $coveringActivities->first())
                 ?->events->push($event);
         }
-    }
-
-    /**
-     * The nearest activity of the event's own customer decides; work for another customer runs
-     * alongside and does not interrupt the chain.
-     *
-     * @param  Closure(Activity): bool  $matches
-     */
-    private function findChainableActivity(Event $event, Closure $matches): ?Activity
-    {
-        $eventStart = $event->effectiveStart();
-        $eventEnd = $event->ended_at->copy();
-        $ownWork = $this->activities
-            ->reject(fn (Activity $a) => $this->overlap->isOtherCustomer($this->attribution->customerId($event), $a->customer_id));
-
-        $precedingActivity = $ownWork
-            ->filter(fn (Activity $a) => $a->ended_at->isBefore($eventEnd)
-                && $a->ended_at->copy()->addMinutes(self::CHAIN_GAP_MINUTES)->isAfter($eventStart)
-            )
-            ->sortBy(fn (Activity $a) => $a->ended_at->getTimestamp())
-            ->last();
-
-        if ($precedingActivity && $matches($precedingActivity)) {
-            return $precedingActivity;
-        }
-
-        $followingActivity = $ownWork
-            ->filter(fn (Activity $a) => $a->started_at->isAfter($eventStart)
-                && $a->started_at->copy()->subMinutes(self::CHAIN_GAP_MINUTES)->isBefore($eventEnd)
-            )
-            ->sortBy(fn (Activity $a) => $a->started_at->getTimestamp())
-            ->first();
-
-        if ($followingActivity && $matches($followingActivity)) {
-            return $followingActivity;
-        }
-
-        return null;
     }
 
     private function activityFromEvent(Event $event): Activity
@@ -194,81 +155,5 @@ class ActivityProjector
         $activity->setRelation('events', collect([$event]));
 
         return $activity;
-    }
-
-    private function appendEventToActivity(Activity $activity, Event $event): void
-    {
-        $alreadyCovered = $this->overlap->period($activity->started_at, $activity->ended_at);
-        $activity->events->push($event);
-        $effectiveStart = $event->effectiveStart();
-
-        if ($effectiveStart->isBefore($activity->started_at)) {
-            $activity->started_at = Carbon::instance($effectiveStart);
-        }
-
-        if ($event->ended_at->isAfter($activity->ended_at)) {
-            $activity->ended_at = $event->ended_at;
-        }
-
-        $parts = $this->overlap->reduceOverlap($activity, $this->activities, $this->overlap->isFill($event), $alreadyCovered);
-        $position = $this->activities->search($activity, true);
-
-        if ($position === false) {
-            throw new LogicException('An event can only be appended to a projected activity.');
-        }
-
-        $this->activities->splice($position, 1, $parts);
-
-        foreach ($parts as $part) {
-            $this->mergeNeighbours($part, $this->overlap->isFill($event));
-        }
-    }
-
-    /**
-     * Events are projected by weight before time, so a widened activity can come to lie next to
-     * an earlier projected activity of the same work item; they are one piece of work. A fill
-     * activity does not merge across any claim, or it would cover the work it gave way to again.
-     *
-     * ponytail: every merge rescans all activities and the gap check scans them again, O(n²) per
-     * call and O(n³) per day; fine for a day's events, index activities by customer and time if a
-     * user-day ever holds thousands.
-     */
-    private function mergeNeighbours(Activity $activity, bool $isFill): void
-    {
-        // An earlier part of the same activity may already have absorbed this one.
-        if (! $this->activities->contains(fn (Activity $other) => $other === $activity)) {
-            return;
-        }
-
-        while ($neighbour = $this->activities->first(fn (Activity $other) => $this->isMergeable($activity, $other, $isFill))) {
-            [$kept, $absorbed] = $this->activities->first(fn (Activity $other) => $other === $activity || $other === $neighbour) === $activity
-                ? [$activity, $neighbour]
-                : [$neighbour, $activity];
-
-            $kept->setRelation('events', $kept->events->concat($absorbed->events)->unique(null, true)->values());
-            $kept->started_at = $kept->started_at->min($absorbed->started_at);
-            $kept->ended_at = $kept->ended_at->max($absorbed->ended_at);
-            $this->activities = $this->activities->reject(fn (Activity $other) => $other === $absorbed)->values();
-            $activity = $kept;
-        }
-    }
-
-    private function isMergeable(Activity $activity, Activity $other, bool $isFill): bool
-    {
-        if ($other === $activity
-            || $activity->customer_id === null
-            || $other->customer_id !== $activity->customer_id
-            || $other->ticket_number !== $activity->ticket_number) {
-            return false;
-        }
-
-        $gapStart = $activity->ended_at->min($other->ended_at);
-        $gapEnd = $activity->started_at->max($other->started_at);
-
-        if ($gapStart->copy()->addMinutes(self::CHAIN_GAP_MINUTES)->lte($gapEnd)) {
-            return false;
-        }
-
-        return ! $this->overlap->isClaimedBetween($activity, $other, $this->activities, $isFill);
     }
 }
