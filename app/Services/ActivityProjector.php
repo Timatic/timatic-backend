@@ -129,7 +129,7 @@ class ActivityProjector
         $this->activities->push(...$newActivityPartsWithoutOverlap);
 
         foreach ($newActivityPartsWithoutOverlap as $part) {
-            $this->mergeNeighbours($part);
+            $this->mergeNeighbours($part, $this->isFill($event));
         }
 
         // Fully covered, the event has no time of its own left, but it still underlines the work of
@@ -285,22 +285,28 @@ class ActivityProjector
         $this->activities->splice($position, 1, $parts);
 
         foreach ($parts as $part) {
-            $this->mergeNeighbours($part);
+            $this->mergeNeighbours($part, $this->isFill($event));
         }
     }
 
     /**
      * Events are projected by weight before time, so a widened activity can come to lie next to
-     * an earlier projected activity of the same work item; they are one piece of work.
+     * an earlier projected activity of the same work item; they are one piece of work. A fill
+     * activity does not merge across any claim, or it would cover the work it gave way to again.
      *
      * ponytail: every merge rescans all activities and the gap check scans them again, O(n²) per
      * call and O(n³) per day; fine for a day's events, index activities by customer and time if a
      * user-day ever holds thousands.
      */
-    private function mergeNeighbours(Activity $activity): void
+    private function mergeNeighbours(Activity $activity, bool $isFill): void
     {
-        while ($neighbour = $this->activities->first(fn (Activity $other) => $this->isMergeable($activity, $other))) {
-            [$kept, $absorbed] = $this->activities->search($activity, true) < $this->activities->search($neighbour, true)
+        // An earlier part of the same activity may already have absorbed this one.
+        if (! $this->activities->contains(fn (Activity $other) => $other === $activity)) {
+            return;
+        }
+
+        while ($neighbour = $this->activities->first(fn (Activity $other) => $this->isMergeable($activity, $other, $isFill))) {
+            [$kept, $absorbed] = $this->activities->first(fn (Activity $other) => $other === $activity || $other === $neighbour) === $activity
                 ? [$activity, $neighbour]
                 : [$neighbour, $activity];
 
@@ -312,7 +318,7 @@ class ActivityProjector
         }
     }
 
-    private function isMergeable(Activity $activity, Activity $other): bool
+    private function isMergeable(Activity $activity, Activity $other, bool $isFill): bool
     {
         if ($other === $activity
             || $activity->customer_id === null
@@ -331,10 +337,10 @@ class ActivityProjector
         $unionStart = $activity->started_at->min($other->started_at);
         $unionEnd = $activity->ended_at->max($other->ended_at);
 
-        return ! $this->entries->contains(fn (Entry $entry) => ! $this->isOtherCustomer($activity->customer_id, $entry->customer_id)
+        return ! $this->entries->contains(fn (Entry $entry) => ($isFill || ! $this->isOtherCustomer($activity->customer_id, $entry->customer_id))
             && $entry->started_at->lt($unionEnd) && $entry->ended_at->gt($unionStart))
             && ($gapEnd->lte($gapStart) || ! $this->activities->contains(fn (Activity $claim) => $claim !== $activity && $claim !== $other
-                && ! $this->isOtherCustomer($activity->customer_id, $claim->customer_id)
+                && ($isFill || ! $this->isOtherCustomer($activity->customer_id, $claim->customer_id))
                 && $claim->started_at->lt($gapEnd) && $claim->ended_at->gt($gapStart)));
     }
 
