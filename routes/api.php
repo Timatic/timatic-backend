@@ -14,6 +14,7 @@
 use App\Http\Controllers\Auth\Token\IssueTokenController;
 use App\Http\Controllers\Auth\Token\RevokeTokenController;
 use App\Http\Controllers\Budgets\BudgetController;
+use App\Http\Controllers\Budgets\BudgetShareLinkController;
 use App\Http\Controllers\Budgets\BudgetTypeController;
 use App\Http\Controllers\Budgets\GetBudgetPeriodsController;
 use App\Http\Controllers\Budgets\GetBudgetTimeSpentTotalsController;
@@ -69,6 +70,12 @@ Route::middleware([
     Route::apiResource('budgets', BudgetController::class);
 
     Route::get('budgets/{budget}/periods', GetBudgetPeriodsController::class)->name('budget.periods.show');
+    Route::post('budgets/{budget}/share-link', [BudgetShareLinkController::class, 'store'])
+        ->middleware('can:update,budget')
+        ->name('budget.share-link.store');
+    Route::delete('budgets/{budget}/share-link', [BudgetShareLinkController::class, 'destroy'])
+        ->middleware('can:update,budget')
+        ->name('budget.share-link.destroy');
     Route::get('budgets/{budget}/entries-export', GetBudgetEntriesExportController::class)->name('budget.entries-export');
 
     Route::apiResource('entry-suggestions', EntrySuggestionController::class)->except('store', 'update');

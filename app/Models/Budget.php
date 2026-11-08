@@ -21,6 +21,7 @@ use UnexpectedValueException;
  * @property int $id
  * @property string $customer_id
  * @property bool $show_to_customer
+ * @property ?string $share_token_hash
  * @property string $budget_type_id
  * @property Carbon $started_at
  * @property Carbon $ended_at
@@ -81,6 +82,13 @@ class Budget extends Model
         'customer_id',
         'renewal_frequency',
         'started_at',
+    ];
+
+    /**
+     * @var list<string>
+     */
+    protected $hidden = [
+        'share_token_hash',
     ];
 
     protected $with = ['budgetType', 'budgetVersions'];

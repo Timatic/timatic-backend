@@ -30,6 +30,7 @@ class Budget extends JsonApiResource
             'endedAt' => $this->ended_at,
             'initialMinutes' => $activeVersion->initial_minutes,
             'isArchived' => $this->archived_at != null,
+            'isShared' => $this->share_token_hash !== null,
             'renewalFrequency' => $this->renewal_frequency,
             'createdAt' => $this->created_at,
             'updatedAt' => $activeVersion->updated_at,
