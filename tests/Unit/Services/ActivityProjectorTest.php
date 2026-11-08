@@ -1385,5 +1385,85 @@ test('a ticketless meeting chained onto one ticket does not double count another
     $periods = $activities
         ->map(fn ($activity) => $activity->ticket_number.' '.$activity->started_at->format('H:i').'-'.$activity->ended_at->format('H:i'))
         ->all();
-    expect($periods)->toBe(['TIC-2 09:30-11:00', 'TIC-1 08:50-09:30', 'TIC-1 11:00-12:00']);
+    expect($periods)->toBe(['TIC-2 09:00-12:00', 'TIC-1 08:50-09:00']);
+});
+
+test('work for another customer in between does not interrupt the chain of a ticket', function () {
+    $commit = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'commit_created',
+        'started_at' => Carbon::parse('2026-07-16 09:00'),
+        'ended_at' => Carbon::parse('2026-07-16 09:30'),
+    ]);
+    $commit->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 10]));
+    $otherCustomer = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerY',
+        'ticket_number' => 'TIC-9',
+        'event_type_id' => 'prompt_submitted',
+        'started_at' => Carbon::parse('2026-07-16 09:20'),
+        'ended_at' => Carbon::parse('2026-07-16 09:40'),
+    ]);
+    $otherCustomer->setRelation('eventType', new EventType(['id' => 'prompt_submitted', 'weight' => 15]));
+    $review = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'pr_commented',
+        'started_at' => Carbon::parse('2026-07-16 09:35'),
+        'ended_at' => Carbon::parse('2026-07-16 10:00'),
+    ]);
+    $review->setRelation('eventType', new EventType(['id' => 'pr_commented', 'weight' => 20]));
+
+    $activities = (new ActivityProjector)->project(collect([$commit, $otherCustomer, $review]), collect());
+
+    $periods = $activities
+        ->map(fn ($activity) => $activity->ticket_number.' '.$activity->started_at->format('H:i').'-'.$activity->ended_at->format('H:i'))
+        ->all();
+    expect($periods)->toBe(['TIC-1 09:00-10:00', 'TIC-9 09:20-09:40']);
+});
+
+test('work for another customer in the gap does not keep two activities of the same ticket apart', function () {
+    $approved = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'pr_approved',
+        'ended_at' => Carbon::parse('2026-07-16 09:00'),
+    ]);
+    $approved->setRelation('eventType', new EventType(['id' => 'pr_approved', 'weight' => 50]));
+    $changesRequested = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'pr_changes_requested',
+        'ended_at' => Carbon::parse('2026-07-16 09:20'),
+    ]);
+    $changesRequested->setRelation('eventType', new EventType(['id' => 'pr_changes_requested', 'weight' => 50]));
+    $commented = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'pr_commented',
+        'ended_at' => Carbon::parse('2026-07-16 09:40'),
+    ]);
+    $commented->setRelation('eventType', new EventType(['id' => 'pr_commented', 'weight' => 40]));
+    $otherCustomer = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerY',
+        'ticket_number' => 'TIC-9',
+        'event_type_id' => 'branch_created',
+        'started_at' => Carbon::parse('2026-07-16 09:21'),
+        'ended_at' => Carbon::parse('2026-07-16 09:24'),
+    ]);
+    $otherCustomer->setRelation('eventType', new EventType(['id' => 'branch_created', 'weight' => 1]));
+
+    $activities = (new ActivityProjector)->project(collect([$approved, $changesRequested, $commented, $otherCustomer]), collect());
+
+    $periods = $activities
+        ->map(fn ($activity) => $activity->ticket_number.' '.$activity->started_at->format('H:i').'-'.$activity->ended_at->format('H:i'))
+        ->all();
+    expect($periods)->toBe(['TIC-9 09:21-09:24', 'TIC-1 08:45-09:40']);
 });

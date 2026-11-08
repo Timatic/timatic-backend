@@ -197,27 +197,34 @@ class ActivityProjector
     }
 
     /**
+     * The nearest activity of the event's own customer decides; work for another customer runs
+     * alongside and does not interrupt the chain.
+     *
      * @param  Closure(Activity): bool  $matches
      */
     private function findChainableActivity(Event $event, Closure $matches): ?Activity
     {
         $eventStart = $event->effectiveStart();
         $eventEnd = $event->ended_at->copy();
+        $ownWork = $this->activities
+            ->reject(fn (Activity $a) => $this->isOtherCustomer($this->customerId($event), $a->customer_id));
 
-        $precedingActivity = $this->activities
+        $precedingActivity = $ownWork
             ->filter(fn (Activity $a) => $a->ended_at->isBefore($eventEnd)
                 && $a->ended_at->copy()->addMinutes(self::CHAIN_GAP_MINUTES)->isAfter($eventStart)
             )
+            ->sortBy(fn (Activity $a) => $a->ended_at->getTimestamp())
             ->last();
 
         if ($precedingActivity && $matches($precedingActivity)) {
             return $precedingActivity;
         }
 
-        $followingActivity = $this->activities
+        $followingActivity = $ownWork
             ->filter(fn (Activity $a) => $a->started_at->isAfter($eventStart)
                 && $a->started_at->copy()->subMinutes(self::CHAIN_GAP_MINUTES)->isBefore($eventEnd)
             )
+            ->sortBy(fn (Activity $a) => $a->started_at->getTimestamp())
             ->first();
 
         if ($followingActivity && $matches($followingActivity)) {
@@ -310,6 +317,7 @@ class ActivityProjector
         return ! $this->entries->contains(fn (Entry $entry) => ! $this->isOtherCustomer($activity->customer_id, $entry->customer_id)
             && $entry->started_at->lt($unionEnd) && $entry->ended_at->gt($unionStart))
             && ($gapEnd->lte($gapStart) || ! $this->activities->contains(fn (Activity $claim) => $claim !== $activity && $claim !== $other
+                && ! $this->isOtherCustomer($activity->customer_id, $claim->customer_id)
                 && $claim->started_at->lt($gapEnd) && $claim->ended_at->gt($gapStart)));
     }
 
