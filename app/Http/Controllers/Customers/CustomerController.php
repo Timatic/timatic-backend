@@ -7,6 +7,7 @@ use App\Http\Requests\CustomerRequest;
 use App\Http\Resources;
 use App\Models\Customer;
 use Illuminate\Contracts\Routing\ResponseFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -39,6 +40,8 @@ class CustomerController extends Controller implements HasMiddleware
             ->allowedIncludes([
                 AllowedInclude::custom('accountManager', new IncludedRelationship),
             ])
+            // Private mappings are an engineer's own setup, so only shared ones count as tracked
+            ->withCount(['trackedDomains' => fn (Builder $query) => $query->whereNull('user_id')])
             ->jsonPaginate();
 
         return Resources\Customer::collection($customers);
@@ -52,9 +55,11 @@ class CustomerController extends Controller implements HasMiddleware
             'external_id' => $validated['externalId'] ?? null,
             'name' => $validated['name'],
             'is_own_organization' => $validated['isOwnOrganization'] ?? false,
+            'hourly_rate' => $validated['hourlyRate'] ?? null,
+            'account_manager_user_id' => $request->validated('data.relationships.accountManager.data.id'),
         ]);
 
-        return new Resources\Customer($customer);
+        return new Resources\Customer($customer->load('accountManager'));
     }
 
     public function show(Customer $customer): Resources\Customer
@@ -68,13 +73,24 @@ class CustomerController extends Controller implements HasMiddleware
     {
         $validated = $request->validated()['data']['attributes'];
 
-        $customer->update(array_filter([
+        $attributes = array_filter([
             'external_id' => $validated['externalId'] ?? null,
             'name' => $validated['name'] ?? null,
             'is_own_organization' => $validated['isOwnOrganization'] ?? null,
-        ], fn ($value) => $value !== null));
+        ], fn ($value) => $value !== null);
 
-        return new Resources\Customer($customer);
+        // Both can be cleared, so only a missing key leaves them untouched
+        if (array_key_exists('hourlyRate', $validated)) {
+            $attributes['hourly_rate'] = $validated['hourlyRate'];
+        }
+
+        if ($request->has('data.relationships.accountManager')) {
+            $attributes['account_manager_user_id'] = $request->validated('data.relationships.accountManager.data.id');
+        }
+
+        $customer->update($attributes);
+
+        return new Resources\Customer($customer->load('accountManager'));
     }
 
     public function destroy(Customer $customer, ResponseFactory $responseFactory): Response

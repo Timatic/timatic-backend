@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Customer;
+use App\Models\TrackedDomain;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\Concerns\LoginUser;
@@ -41,4 +43,17 @@ it('rejects the count and exists variants of an include', function () {
     $this->loginUser(permissions: ['customers.read']);
 
     $this->getJson('customers?include=accountManagerCount')->assertBadRequest();
+});
+
+it('counts only the shared tracked domains of a customer', function () {
+    $this->loginUser(permissions: ['customers.read']);
+
+    Customer::query()->delete();
+    $customer = Customer::factory()->create();
+    TrackedDomain::factory()->for($customer)->create(['user_id' => null]);
+    TrackedDomain::factory()->for($customer)->create(['user_id' => User::factory()]);
+
+    $this->getJson('customers')
+        ->assertSuccessful()
+        ->assertJsonPath('data.0.attributes.trackedDomainsCount', 1);
 });

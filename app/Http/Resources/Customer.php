@@ -19,6 +19,7 @@ class Customer extends JsonApiResource
             'name' => $this->name,
             'hourlyRate' => $this->hourly_rate ?? config('timatic.default_hourly_rate'),
             'isOwnOrganization' => $this->is_own_organization,
+            'trackedDomainsCount' => $this->whenCounted('trackedDomains'),
             'createdAt' => $this->created_at,
             'updatedAt' => $this->updated_at,
         ];
