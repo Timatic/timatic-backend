@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\ApiToken;
 use App\Models\User;
+use App\Support\Auth\SharedBudgetViewer;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +16,7 @@ class ImpersonateUsers
      */
     public function handle(Request $request, Closure $next): mixed
     {
-        /** @var User|ApiToken $user */
+        /** @var User|ApiToken|SharedBudgetViewer $user */
         $user = Auth::user();
 
         if ($user instanceof ApiToken) {
