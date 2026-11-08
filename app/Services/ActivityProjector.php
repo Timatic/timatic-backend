@@ -145,10 +145,11 @@ class ActivityProjector
     /**
      * Booked entries are always subtracted. Work known to be on another customer or ticket may run
      * alongside (multitasking), but a fill signal only gets what all other activities left.
+     * Time the activity already covered stays its own.
      *
      * @return array<int, Activity>
      */
-    private function reduceOverlap(Activity $activity, bool $isFill): array
+    private function reduceOverlap(Activity $activity, bool $isFill, ?Period $alreadyCovered = null): array
     {
         $claimed = new PeriodCollection(
             ...$this->entries->map(fn (Entry $entry) => $this->period($entry->started_at, $entry->ended_at))->all(),
@@ -157,6 +158,10 @@ class ActivityProjector
                 ->map(fn (Activity $other) => $this->period($other->started_at, $other->ended_at))
                 ->all(),
         );
+
+        if ($alreadyCovered !== null) {
+            $claimed = $claimed->subtract($alreadyCovered);
+        }
 
         $activityPeriod = $this->period($activity->started_at, $activity->ended_at);
         $segments = PeriodCollection::make($activityPeriod)->subtract($claimed);
@@ -241,6 +246,7 @@ class ActivityProjector
 
     private function appendEventToActivity(Activity $activity, Event $event): void
     {
+        $alreadyCovered = $this->period($activity->started_at, $activity->ended_at);
         $activity->events->push($event);
         $effectiveStart = $event->effectiveStart();
 
@@ -252,7 +258,12 @@ class ActivityProjector
             $activity->ended_at = $event->ended_at;
         }
 
-        $this->mergeNeighbours($activity);
+        $parts = $this->reduceOverlap($activity, $this->isFill($event), $alreadyCovered);
+        $this->activities->splice((int) $this->activities->search($activity, true), 1, $parts);
+
+        foreach ($parts as $part) {
+            $this->mergeNeighbours($part);
+        }
     }
 
     /**
