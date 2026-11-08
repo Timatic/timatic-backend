@@ -36,6 +36,7 @@
         "timatic/claude-code-integration": "1.0.0",
         "timatic/exact-globe-integration": "1.0.0",
         "timatic/github-integration": "1.0.0",
+        "timatic/gmail-integration": "1.0.0",
         "timatic/google-calendar-integration": "1.0.0",
         "timatic/jira-integration": "1.0.0",
         "timatic/nmbrs-integration": "*",
@@ -87,6 +88,10 @@
         {
             "type": "path",
             "url": "integrations/claude-code"
+        },
+        {
+            "type": "path",
+            "url": "integrations/gmail"
         }
     ],
     "config": {

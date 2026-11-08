@@ -1,0 +1,114 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Timatic\Gmail\Filament\Pages;
+
+use App\Filament\Resources\Integrations\IntegrationResource;
+use App\Models\Integration;
+use Filament\Actions\Action;
+use Filament\Actions\Action as TableAction;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
+use Filament\Resources\Pages\Concerns\InteractsWithRecord;
+use Filament\Resources\Pages\Page;
+use Filament\Schemas\Components\Callout;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
+use Timatic\Gmail\Models\GmailConnection;
+use Timatic\Gmail\OAuthService;
+
+/**
+ * @property Schema $form
+ */
+class SettingsPage extends Page implements HasTable
+{
+    use InteractsWithRecord;
+    use InteractsWithTable;
+
+    protected static string $resource = IntegrationResource::class;
+
+    protected string $view = 'gmail::filament.pages.settings-page';
+
+    /** @var array<string, mixed> */
+    public array $data = [];
+
+    public function getTitle(): string
+    {
+        return $this->getIntegration()->display_title;
+    }
+
+    public function mount(int|string $record): void
+    {
+        $this->record = $this->resolveRecord($record);
+        $this->form->fill(['title' => $this->getIntegration()->title]);
+    }
+
+    public function form(Schema $form): Schema
+    {
+        return $form->schema([
+            TextInput::make('title')
+                ->label(__('gmail::gmail.settings.field_title'))
+                ->autocomplete(false)
+                ->helperText(__('integrations.title_helper')),
+            Callout::make(__('gmail::gmail.settings.callout_connect_title'))
+                ->info()
+                ->description(__('gmail::gmail.settings.callout_connect_description')),
+        ])->statePath('data');
+    }
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->query(GmailConnection::query()->with('user'))
+            ->columns([
+                TextColumn::make('user.full_name')
+                    ->label(__('gmail::gmail.settings.column_user'))
+                    ->searchable(['given_name', 'family_name']),
+                TextColumn::make('user.email')
+                    ->label(__('gmail::gmail.settings.column_email')),
+                TextColumn::make('created_at')
+                    ->label(__('gmail::gmail.settings.column_connected_at'))
+                    ->dateTime()
+                    ->sortable(),
+            ])
+            ->actions([
+                TableAction::make('disconnect')
+                    ->label(__('gmail::gmail.settings.action_disconnect'))
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->action(fn (GmailConnection $record) => app(OAuthService::class)->disconnect($record)),
+            ])
+            ->emptyStateHeading(__('gmail::gmail.settings.empty_heading'))
+            ->emptyStateDescription(__('gmail::gmail.settings.empty_description'));
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            ActionGroup::make([
+                DeleteAction::make()
+                    ->successRedirectUrl(IntegrationResource::getUrl('index')),
+            ]),
+
+            Action::make('save')
+                ->label(__('gmail::gmail.settings.action_save'))
+                ->action(function (): void {
+                    $data = $this->form->getState();
+                    $this->getIntegration()->update(['title' => $data['title']]);
+                    Notification::make()->title(__('gmail::gmail.settings.notification_title_updated'))->success()->send();
+                }),
+        ];
+    }
+
+    private function getIntegration(): Integration
+    {
+        /** @var Integration */
+        return Integration::findOrFail($this->getRecord()->getKey());
+    }
+}
