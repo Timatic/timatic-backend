@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services;
+namespace App\Integrations\Suggestions;
 
 use App\Models\Customer;
 use App\Models\CustomerEmailDomain;

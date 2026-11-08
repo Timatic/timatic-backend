@@ -1,8 +1,8 @@
 <?php
 
+use App\Integrations\Suggestions\CustomerEmailDomainResolver;
 use App\Models\Customer;
 use App\Models\CustomerEmailDomain;
-use App\Services\CustomerEmailDomainResolver;
 
 it('resolves the customer of the first recipient whose domain matches', function () {
     CustomerEmailDomain::factory()->create(['domain' => 'globex.com']);
