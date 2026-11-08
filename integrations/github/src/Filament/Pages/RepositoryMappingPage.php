@@ -94,11 +94,11 @@ class RepositoryMappingPage extends Page implements HasTable
         }
 
         return $table
-            ->query(RepositoryMapping::query()->where('integration_id', $this->getRecord()->getKey()))
+            ->query(RepositoryMapping::query()->withIsIgnored()->where('integration_id', $this->getRecord()->getKey()))
             ->columns([
                 TextColumn::make('repository_full_name')
                     ->label(__('github::github.repository_mapping.column_repository'))
-                    ->color(fn (RepositoryMapping $record) => $record->is_archived ? 'gray' : null)
+                    ->color(fn (RepositoryMapping $record) => $record->is_ignored ? 'gray' : null)
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('customer.name')
@@ -115,8 +115,12 @@ class RepositoryMappingPage extends Page implements HasTable
                     ->label(__('github::github.repository_mapping.filter_unmapped'))
                     ->default()
                     ->query(fn (Builder $query) => $query->whereNull('customer_id')),
-                TernaryFilter::make('is_archived')
-                    ->label(__('github::github.repository_mapping.filter_archived'))
+                TernaryFilter::make('is_ignored')
+                    ->label(__('github::github.repository_mapping.filter_ignored'))
+                    ->queries(
+                        true: fn (Builder $query) => $query->whereIn('id', RepositoryMapping::ignored()->select('id')),
+                        false: fn (Builder $query) => $query->whereIn('id', RepositoryMapping::active()->select('id')),
+                    )
                     ->default(false),
             ])
             ->recordActions([
@@ -128,6 +132,20 @@ class RepositoryMappingPage extends Page implements HasTable
                     ])
                     ->schema($this->assignmentSchema())
                     ->action(fn (RepositoryMapping $record, array $data) => $this->assign(new Collection([$record]), $data)),
+                Action::make('ignore')
+                    ->label(__('github::github.repository_mapping.action_ignore'))
+                    ->icon('heroicon-o-eye-slash')
+                    ->color('warning')
+                    ->iconButton()
+                    ->requiresConfirmation()
+                    ->visible(fn (RepositoryMapping $record) => ! $record->is_ignored)
+                    ->action(fn (RepositoryMapping $record) => $record->ignore()),
+                Action::make('restore')
+                    ->label(__('github::github.repository_mapping.action_restore'))
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->iconButton()
+                    ->visible(fn (RepositoryMapping $record) => (bool) $record->is_ignored)
+                    ->action(fn (RepositoryMapping $record) => $record->ignore(false)),
             ])
             ->recordAction('assign')
             ->bulkActions([
@@ -242,7 +260,7 @@ class RepositoryMappingPage extends Page implements HasTable
                     continue;
                 }
 
-                RepositoryMapping::updateOrCreate(
+                $mapping = RepositoryMapping::updateOrCreate(
                     [
                         'integration_id' => $integration->id,
                         'repository_full_name' => $repository->fullName,
@@ -251,9 +269,13 @@ class RepositoryMappingPage extends Page implements HasTable
                         'installation_id' => $installationId,
                         'owner_login' => $repository->ownerLogin,
                         'repository_name' => $repository->name,
-                        'is_archived' => $repository->isArchived,
                     ]
                 );
+
+                // never un-ignored here, so a repository an admin ignored stays ignored
+                if ($repository->isArchived) {
+                    $mapping->ignore();
+                }
 
                 $syncedFullNames[] = $repository->fullName;
             }
@@ -261,7 +283,7 @@ class RepositoryMappingPage extends Page implements HasTable
             $syncedInstallationIds[] = $installationId;
         }
 
-        $this->archiveRepositoriesNoLongerAccessible($integration, $syncedInstallationIds, $syncedFullNames);
+        $this->ignoreRepositoriesNoLongerAccessible($integration, $syncedInstallationIds, $syncedFullNames);
     }
 
     /**
@@ -293,18 +315,18 @@ class RepositoryMappingPage extends Page implements HasTable
 
     /**
      * Only installations that answered are swept, so a failing installation does not
-     * archive the repositories it still owns.
+     * ignore the repositories it still owns.
      *
      * @param  array<int, int>  $syncedInstallationIds
      * @param  array<int, string>  $syncedFullNames
      */
-    private function archiveRepositoriesNoLongerAccessible(Integration $integration, array $syncedInstallationIds, array $syncedFullNames): void
+    private function ignoreRepositoriesNoLongerAccessible(Integration $integration, array $syncedInstallationIds, array $syncedFullNames): void
     {
         RepositoryMapping::query()
             ->where('integration_id', $integration->id)
             ->whereIn('installation_id', $syncedInstallationIds)
             ->whereNotIn('repository_full_name', $syncedFullNames)
-            ->update(['is_archived' => true]);
+            ->each(fn (RepositoryMapping $mapping) => $mapping->ignore());
     }
 
     private function notifyConnectionUnavailable(): void

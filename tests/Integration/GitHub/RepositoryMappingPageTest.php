@@ -4,6 +4,7 @@ use App\Models\Budget;
 use App\Models\BudgetVersion;
 use App\Models\Customer;
 use App\Models\Integration;
+use App\Models\Repository;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
@@ -42,15 +43,15 @@ it('creates a mapping for every repository of the installation', function () {
 
     Livewire::test(RepositoryMappingPage::class, ['record' => $integration->id])->assertSuccessful();
 
-    expect(RepositoryMapping::pluck('is_archived', 'repository_full_name')->all())
-        ->toBe(['acme/api' => false, 'acme/web' => true])
+    expect(RepositoryMapping::active()->pluck('repository_full_name')->all())->toBe(['acme/api'])
+        ->and(Repository::where('is_ignored', true)->pluck('identifier')->all())->toBe(['acme/web'])
         ->and(RepositoryMapping::where('repository_full_name', 'acme/api')->sole())
         ->owner_login->toBe('acme')
         ->repository_name->toBe('api')
         ->installation_id->toBe(4242);
 });
 
-it('archives a mapping whose repository is no longer accessible', function () {
+it('ignores a repository that is no longer accessible', function () {
     config()->set('github.app_id', '123456');
     config()->set('github.private_key', 'private-key');
     $this->loginUser(permissions: ['integrations.read']);
@@ -75,7 +76,7 @@ it('archives a mapping whose repository is no longer accessible', function () {
 
     Livewire::test(RepositoryMappingPage::class, ['record' => $integration->id])->assertSuccessful();
 
-    expect(RepositoryMapping::where('repository_full_name', 'acme/legacy')->sole()->is_archived)->toBeTrue();
+    expect(Repository::sole()->only('identifier', 'is_ignored'))->toBe(['identifier' => 'acme/legacy', 'is_ignored' => true]);
 });
 
 it('warns instead of failing when GitHub rejects the repository request', function () {
@@ -262,7 +263,7 @@ it('keeps the mappings of an installation that could not be reached', function (
         ->assertSuccessful()
         ->assertNotified(__('github::github.common.connection_expired_title'));
 
-    expect(RepositoryMapping::sole()->is_archived)->toBeFalse();
+    expect(Repository::count())->toBe(0);
 });
 
 it('searches the repository given in the search query parameter', function () {
@@ -289,4 +290,30 @@ it('searches the repository given in the search query parameter', function () {
     // Then
     $page->assertCanSeeTableRecords(RepositoryMapping::where('repository_full_name', 'acme/api')->get())
         ->assertCanNotSeeTableRecords(RepositoryMapping::where('repository_full_name', 'acme/web')->get());
+});
+
+it('ignores a repository from its row', function () {
+    // Given
+    config()->set('github.app_id', '123456');
+    config()->set('github.private_key', 'private-key');
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
+    Cache::put('github.installation_token.4242', 'ghs_installation_token');
+    MockClient::global([
+        GetInstallationRepositoriesRequest::class => MockResponse::make([
+            'total_count' => 1,
+            'repositories' => [
+                ['id' => 1, 'name' => 'api', 'full_name' => 'acme/api', 'owner' => ['login' => 'acme'], 'archived' => false],
+            ],
+        ]),
+    ]);
+    $page = Livewire::test(RepositoryMappingPage::class, ['record' => $integration->id]);
+
+    // When
+    $page->callAction(TestAction::make('ignore')->table(RepositoryMapping::sole()));
+
+    // Then
+    expect(Repository::sole()->only('integration_id', 'identifier', 'name', 'is_ignored'))
+        ->toBe(['integration_id' => $integration->id, 'identifier' => 'acme/api', 'name' => 'api', 'is_ignored' => true]);
 });

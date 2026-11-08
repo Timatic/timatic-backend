@@ -2,6 +2,7 @@
 
 use App\Models\Customer;
 use App\Models\Integration;
+use App\Models\Repository;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
@@ -61,4 +62,24 @@ it('searches the repository given in the search query parameter', function () {
 
     // Then
     $page->assertCanSeeTableRecords([$repo])->assertCanNotSeeTableRecords([$other]);
+});
+
+it('stops ignoring a repository from its row', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $integration = Integration::create(['title' => 'Bitbucket', 'type' => 'bitbucket', 'config' => ['access_token' => 'token', 'workspace' => 'workspace', 'expires_at' => now()->addHour()->timestamp]]);
+    $mapping = RepositoryMapping::create(['integration_id' => $integration->id, 'workspace_slug' => 'workspace', 'repository_slug' => 'repo', 'repository_name' => 'Repo']);
+    $mapping->ignore();
+    MockClient::global([
+        GetRepositoriesRequest::class => MockResponse::make(['values' => []]),
+    ]);
+
+    // When
+    Livewire::test(RepositoryMappingPage::class, ['record' => $integration->id])
+        ->filterTable('is_ignored', true)
+        ->callAction(TestAction::make('restore')->table($mapping));
+
+    // Then
+    expect(Repository::sole()->only('identifier', 'is_ignored'))->toBe(['identifier' => 'repo', 'is_ignored' => false]);
 });

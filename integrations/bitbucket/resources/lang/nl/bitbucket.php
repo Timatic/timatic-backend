@@ -53,9 +53,9 @@ return [
         'column_name' => 'Naam',
         'empty_heading' => 'Geen repositories gevonden',
         'empty_description' => 'Klik op "Vernieuwen" om repositories op te halen uit Bitbucket.',
-        'action_archive' => 'Archiveren',
-        'action_restore' => 'Herstellen',
-        'filter_archived' => 'Gearchiveerd',
+        'action_ignore' => 'Negeren',
+        'action_restore' => 'Niet meer negeren',
+        'filter_ignored' => 'Genegeerd',
         'filter_unmapped' => 'Alleen niet gekoppeld',
     ],
 

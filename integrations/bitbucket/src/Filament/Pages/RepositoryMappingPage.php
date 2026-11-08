@@ -88,12 +88,12 @@ class RepositoryMappingPage extends Page implements HasTable
         }
 
         return $table
-            ->query(RepositoryMapping::query()->where('integration_id', $this->getRecord()->getKey()))
+            ->query(RepositoryMapping::query()->withIsIgnored()->where('integration_id', $this->getRecord()->getKey()))
             ->columns([
                 TextColumn::make('repository_slug')->label(__('bitbucket::bitbucket.repository_mapping.column_repository'))->searchable()->sortable(),
                 TextColumn::make('repository_name')
                     ->label(__('bitbucket::bitbucket.repository_mapping.column_name'))
-                    ->color(fn (RepositoryMapping $record) => $record->is_archived ? 'gray' : null)
+                    ->color(fn (RepositoryMapping $record) => $record->is_ignored ? 'gray' : null)
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('customer.name')->label(__('bitbucket::bitbucket.common.column_customer'))->placeholder(__('bitbucket::bitbucket.common.not_linked'))->sortable(),
@@ -107,8 +107,12 @@ class RepositoryMappingPage extends Page implements HasTable
                     ->label(__('bitbucket::bitbucket.repository_mapping.filter_unmapped'))
                     ->default()
                     ->query(fn (Builder $query) => $query->whereNull('customer_id')),
-                TernaryFilter::make('is_archived')
-                    ->label(__('bitbucket::bitbucket.repository_mapping.filter_archived'))
+                TernaryFilter::make('is_ignored')
+                    ->label(__('bitbucket::bitbucket.repository_mapping.filter_ignored'))
+                    ->queries(
+                        true: fn (Builder $query) => $query->whereIn('id', RepositoryMapping::ignored()->select('id')),
+                        false: fn (Builder $query) => $query->whereIn('id', RepositoryMapping::active()->select('id')),
+                    )
                     ->default(false),
             ])
             ->actions([
@@ -123,20 +127,20 @@ class RepositoryMappingPage extends Page implements HasTable
                         'customer_id' => $data['customer_id'] ?: null,
                         'budget_id' => $data['budget_id'] ?: null,
                     ])),
-                Action::make('archive')
-                    ->label(__('bitbucket::bitbucket.repository_mapping.action_archive'))
-                    ->icon('heroicon-o-archive-box')
+                Action::make('ignore')
+                    ->label(__('bitbucket::bitbucket.repository_mapping.action_ignore'))
+                    ->icon('heroicon-o-eye-slash')
                     ->color('warning')
                     ->iconButton()
                     ->requiresConfirmation()
-                    ->visible(fn (RepositoryMapping $record) => ! $record->is_archived)
-                    ->action(fn (RepositoryMapping $record) => $record->update(['is_archived' => true])),
+                    ->visible(fn (RepositoryMapping $record) => ! $record->is_ignored)
+                    ->action(fn (RepositoryMapping $record) => $record->ignore()),
                 Action::make('restore')
                     ->label(__('bitbucket::bitbucket.repository_mapping.action_restore'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->iconButton()
-                    ->visible(fn (RepositoryMapping $record) => $record->is_archived)
-                    ->action(fn (RepositoryMapping $record) => $record->update(['is_archived' => false])),
+                    ->visible(fn (RepositoryMapping $record) => (bool) $record->is_ignored)
+                    ->action(fn (RepositoryMapping $record) => $record->ignore(false)),
             ])
             ->recordAction('assign')
             ->bulkActions([
@@ -150,12 +154,17 @@ class RepositoryMappingPage extends Page implements HasTable
                         ]);
                     })
                     ->deselectRecordsAfterCompletion(),
-                BulkAction::make('archive')
-                    ->label(__('bitbucket::bitbucket.repository_mapping.action_archive'))
-                    ->icon('heroicon-o-archive-box')
+                BulkAction::make('ignore')
+                    ->label(__('bitbucket::bitbucket.repository_mapping.action_ignore'))
+                    ->icon('heroicon-o-eye-slash')
                     ->color('warning')
                     ->requiresConfirmation()
-                    ->action(fn (Collection $records) => $records->each->update(['is_archived' => true]))
+                    ->action(function (Collection $records): void {
+                        /** @var RepositoryMapping $record */
+                        foreach ($records as $record) {
+                            $record->ignore();
+                        }
+                    })
                     ->deselectRecordsAfterCompletion(),
             ])
             ->heading(__('bitbucket::bitbucket.repository_mapping.table_heading'))

@@ -46,7 +46,7 @@ it('dispatches without a mapping when the repository is not linked', function ()
     });
 });
 
-it('ignores an archived mapping', function () {
+it('ignores the delivery of an ignored repository', function () {
     Bus::fake();
     $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['webhook_secret' => 'webhook-secret']]);
     RepositoryMapping::create([
@@ -55,8 +55,7 @@ it('ignores an archived mapping', function () {
         'owner_login' => 'acme',
         'repository_name' => 'api',
         'repository_full_name' => 'acme/api',
-        'is_archived' => true,
-    ]);
+    ])->ignore();
     $body = json_encode(['repository' => ['full_name' => 'acme/api']]);
 
     $this->call('POST', route('github.webhook', $integration), [], [], [], [

@@ -36,7 +36,7 @@ it('finds the customer and budget a GitHub repository is mapped to', function ()
         ->and($mapping?->budget_id)->toBe($budget->id);
 });
 
-it('ignores an archived GitHub repository', function () {
+it('ignores an ignored GitHub repository', function () {
     // Given
     /** @var Customer $customer */
     $customer = Customer::factory()->create();
@@ -48,8 +48,7 @@ it('ignores an archived GitHub repository', function () {
         'repository_name' => 'shop',
         'repository_full_name' => 'acme/shop',
         'customer_id' => $customer->id,
-        'is_archived' => true,
-    ]);
+    ])->ignore();
 
     // When
     $mapping = app(GitRepositoryService::class)->findMappingByRemote(GitRemote::fromUrl('git@github.com:acme/shop.git'));
