@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property ?Carbon $deleted_at
  * @property ?User $accountManager
  * @property Collection<int, TrackedDomain> $trackedDomains
+ * @property Collection<int, CustomerEmailDomain> $emailDomains
  */
 class Customer extends Model
 {
@@ -53,6 +54,22 @@ class Customer extends Model
     public function trackedDomains(): HasMany
     {
         return $this->hasMany(TrackedDomain::class);
+    }
+
+    /**
+     * @return HasMany<CustomerEmailDomain, $this>
+     */
+    public function emailDomains(): HasMany
+    {
+        return $this->hasMany(CustomerEmailDomain::class);
+    }
+
+    protected static function booted(): void
+    {
+        // Soft deletes too: a deleted customer must not keep a domain another customer may need.
+        static::deleting(function (Customer $customer) {
+            $customer->emailDomains()->delete();
+        });
     }
 
     protected function casts(): array
