@@ -8,6 +8,7 @@ use App\Models\Entry;
 use App\Models\Event;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use LogicException;
 
 class ActivityProjector
 {
@@ -97,7 +98,8 @@ class ActivityProjector
         }
 
         foreach ($unclaimed as $event) {
-            $customerId = $this->attribution->customerId($event);
+            $customerId = $this->attribution->customerId($event)
+                ?? throw new LogicException('Only events of a known customer are held back.');
             $match = $this->chainer->findChainableActivity($event, $customerId, $this->activities,
                 fn (Activity $a) => $a->customer_id === $customerId
             );
