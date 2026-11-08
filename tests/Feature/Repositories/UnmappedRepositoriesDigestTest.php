@@ -133,3 +133,18 @@ it('sends nothing without recent work', function () {
     // Then
     Mail::assertNothingQueued();
 });
+
+it('keeps mentioning a repository that nobody could be mailed about', function () {
+    // Given
+    Mail::fake();
+    $this->travelTo('2026-06-05 08:00:00');
+    User::factory()->create()->givePermissionTo('integrations.read');
+    $integration = Integration::create(['title' => 'Bitbucket', 'type' => 'bitbucket', 'config' => []]);
+    $repository = Repository::factory()->create(['integration_id' => $integration->id, 'last_work_at' => '2026-06-04 16:12:00']);
+
+    // When
+    $this->artisan('repositories:unmapped-digest')->assertSuccessful();
+
+    // Then
+    expect($repository->refresh()->last_notified_at)->toBeNull();
+});

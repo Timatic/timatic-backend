@@ -36,23 +36,30 @@ class SendUnmappedRepositoriesDigestCommand extends Command
             return;
         }
 
+        $notifiedRepositoryIds = collect();
+
         // filtered through the policy so super admins, who pass via Shield's gate instead of a permission, are included
         foreach (User::all() as $user) {
             $userRepositories = $repositories
-                ->filter(fn (Repository $repository): bool => $user->can('update', $repository->integration))
+                ->filter(fn (Repository $repository): bool => $user->can('update', $repository->integration));
+
+            if ($userRepositories->isEmpty()) {
+                continue;
+            }
+
+            Mail::to($user->email)->send(new UnmappedRepositoriesDigest($userRepositories
                 ->map(fn (Repository $repository): UnmappedRepository => new UnmappedRepository(
                     $repository->integration->display_title,
                     $repository->identifier,
                     $providerOf($repository)->mappingPageUrl($repository->identifier),
                 ))
                 ->values()
-                ->toBase();
+                ->toBase()));
 
-            if ($userRepositories->isNotEmpty()) {
-                Mail::to($user->email)->send(new UnmappedRepositoriesDigest($userRepositories));
-            }
+            $notifiedRepositoryIds->push(...$userRepositories->modelKeys());
         }
 
-        Repository::whereKey($repositories->modelKeys())->update(['last_notified_at' => now()]);
+        // a repository nobody may link is mentioned as soon as someone can
+        Repository::whereKey($notifiedRepositoryIds->unique())->update(['last_notified_at' => now()]);
     }
 }
