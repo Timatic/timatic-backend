@@ -9,7 +9,7 @@ return [
     'settings' => [
         'field_title' => 'Integration title',
         'callout_connect_title' => 'Users connect their Gmail themselves.',
-        'callout_connect_description' => 'A user grants mailbox access manually, so only those who want their mail read are asked. The table below shows all currently connected users.',
+        'callout_connect_description' => 'A user grants mailbox access manually, so only those who want their mail read are asked. Timatic only reads the recipients, subject and time of sent mails and saved drafts, never their content. A mail is linked to a customer when a recipient\'s address is on one of that customer\'s email domains, so set those on the customers. The table below shows all currently connected users.',
         'column_user' => 'User',
         'column_email' => 'Email',
         'column_connected_at' => 'Connected at',
