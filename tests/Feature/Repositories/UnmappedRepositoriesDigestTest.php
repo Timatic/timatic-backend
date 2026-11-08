@@ -30,8 +30,8 @@ it('mails every admin one digest of the repositories without a customer', functi
 
     // Then
     $expected = [
-        new UnmappedRepository('Bitbucket', 'acme/shop', "https://localhost/integrations/{$bitbucket->id}/bitbucket-repositories?search=shop"),
-        new UnmappedRepository('GitHub', 'acme/api', "https://localhost/integrations/{$github->id}/github-repositories?search=acme%2Fapi"),
+        new UnmappedRepository('Bitbucket', 'acme/shop', "https://admin.timatic.test/integrations/{$bitbucket->id}/bitbucket-repositories?search=shop"),
+        new UnmappedRepository('GitHub', 'acme/api', "https://admin.timatic.test/integrations/{$github->id}/github-repositories?search=acme%2Fapi"),
     ];
     Mail::assertQueuedCount(2);
     Mail::assertQueued(UnmappedRepositoriesDigest::class, fn (UnmappedRepositoriesDigest $mail): bool => $mail->hasTo('admin@example.com') && $mail->repositories->all() == $expected);
