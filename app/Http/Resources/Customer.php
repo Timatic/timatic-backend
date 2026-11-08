@@ -20,7 +20,6 @@ class Customer extends JsonApiResource
             'color' => $this->color,
             'hourlyRate' => $this->hourly_rate,
             'isOwnOrganization' => $this->is_own_organization,
-            'trackedDomainsCount' => $this->whenCounted('trackedDomains'),
             'createdAt' => $this->created_at,
             'updatedAt' => $this->updated_at,
         ];

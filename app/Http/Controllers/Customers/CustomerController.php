@@ -7,7 +7,6 @@ use App\Http\Requests\CustomerRequest;
 use App\Http\Resources;
 use App\Models\Customer;
 use Illuminate\Contracts\Routing\ResponseFactory;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -40,8 +39,6 @@ class CustomerController extends Controller implements HasMiddleware
             ->allowedIncludes([
                 AllowedInclude::custom('accountManager', new IncludedRelationship),
             ])
-            // Private mappings are an engineer's own setup, so only shared ones count as tracked
-            ->withCount(['trackedDomains' => fn (Builder $query) => $query->whereNull('user_id')])
             ->jsonPaginate();
 
         return Resources\Customer::collection($customers);
