@@ -30,8 +30,7 @@ class ActivityProjector
     /** @var Collection<int, Entry> */
     private Collection $entries;
 
-    /** @var Collection<int, PreviousSequenceBooking> */
-    private Collection $previousSequenceBookings;
+    private EventAttribution $attribution;
 
     public function __construct()
     {
@@ -47,7 +46,7 @@ class ActivityProjector
     public function project(Collection $events, Collection $entries, Collection $previousSequenceBookings = new Collection): Collection
     {
         $this->entries = $entries;
-        $this->previousSequenceBookings = $previousSequenceBookings;
+        $this->attribution = new EventAttribution($previousSequenceBookings);
 
         $sorted = $events->sort(function (Event $a, Event $b) {
             return ((int) $a->eventType?->weight <=> (int) $b->eventType?->weight)
@@ -74,7 +73,7 @@ class ActivityProjector
         $unclaimed = collect();
 
         foreach ($events as $event) {
-            $customerId = $this->customerId($event);
+            $customerId = $this->attribution->customerId($event);
 
             if ($customerId === null) {
                 $this->createActivity($event);
@@ -109,7 +108,7 @@ class ActivityProjector
         }
 
         foreach ($unclaimed as $event) {
-            $customerId = $this->customerId($event);
+            $customerId = $this->attribution->customerId($event);
             $match = $this->findChainableActivity($event,
                 fn (Activity $a) => $a->customer_id === $customerId
             );
@@ -134,7 +133,7 @@ class ActivityProjector
 
         // Fully covered, the event has no time of its own left, but it still underlines the work of
         // the same customer that covers it.
-        $customerId = $this->customerId($event);
+        $customerId = $this->attribution->customerId($event);
 
         if ($newActivityPartsWithoutOverlap === [] && $customerId !== null) {
             $coveringActivities = $this->activities
@@ -214,7 +213,7 @@ class ActivityProjector
         $eventStart = $event->effectiveStart();
         $eventEnd = $event->ended_at->copy();
         $ownWork = $this->activities
-            ->reject(fn (Activity $a) => $this->isOtherCustomer($this->customerId($event), $a->customer_id));
+            ->reject(fn (Activity $a) => $this->isOtherCustomer($this->attribution->customerId($event), $a->customer_id));
 
         $precedingActivity = $ownWork
             ->filter(fn (Activity $a) => $a->ended_at->isBefore($eventEnd)
@@ -246,14 +245,14 @@ class ActivityProjector
         $activity = new Activity;
         $activity->source_id = $event->source_id;
         $activity->user_id = $event->user_id;
-        $activity->budget_id = $this->budgetId($event);
+        $activity->budget_id = $this->attribution->budgetId($event);
         $activity->ticket_id = $event->ticket_id;
         $activity->ticket_number = $event->ticket_number;
         $activity->ticket_type = $event->ticket_type;
         $activity->title = $event->title;
         $activity->description = $event->description;
-        $activity->customer_id = $this->customerId($event);
-        $activity->is_internal = $this->isInternal($event);
+        $activity->customer_id = $this->attribution->customerId($event);
+        $activity->is_internal = $this->attribution->isInternal($event);
         $activity->started_at = Carbon::instance($event->effectiveStart());
         $activity->ended_at = $event->ended_at;
         $activity->setRelation('events', collect([$event]));
@@ -355,51 +354,6 @@ class ActivityProjector
     private function isOtherCustomer(int|string|null $customerId, int|string|null $otherCustomerId): bool
     {
         return $customerId !== null && $otherCustomerId !== null && (string) $customerId !== (string) $otherCustomerId;
-    }
-
-    /**
-     * An event without a mapping of its own is booked like the last entry on an
-     * earlier occurrence of its sequence, e.g. the previous instance of a recurring
-     * meeting. The event itself stays as it came in; only the activity learns.
-     */
-    private function customerId(Event $event): ?string
-    {
-        return $event->customer_id ?? $this->previousBookingOf($event)?->customerId;
-    }
-
-    private function budgetId(Event $event): ?int
-    {
-        if ($event->budget_id !== null) {
-            return $event->budget_id;
-        }
-
-        $previousBooking = $this->previousBookingOf($event);
-
-        if ($previousBooking === null || $previousBooking->customerId !== $this->customerId($event)) {
-            return null;
-        }
-
-        return $previousBooking->budgetId;
-    }
-
-    private function isInternal(Event $event): ?bool
-    {
-        if ($event->customer_id !== null) {
-            return $event->is_internal;
-        }
-
-        $previousBooking = $this->previousBookingOf($event);
-
-        return $previousBooking === null ? $event->is_internal : $previousBooking->isInternal;
-    }
-
-    private function previousBookingOf(Event $event): ?PreviousSequenceBooking
-    {
-        return $this->previousSequenceBookings
-            ->where('sourceId', $event->source_id)
-            ->where('externalId', $event->external_id)
-            ->sortByDesc('startedAt')
-            ->first();
     }
 
     private function period(CarbonInterface $start, CarbonInterface $end): Period
