@@ -19,6 +19,7 @@ class Event extends JsonApiResource
             'budgetId' => $this->budget_id,
             'ticketId' => $this->ticket_id,
             'sourceId' => $this->source_id,
+            'externalId' => $this->external_id,
             'ticketNumber' => $this->ticket_number,
             'ticketType' => $this->ticket_type,
             'title' => $this->title,

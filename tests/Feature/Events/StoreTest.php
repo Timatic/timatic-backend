@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\ApiToken;
 use App\Models\Customer;
 use App\Models\Event as TimeEvent;
 use App\Models\EventType;
@@ -112,6 +113,44 @@ it('stores an event and finds a user by its external id', function () {
     ]))->assertCreated();
 
     expect($response->json('data.attributes.userId'))->toEqual($user->id);
+});
+
+it('stores a google meet attendance posted by the chrome extension', function () {
+    Event::fake();
+
+    /** @var User $user */
+    $user = User::factory()->create();
+    $user->givePermissionTo('events.create');
+
+    ApiToken::query()->create([
+        'user_id' => $user->id,
+        'client_id' => 'chrome-extension',
+        'title' => 'Chrome op Mac',
+        'key' => hash('sha512', 'extension-token'),
+    ]);
+
+    $this->postJson(route('events.store'), [
+        'data' => [
+            'type' => 'events',
+            'attributes' => [
+                'sourceId' => 'google_meet',
+                'eventTypeId' => 'meeting_attended',
+                'userId' => (string) $user->id,
+                'externalId' => 'abc-defg-hij',
+                'title' => 'Weekly sync',
+                'startedAt' => '2026-11-02T09:00:00+01:00',
+                'endedAt' => '2026-11-02T09:45:00+01:00',
+            ],
+        ],
+    ], ['Authorization' => 'Bearer extension-token'])->assertCreated();
+
+    $this->assertDatabaseHas('events', [
+        'user_id' => $user->id,
+        'source_id' => 'google_meet',
+        'event_type_id' => 'meeting_attended',
+        'external_id' => 'abc-defg-hij',
+        'title' => 'Weekly sync',
+    ]);
 });
 
 /**

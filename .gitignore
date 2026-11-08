@@ -4,6 +4,7 @@
 /public/hot
 /public/icons/*
 !/public/icons/browser.svg
+!/public/icons/google_meet.svg
 /public/storage
 /public/*/filament
 /public/*/filament-socialite/
