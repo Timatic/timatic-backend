@@ -412,3 +412,30 @@ test('a dismissed suggestion with a different ticket does not suppress the group
 
     expect($suggestions)->toHaveCount(1);
 });
+
+test('overlapping activities on two tickets become two suggestions that each count their full time', function () {
+    $session = new Activity;
+    $session->user_id = 1;
+    $session->customer_id = 'customerX';
+    $session->ticket_number = 'TIC-1';
+    $session->started_at = Carbon::parse('2026-07-16 09:00', 'Europe/Amsterdam');
+    $session->ended_at = Carbon::parse('2026-07-16 11:00', 'Europe/Amsterdam');
+    $review = new Activity;
+    $review->user_id = 1;
+    $review->customer_id = 'customerX';
+    $review->ticket_number = 'TIC-2';
+    $review->started_at = Carbon::parse('2026-07-16 09:30', 'Europe/Amsterdam');
+    $review->ended_at = Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam');
+
+    $suggestions = (new SuggestionProjector)->project(
+        collect([$session, $review]),
+        collect(),
+        Carbon::parse('2026-07-16', 'Europe/Amsterdam'),
+    );
+
+    expect($suggestions)->toHaveCount(2)
+        ->and($suggestions[0]->ticket_number)->toBe('TIC-1')
+        ->and($suggestions[0]->minutesSpent())->toBe(120)
+        ->and($suggestions[1]->ticket_number)->toBe('TIC-2')
+        ->and($suggestions[1]->minutesSpent())->toBe(30);
+});
