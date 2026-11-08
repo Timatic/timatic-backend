@@ -84,9 +84,10 @@ class UserController extends Controller implements HasMiddleware
 
         $user->update(array_filter($validated));
 
-        $team = $request->relationships('team');
-        if ($team !== null && isset($team['data']['id'])) {
-            $user->team_id = (int) $team['data']['id'];
+        // A team relationship with null data takes the user out of their team
+        if ($request->has('data.relationships.team')) {
+            $teamId = $request->validated('data.relationships.team.data.id');
+            $user->team_id = $teamId === null ? null : (int) $teamId;
             $user->save();
         }
 
