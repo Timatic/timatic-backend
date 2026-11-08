@@ -110,6 +110,10 @@ class ActivityProjector
         $newActivityPartsWithoutOverlap = $this->reduceOverlap($newActivity);
         $this->activities->push(...$newActivityPartsWithoutOverlap);
 
+        foreach ($newActivityPartsWithoutOverlap as $part) {
+            $this->mergeNeighbours($part);
+        }
+
         // Fully covered, the event has no time of its own left, but it still underlines the work of
         // the same customer that covers it.
         $customerId = $this->customerId($event);
@@ -241,7 +245,7 @@ class ActivityProjector
                 ? [$activity, $neighbour]
                 : [$neighbour, $activity];
 
-            $kept->events->push(...$absorbed->events);
+            $kept->setRelation('events', $kept->events->concat($absorbed->events)->unique(null, true)->values());
             $kept->started_at = $kept->started_at->min($absorbed->started_at);
             $kept->ended_at = $kept->ended_at->max($absorbed->ended_at);
             $this->activities = $this->activities->reject(fn (Activity $other) => $other === $absorbed)->values();
@@ -252,6 +256,7 @@ class ActivityProjector
     private function isMergeable(Activity $activity, Activity $other): bool
     {
         if ($other === $activity
+            || $activity->customer_id === null
             || $other->customer_id !== $activity->customer_id
             || $other->ticket_number !== $activity->ticket_number) {
             return false;
@@ -260,18 +265,16 @@ class ActivityProjector
         $gapStart = $activity->ended_at->min($other->ended_at);
         $gapEnd = $activity->started_at->max($other->started_at);
 
-        if ($gapEnd->lte($gapStart)) {
-            return true;
-        }
-
         if ($gapStart->copy()->addMinutes(self::CHAIN_GAP_MINUTES)->lte($gapEnd)) {
             return false;
         }
 
-        $occupiesGap = fn (Entry|Activity $claim) => $claim->started_at->lt($gapEnd) && $claim->ended_at->gt($gapStart);
+        $unionStart = $activity->started_at->min($other->started_at);
+        $unionEnd = $activity->ended_at->max($other->ended_at);
 
-        return ! $this->entries->contains($occupiesGap)
-            && ! $this->activities->contains(fn (Activity $claim) => $claim !== $activity && $claim !== $other && $occupiesGap($claim));
+        return ! $this->entries->contains(fn (Entry $entry) => $entry->started_at->lt($unionEnd) && $entry->ended_at->gt($unionStart))
+            && ($gapEnd->lte($gapStart) || ! $this->activities->contains(fn (Activity $claim) => $claim !== $activity && $claim !== $other
+                && $claim->started_at->lt($gapEnd) && $claim->ended_at->gt($gapStart)));
     }
 
     /**
