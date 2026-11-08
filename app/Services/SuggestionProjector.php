@@ -72,25 +72,29 @@ class SuggestionProjector
 
     /**
      * Walks the customer's activities in chronological order, adding each
-     * one to the preceding suggestion when it chains onto that suggestion.
+     * one to the suggestion that ran last (latest end, as activities may overlap)
+     * when it chains onto that suggestion.
      *
      * @param  Collection<int, Activity>  $activities
      * @return Collection<int, EntrySuggestion>
      */
     private function chainIntoSuggestions(Collection $activities, CarbonInterface $date): Collection
     {
+        /** @var Collection<int, EntrySuggestion> $suggestions */
         $suggestions = collect();
-        $currentSuggestion = null;
 
         foreach ($activities->sortBy('started_at') as $activity) {
-            if ($currentSuggestion !== null && $this->canChainOnto($activity, $currentSuggestion)) {
-                $currentSuggestion->addActivity($activity);
+            $lastSuggestion = $suggestions
+                ->sortBy(fn (EntrySuggestion $suggestion) => $suggestion->activities->max(fn (Activity $a) => $a->ended_at->getTimestamp()))
+                ->last();
+
+            if ($lastSuggestion !== null && $this->canChainOnto($activity, $lastSuggestion)) {
+                $lastSuggestion->addActivity($activity);
 
                 continue;
             }
 
-            $currentSuggestion = $this->suggestionStartingWith($activity, $date);
-            $suggestions->push($currentSuggestion);
+            $suggestions->push($this->suggestionStartingWith($activity, $date));
         }
 
         return $suggestions;

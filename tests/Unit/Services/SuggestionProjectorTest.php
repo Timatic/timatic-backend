@@ -439,3 +439,35 @@ test('overlapping activities on two tickets become two suggestions that each cou
         ->and($suggestions[1]->ticket_number)->toBe('TIC-2')
         ->and($suggestions[1]->minutesSpent())->toBe(30);
 });
+
+test('an activity chains onto the suggestion that ended last, not the one that started last', function () {
+    $session = new Activity;
+    $session->user_id = 1;
+    $session->customer_id = 'customerX';
+    $session->ticket_number = 'TIC-1';
+    $session->started_at = Carbon::parse('2026-07-16 09:00', 'Europe/Amsterdam');
+    $session->ended_at = Carbon::parse('2026-07-16 11:00', 'Europe/Amsterdam');
+    $review = new Activity;
+    $review->user_id = 1;
+    $review->customer_id = 'customerX';
+    $review->ticket_number = 'TIC-2';
+    $review->started_at = Carbon::parse('2026-07-16 09:30', 'Europe/Amsterdam');
+    $review->ended_at = Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam');
+    $ticketless = new Activity;
+    $ticketless->user_id = 1;
+    $ticketless->customer_id = 'customerX';
+    $ticketless->started_at = Carbon::parse('2026-07-16 11:20', 'Europe/Amsterdam');
+    $ticketless->ended_at = Carbon::parse('2026-07-16 11:40', 'Europe/Amsterdam');
+
+    $suggestions = (new SuggestionProjector)->project(
+        collect([$session, $review, $ticketless]),
+        collect(),
+        Carbon::parse('2026-07-16', 'Europe/Amsterdam'),
+    );
+
+    expect($suggestions)->toHaveCount(2)
+        ->and($suggestions[0]->ticket_number)->toBe('TIC-1')
+        ->and($suggestions[0]->activities->all())->toBe([$session, $ticketless])
+        ->and($suggestions[1]->ticket_number)->toBe('TIC-2')
+        ->and($suggestions[1]->activities->all())->toBe([$review]);
+});
