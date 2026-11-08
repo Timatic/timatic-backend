@@ -20,7 +20,8 @@ class BudgetShareLink extends JsonApiResource
         return [
             /** Shown once: only its hash is stored. */
             'token' => $this->token,
-            'url' => rtrim((string) config('app.frontend_url'), '/').'/shared-budgets/'.$this->token,
+            /** The token sits in the fragment so it never reaches server logs. */
+            'url' => rtrim((string) config('app.frontend_url'), '/')."/shared-budgets/{$this->budgetId}#{$this->token}",
         ];
     }
 

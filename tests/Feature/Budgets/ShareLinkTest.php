@@ -27,7 +27,7 @@ it('creates a share link and stores only the hash of its token', function () {
 
     $token = $response->json('data.attributes.token');
     expect($token)->toHaveLength(48)
-        ->and($response->json('data.attributes.url'))->toBe("https://app.timatic.test/shared-budgets/{$token}")
+        ->and($response->json('data.attributes.url'))->toBe("https://app.timatic.test/shared-budgets/{$budget->id}#{$token}")
         ->and($budget->refresh()->share_token_hash)->toBe(hash('sha256', $token));
     $this->getJson("budgets/{$budget->id}")->assertJsonPath('data.attributes.isShared', true);
 });
