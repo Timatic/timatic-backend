@@ -136,10 +136,14 @@ class ActivityProjector
         $customerId = $this->customerId($event);
 
         if ($newActivityPartsWithoutOverlap === [] && $customerId !== null) {
-            $this->activities
-                ->first(fn (Activity $activity) => $activity->customer_id === $customerId
+            $coveringActivities = $this->activities
+                ->filter(fn (Activity $activity) => $activity->customer_id === $customerId
                     && $activity->started_at->lt($event->ended_at)
-                    && $activity->ended_at->gt($event->effectiveStart()))
+                    && $activity->ended_at->gt($event->effectiveStart()));
+
+            ($coveringActivities->first(fn (Activity $activity) => $activity->ticket_number === null
+                || $event->ticket_number === null
+                || $activity->ticket_number === $event->ticket_number) ?? $coveringActivities->first())
                 ?->events->push($event);
         }
     }
