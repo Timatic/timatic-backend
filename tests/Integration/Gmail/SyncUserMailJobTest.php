@@ -7,6 +7,7 @@ use App\Models\Event;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
+use Saloon\Http\Response;
 use Timatic\Gmail\Jobs\SyncUserMailJob;
 use Timatic\Gmail\Models\GmailConnection;
 use Timatic\Gmail\OAuthService;
@@ -295,4 +296,23 @@ it('ignores incoming mail', function () {
 
     expect(Event::count())->toBe(0)
         ->and($connection->refresh()->history_id)->toBe('1050');
+});
+
+it('asks gmail only for the recipient and subject headers of a message', function () {
+    $connection = GmailConnection::factory()->create(['history_id' => '1000']);
+
+    $mock = MockClient::global([
+        ListHistoryRequest::class => MockResponse::make([
+            'history' => [
+                ['id' => '1001', 'messagesAdded' => [['message' => ['id' => 'message-1', 'threadId' => 'thread-1', 'labelIds' => ['SENT']]]]],
+            ],
+            'historyId' => '1050',
+        ]),
+        GetMessageRequest::class => MockResponse::make(['id' => 'message-1', 'threadId' => 'thread-1', 'labelIds' => ['SENT'], 'internalDate' => '1793872800000', 'payload' => ['headers' => []]]),
+    ]);
+
+    new SyncUserMailJob($connection)->handle(app(OAuthService::class), app(CustomerEmailDomainResolver::class));
+
+    $mock->assertSent(fn (GetMessageRequest $request, Response $response): bool => $response->getPsrRequest()->getUri()->getQuery()
+        === 'format=metadata&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Bcc&metadataHeaders=Subject');
 });
