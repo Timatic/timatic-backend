@@ -264,3 +264,29 @@ it('keeps the mappings of an installation that could not be reached', function (
 
     expect(RepositoryMapping::sole()->is_archived)->toBeFalse();
 });
+
+it('searches the repository given in the search query parameter', function () {
+    // Given
+    config()->set('github.app_id', '123456');
+    config()->set('github.private_key', 'private-key');
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
+    Cache::put('github.installation_token.4242', 'ghs_installation_token');
+    MockClient::global([
+        GetInstallationRepositoriesRequest::class => MockResponse::make([
+            'total_count' => 2,
+            'repositories' => [
+                ['id' => 1, 'name' => 'api', 'full_name' => 'acme/api', 'owner' => ['login' => 'acme'], 'archived' => false],
+                ['id' => 2, 'name' => 'web', 'full_name' => 'acme/web', 'owner' => ['login' => 'acme'], 'archived' => false],
+            ],
+        ]),
+    ]);
+
+    // When
+    $page = Livewire::withQueryParams(['search' => 'acme/api'])->test(RepositoryMappingPage::class, ['record' => $integration->id]);
+
+    // Then
+    $page->assertCanSeeTableRecords(RepositoryMapping::where('repository_full_name', 'acme/api')->get())
+        ->assertCanNotSeeTableRecords(RepositoryMapping::where('repository_full_name', 'acme/web')->get());
+});
