@@ -17,6 +17,7 @@ class Customer extends JsonApiResource
         return [
             'externalId' => $this->external_id,
             'name' => $this->name,
+            'color' => $this->color,
             'hourlyRate' => $this->hourly_rate,
             'isOwnOrganization' => $this->is_own_organization,
             'trackedDomainsCount' => $this->whenCounted('trackedDomains'),

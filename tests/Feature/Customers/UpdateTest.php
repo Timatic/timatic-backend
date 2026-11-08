@@ -71,7 +71,7 @@ it('patches a customer', function () {
     expect($customer->name)->toEqual($oldName);
 });
 
-it('sets the hourly rate and account manager of a customer', function () {
+it('sets the hourly rate, color and account manager of a customer', function () {
     $this->loginUser(permissions: ['customers.update']);
 
     $customer = Customer::factory()->create();
@@ -79,7 +79,7 @@ it('sets the hourly rate and account manager of a customer', function () {
 
     $this->patchJson('customers/'.$customer->id, [
         'type' => 'customers',
-        'attributes' => ['hourlyRate' => 95.5],
+        'attributes' => ['hourlyRate' => 95.5, 'color' => '3081b8'],
         'relationships' => [
             'accountManager' => ['data' => ['type' => 'users', 'id' => (string) $accountManager->id]],
         ],
@@ -87,5 +87,6 @@ it('sets the hourly rate and account manager of a customer', function () {
 
     expect($customer->refresh())
         ->hourly_rate->toEqual(95.5)
+        ->color->toBe('3081b8')
         ->account_manager_user_id->toBe($accountManager->id);
 });

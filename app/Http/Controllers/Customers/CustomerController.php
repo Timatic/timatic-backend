@@ -56,6 +56,7 @@ class CustomerController extends Controller implements HasMiddleware
             'name' => $validated['name'],
             'is_own_organization' => $validated['isOwnOrganization'] ?? false,
             'hourly_rate' => $validated['hourlyRate'] ?? null,
+            'color' => $validated['color'] ?? null,
             'account_manager_user_id' => $request->validated('data.relationships.accountManager.data.id'),
         ]);
 
@@ -79,9 +80,13 @@ class CustomerController extends Controller implements HasMiddleware
             'is_own_organization' => $validated['isOwnOrganization'] ?? null,
         ], fn ($value) => $value !== null);
 
-        // Both can be cleared, so only a missing key leaves them untouched
+        // These can be cleared, so only a missing key leaves them untouched
         if (array_key_exists('hourlyRate', $validated)) {
             $attributes['hourly_rate'] = $validated['hourlyRate'];
+        }
+
+        if (array_key_exists('color', $validated)) {
+            $attributes['color'] = $validated['color'];
         }
 
         if ($request->has('data.relationships.accountManager')) {
