@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Models\ApiToken;
 use App\Models\Budget;
 use App\Models\BudgetVersion;
 use App\Models\Customer;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Tests\Concerns\LoginUser;
@@ -163,6 +165,18 @@ it('hides period prices from a share token while users keep seeing them', functi
     $response->assertSuccessful();
     expect($response->json('data.0.attributes'))->not->toHaveKey('totalPrice')
         ->and($response->json('data.0.attributes.initialMinutes'))->toBe($budget->activeVersion()->initial_minutes);
+});
+
+it('lets a bearer token win over a share token sent along', function () {
+    $user = User::factory()->create();
+    $user->givePermissionTo('budgets.read');
+    ApiToken::query()->create(['user_id' => $user->id, 'title' => 'Chrome op Mac', 'key' => hash('sha512', 'plain-text-token')]);
+    $budget = Budget::factory()->create(['share_token_hash' => hash('sha256', 'secret-token')]);
+    BudgetVersion::factory()->for($budget)->create(['total_price' => 1000, 'effective_from' => $budget->started_at]);
+
+    $this->getJson("budgets/{$budget->id}", ['Authorization' => 'Bearer plain-text-token', 'X-Share-Token' => 'secret-token'])
+        ->assertSuccessful()
+        ->assertJsonPath('data.attributes.totalPrice', 1000);
 });
 
 it('reads the time spent totals of its budget with a share token', function () {
