@@ -576,6 +576,42 @@ test('a meeting spanning two commits is split into three activities around the c
         ->and($meetingActivities[2]->events->contains($meeting))->toBeTrue();
 });
 
+test('a meeting split by a short commit of another customer keeps both parts', function () {
+    $commit = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerB',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'commit_created',
+        'started_at' => Carbon::parse('2026-07-16 09:20'),
+        'ended_at' => Carbon::parse('2026-07-16 09:30'),
+    ]);
+    $commit->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 1]));
+    $meeting = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerA',
+        'ticket_number' => 'TIC-2',
+        'event_type_id' => 'calendar_event_started',
+        'started_at' => Carbon::parse('2026-07-16 09:00'),
+        'ended_at' => Carbon::parse('2026-07-16 10:00'),
+    ]);
+    $meeting->setRelation('eventType', new EventType(['id' => 'calendar_event_started', 'weight' => 100]));
+
+    $activities = (new ActivityProjector)->project(collect([$commit, $meeting]), collect());
+
+    $commitActivities = $activities->where('customer_id', 'customerB')->values();
+    $meetingActivities = $activities->where('customer_id', 'customerA')->sortBy('started_at')->values();
+
+    expect($activities)->toHaveCount(3)
+        ->and($commitActivities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 09:20'))
+        ->and($commitActivities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:30'))
+        ->and($commitActivities[0]->events->all())->toBe([$commit])
+        ->and($meetingActivities)->toHaveCount(2)
+        ->and($meetingActivities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 09:00'))
+        ->and($meetingActivities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:20'))
+        ->and($meetingActivities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 09:30'))
+        ->and($meetingActivities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:00'));
+});
+
 test('fast sequential point events of equal weight each get their own time slice', function () {
     $eventType = new EventType(['id' => 'commit_created', 'weight' => 1]);
 
