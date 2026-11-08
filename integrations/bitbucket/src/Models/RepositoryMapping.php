@@ -98,7 +98,7 @@ class RepositoryMapping extends Model
     {
         return Repository::query()
             ->whereColumn('repositories.integration_id', $this->qualifyColumn('integration_id'))
-            ->whereRaw("repositories.identifier = concat({$this->qualifyColumn('workspace_slug')}, '/', {$this->qualifyColumn('repository_slug')})")
+            ->whereRaw("repositories.identifier = concat(bitbucket_repository_mappings.workspace_slug, '/', bitbucket_repository_mappings.repository_slug)")
             ->where('repositories.is_ignored', true);
     }
 }

@@ -111,8 +111,8 @@ class RepositoryMappingPage extends Page implements HasTable
                 TernaryFilter::make('is_ignored')
                     ->label(__('bitbucket::bitbucket.repository_mapping.filter_ignored'))
                     ->queries(
-                        true: fn (Builder $query) => $query->ignored(),
-                        false: fn (Builder $query) => $query->active(),
+                        true: fn (Builder $query) => $query->scopes('ignored'),
+                        false: fn (Builder $query) => $query->scopes('active'),
                     )
                     ->default(false),
             ])
