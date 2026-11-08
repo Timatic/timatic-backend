@@ -12,7 +12,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('integration_id')->constrained()->cascadeOnDelete();
             $table->string('identifier');
-            $table->string('name');
             $table->boolean('is_ignored')->default(false);
             $table->timestamp('last_work_at')->nullable();
             $table->timestamp('last_notified_at')->nullable();

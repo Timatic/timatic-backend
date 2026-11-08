@@ -46,15 +46,21 @@ final class GitProvider implements GitProviderInterface
 
     public function isMapped(string $repositoryIdentifier): bool
     {
+        [$workspaceSlug, $repositorySlug] = explode('/', $repositoryIdentifier, 2) + [1 => ''];
+
         return RepositoryMapping::query()
             ->where('integration_id', $this->config['integration_id'])
-            ->where('repository_slug', $repositoryIdentifier)
+            ->where('workspace_slug', $workspaceSlug)
+            ->where('repository_slug', $repositorySlug)
             ->whereNotNull('customer_id')
             ->exists();
     }
 
     public function mappingPageUrl(string $repositoryIdentifier): string
     {
-        return RepositoryMappingPage::getUrl(['record' => $this->config['integration_id'], 'search' => $repositoryIdentifier], panel: 'admin');
+        // the page lists a single workspace, so the slug alone finds the repository
+        $repositorySlug = explode('/', $repositoryIdentifier, 2)[1] ?? $repositoryIdentifier;
+
+        return RepositoryMappingPage::getUrl(['record' => $this->config['integration_id'], 'search' => $repositorySlug], panel: 'admin');
     }
 }

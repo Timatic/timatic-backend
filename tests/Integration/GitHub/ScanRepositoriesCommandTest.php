@@ -43,7 +43,7 @@ it('records recent pushes to repositories without a customer', function () {
     $this->artisan('github:scan-repositories')->assertSuccessful();
 
     // Then
-    expect(Repository::whereNotNull('last_work_at')->get()->map->only('identifier', 'name', 'last_work_at')->all())->toEqual([
-        ['identifier' => 'acme/api', 'name' => 'api', 'last_work_at' => Carbon::parse('2026-06-04 16:12:00')],
+    expect(Repository::whereNotNull('last_work_at')->get()->map->only('identifier', 'last_work_at')->all())->toEqual([
+        ['identifier' => 'acme/api', 'last_work_at' => Carbon::parse('2026-06-04 16:12:00')],
     ]);
 });

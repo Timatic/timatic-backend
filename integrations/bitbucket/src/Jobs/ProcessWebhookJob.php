@@ -184,9 +184,7 @@ class ProcessWebhookJob implements ShouldQueue
             return;
         }
 
-        $repositorySlug = explode('/', $fullName, 2)[1];
-
-        Repository::recordWork($this->integration->id, $repositorySlug, (string) ($this->payload['repository']['name'] ?? $repositorySlug), now());
+        Repository::recordWork($this->integration->id, $fullName, now());
     }
 
     /** @param array<string, mixed> $commit */

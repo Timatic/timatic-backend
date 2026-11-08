@@ -81,5 +81,5 @@ it('stops ignoring a repository from its row', function () {
         ->callAction(TestAction::make('restore')->table($mapping));
 
     // Then
-    expect(Repository::sole()->only('identifier', 'is_ignored'))->toBe(['identifier' => 'repo', 'is_ignored' => false]);
+    expect(Repository::sole()->only('identifier', 'is_ignored'))->toBe(['identifier' => 'workspace/repo', 'is_ignored' => false]);
 });

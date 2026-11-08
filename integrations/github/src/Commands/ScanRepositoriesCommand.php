@@ -44,7 +44,7 @@ class ScanRepositoriesCommand extends Command
                         continue;
                     }
 
-                    Repository::recordWork($integration->id, $repository->fullName, $repository->name, $repository->pushedAt);
+                    Repository::recordWork($integration->id, $repository->fullName, $repository->pushedAt);
                 }
             }
         }

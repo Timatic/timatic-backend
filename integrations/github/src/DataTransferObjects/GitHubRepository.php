@@ -11,7 +11,6 @@ readonly class GitHubRepository
         public string $name,
         public string $fullName,
         public string $ownerLogin,
-        public bool $isArchived,
         public ?CarbonImmutable $pushedAt = null,
     ) {}
 }

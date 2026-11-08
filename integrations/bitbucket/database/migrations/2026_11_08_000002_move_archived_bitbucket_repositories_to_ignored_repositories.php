@@ -17,8 +17,7 @@ return new class extends Migration
             ->orderBy('id')
             ->each(fn (object $mapping) => DB::table('repositories')->insertOrIgnore([
                 'integration_id' => $mapping->integration_id,
-                'identifier' => $mapping->repository_slug,
-                'name' => $mapping->repository_name,
+                'identifier' => $mapping->workspace_slug.'/'.$mapping->repository_slug,
                 'is_ignored' => true,
                 'created_at' => $now,
                 'updated_at' => $now,
@@ -40,7 +39,7 @@ return new class extends Migration
             ->orderBy('id')
             ->each(fn (object $repository) => DB::table('bitbucket_repository_mappings')
                 ->where('integration_id', $repository->integration_id)
-                ->where('repository_slug', $repository->identifier)
+                ->whereRaw("concat(workspace_slug, '/', repository_slug) = ?", [$repository->identifier])
                 ->update(['is_archived' => true]));
     }
 };

@@ -69,12 +69,14 @@ class RepositoryMapping extends Model
         $query->addSelect(['is_ignored' => $this->ignoredRepository()->selectRaw('1')]);
     }
 
-    public function ignore(bool $isIgnored = true): void
+    public function ignore(): void
     {
-        Repository::updateOrCreate(
-            ['integration_id' => $this->integration_id, 'identifier' => $this->repository_full_name],
-            ['name' => $this->repository_name, 'is_ignored' => $isIgnored],
-        );
+        Repository::updateOrCreate(['integration_id' => $this->integration_id, 'identifier' => $this->repository_full_name], ['is_ignored' => true]);
+    }
+
+    public function stopIgnoring(): void
+    {
+        Repository::where(['integration_id' => $this->integration_id, 'identifier' => $this->repository_full_name])->update(['is_ignored' => false]);
     }
 
     /** @return BelongsTo<Integration, $this> */

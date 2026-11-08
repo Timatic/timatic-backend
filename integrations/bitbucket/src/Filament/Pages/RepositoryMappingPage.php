@@ -140,7 +140,7 @@ class RepositoryMappingPage extends Page implements HasTable
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->iconButton()
                     ->visible(fn (RepositoryMapping $record) => (bool) $record->is_ignored)
-                    ->action(fn (RepositoryMapping $record) => $record->ignore(false)),
+                    ->action(fn (RepositoryMapping $record) => $record->stopIgnoring()),
             ])
             ->recordAction('assign')
             ->bulkActions([

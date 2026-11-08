@@ -141,7 +141,7 @@ class RepositoryMappingPage extends Page implements HasTable
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->iconButton()
                     ->visible(fn (RepositoryMapping $record) => (bool) $record->is_ignored)
-                    ->action(fn (RepositoryMapping $record) => $record->ignore(false)),
+                    ->action(fn (RepositoryMapping $record) => $record->stopIgnoring()),
             ])
             ->recordAction('assign')
             ->bulkActions([
@@ -239,8 +239,6 @@ class RepositoryMappingPage extends Page implements HasTable
     private function syncRepositoriesFromGitHub(): void
     {
         $integration = $this->getIntegration();
-        $syncedFullNames = [];
-        $syncedInstallationIds = [];
 
         foreach ($this->installationIds() as $installationId) {
             try {
@@ -256,7 +254,7 @@ class RepositoryMappingPage extends Page implements HasTable
                     continue;
                 }
 
-                $mapping = RepositoryMapping::updateOrCreate(
+                RepositoryMapping::updateOrCreate(
                     [
                         'integration_id' => $integration->id,
                         'repository_full_name' => $repository->fullName,
@@ -267,35 +265,8 @@ class RepositoryMappingPage extends Page implements HasTable
                         'repository_name' => $repository->name,
                     ]
                 );
-
-                // never un-ignored here, so a repository an admin ignored stays ignored
-                if ($repository->isArchived) {
-                    $mapping->ignore();
-                }
-
-                $syncedFullNames[] = $repository->fullName;
             }
-
-            $syncedInstallationIds[] = $installationId;
         }
-
-        $this->ignoreRepositoriesNoLongerAccessible($integration, $syncedInstallationIds, $syncedFullNames);
-    }
-
-    /**
-     * Only installations that answered are swept, so a failing installation does not
-     * ignore the repositories it still owns.
-     *
-     * @param  array<int, int>  $syncedInstallationIds
-     * @param  array<int, string>  $syncedFullNames
-     */
-    private function ignoreRepositoriesNoLongerAccessible(Integration $integration, array $syncedInstallationIds, array $syncedFullNames): void
-    {
-        RepositoryMapping::query()
-            ->where('integration_id', $integration->id)
-            ->whereIn('installation_id', $syncedInstallationIds)
-            ->whereNotIn('repository_full_name', $syncedFullNames)
-            ->each(fn (RepositoryMapping $mapping) => $mapping->ignore());
     }
 
     private function notifyConnectionUnavailable(): void

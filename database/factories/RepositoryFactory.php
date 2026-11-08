@@ -18,8 +18,7 @@ class RepositoryFactory extends Factory
     {
         return [
             'integration_id' => Integration::factory(),
-            'identifier' => $this->faker->unique()->slug(2),
-            'name' => $this->faker->words(2, true),
+            'identifier' => $this->faker->unique()->slug(1).'/'.$this->faker->slug(2),
             'is_ignored' => false,
         ];
     }

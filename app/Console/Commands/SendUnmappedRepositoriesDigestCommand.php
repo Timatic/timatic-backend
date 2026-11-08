@@ -42,7 +42,7 @@ class SendUnmappedRepositoriesDigestCommand extends Command
                 ->filter(fn (Repository $repository): bool => $user->can('update', $repository->integration))
                 ->map(fn (Repository $repository): UnmappedRepository => new UnmappedRepository(
                     $repository->integration->display_title,
-                    $repository->name,
+                    $repository->identifier,
                     $providerOf($repository)->mappingPageUrl($repository->identifier),
                 ))
                 ->values()

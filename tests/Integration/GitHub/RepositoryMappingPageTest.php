@@ -43,40 +43,12 @@ it('creates a mapping for every repository of the installation', function () {
 
     Livewire::test(RepositoryMappingPage::class, ['record' => $integration->id])->assertSuccessful();
 
-    expect(RepositoryMapping::active()->pluck('repository_full_name')->all())->toBe(['acme/api'])
-        ->and(Repository::where('is_ignored', true)->pluck('identifier')->all())->toBe(['acme/web'])
+    expect(RepositoryMapping::active()->pluck('repository_full_name')->all())->toBe(['acme/api', 'acme/web'])
+        ->and(Repository::count())->toBe(0)
         ->and(RepositoryMapping::where('repository_full_name', 'acme/api')->sole())
         ->owner_login->toBe('acme')
         ->repository_name->toBe('api')
         ->installation_id->toBe(4242);
-});
-
-it('ignores a repository that is no longer accessible', function () {
-    config()->set('github.app_id', '123456');
-    config()->set('github.private_key', 'private-key');
-    $this->loginUser(permissions: ['integrations.read']);
-    Filament::setCurrentPanel('admin');
-    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
-    RepositoryMapping::create([
-        'integration_id' => $integration->id,
-        'installation_id' => 4242,
-        'owner_login' => 'acme',
-        'repository_name' => 'legacy',
-        'repository_full_name' => 'acme/legacy',
-    ]);
-    Cache::put('github.installation_token.4242', 'ghs_installation_token');
-    MockClient::global([
-        GetInstallationRepositoriesRequest::class => MockResponse::make([
-            'total_count' => 1,
-            'repositories' => [
-                ['id' => 1, 'name' => 'api', 'full_name' => 'acme/api', 'owner' => ['login' => 'acme'], 'archived' => false],
-            ],
-        ]),
-    ]);
-
-    Livewire::test(RepositoryMappingPage::class, ['record' => $integration->id])->assertSuccessful();
-
-    expect(Repository::sole()->only('identifier', 'is_ignored'))->toBe(['identifier' => 'acme/legacy', 'is_ignored' => true]);
 });
 
 it('warns instead of failing when GitHub rejects the repository request', function () {
@@ -314,6 +286,6 @@ it('ignores a repository from its row', function () {
     $page->callAction(TestAction::make('ignore')->table(RepositoryMapping::sole()));
 
     // Then
-    expect(Repository::sole()->only('integration_id', 'identifier', 'name', 'is_ignored'))
-        ->toBe(['integration_id' => $integration->id, 'identifier' => 'acme/api', 'name' => 'api', 'is_ignored' => true]);
+    expect(Repository::sole()->only('integration_id', 'identifier', 'is_ignored'))
+        ->toBe(['integration_id' => $integration->id, 'identifier' => 'acme/api', 'is_ignored' => true]);
 });

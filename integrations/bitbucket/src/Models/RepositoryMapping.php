@@ -60,12 +60,19 @@ class RepositoryMapping extends Model
         $query->addSelect(['is_ignored' => $this->ignoredRepository()->selectRaw('1')]);
     }
 
-    public function ignore(bool $isIgnored = true): void
+    public function ignore(): void
     {
-        Repository::updateOrCreate(
-            ['integration_id' => $this->integration_id, 'identifier' => $this->repository_slug],
-            ['name' => $this->repository_name, 'is_ignored' => $isIgnored],
-        );
+        Repository::updateOrCreate(['integration_id' => $this->integration_id, 'identifier' => $this->fullName()], ['is_ignored' => true]);
+    }
+
+    public function stopIgnoring(): void
+    {
+        Repository::where(['integration_id' => $this->integration_id, 'identifier' => $this->fullName()])->update(['is_ignored' => false]);
+    }
+
+    public function fullName(): string
+    {
+        return $this->workspace_slug.'/'.$this->repository_slug;
     }
 
     /** @return BelongsTo<Integration, $this> */
@@ -91,7 +98,7 @@ class RepositoryMapping extends Model
     {
         return Repository::query()
             ->whereColumn('repositories.integration_id', $this->qualifyColumn('integration_id'))
-            ->whereColumn('repositories.identifier', $this->qualifyColumn('repository_slug'))
+            ->whereRaw("repositories.identifier = concat({$this->qualifyColumn('workspace_slug')}, '/', {$this->qualifyColumn('repository_slug')})")
             ->where('repositories.is_ignored', true);
     }
 }

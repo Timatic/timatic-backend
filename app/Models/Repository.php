@@ -19,8 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property int $id
  * @property int $integration_id
- * @property string $identifier
- * @property string $name
+ * @property string $identifier the full name, e.g. acme/shop
  * @property bool $is_ignored
  * @property ?Carbon $last_work_at
  * @property ?Carbon $last_notified_at
@@ -36,7 +35,6 @@ class Repository extends Model
     protected $fillable = [
         'integration_id',
         'identifier',
-        'name',
         'is_ignored',
         'last_work_at',
         'last_notified_at',
@@ -59,17 +57,20 @@ class Repository extends Model
 
     /**
      * Records work in a repository that has no customer, so the admins hear about it in the digest.
+     * One conditional update, so concurrent webhooks never move last_work_at backwards.
      */
-    public static function recordWork(int $integrationId, string $identifier, string $name, CarbonInterface $at): void
+    public static function recordWork(int $integrationId, string $identifier, CarbonInterface $at): void
     {
-        $repository = self::firstOrNew(['integration_id' => $integrationId, 'identifier' => $identifier], ['name' => $name]);
+        $repository = self::createOrFirst(['integration_id' => $integrationId, 'identifier' => $identifier], ['last_work_at' => $at]);
 
-        if ($repository->is_ignored || ($repository->last_work_at !== null && $repository->last_work_at->gte($at))) {
+        if ($repository->wasRecentlyCreated) {
             return;
         }
 
-        $repository->last_work_at = Carbon::instance($at);
-        $repository->save();
+        self::whereKey($repository->id)
+            ->where('is_ignored', false)
+            ->where(fn (Builder $query) => $query->whereNull('last_work_at')->orWhere('last_work_at', '<', $at))
+            ->update(['last_work_at' => $at]);
     }
 
     /** @return BelongsTo<Integration, $this> */

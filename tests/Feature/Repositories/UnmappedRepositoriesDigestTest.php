@@ -22,16 +22,16 @@ it('mails every admin one digest of the repositories without a customer', functi
     User::factory()->create(['email' => 'dev@example.com'])->givePermissionTo('integrations.read');
     $bitbucket = Integration::create(['title' => 'Bitbucket', 'type' => 'bitbucket', 'config' => []]);
     $github = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);
-    $shop = Repository::factory()->create(['integration_id' => $bitbucket->id, 'identifier' => 'shop', 'name' => 'Shop', 'last_work_at' => '2026-06-04 16:12:00']);
-    $api = Repository::factory()->create(['integration_id' => $github->id, 'identifier' => 'acme/api', 'name' => 'api', 'last_work_at' => '2026-06-04 16:12:00']);
+    $shop = Repository::factory()->create(['integration_id' => $bitbucket->id, 'identifier' => 'acme/shop', 'last_work_at' => '2026-06-04 16:12:00']);
+    $api = Repository::factory()->create(['integration_id' => $github->id, 'identifier' => 'acme/api', 'last_work_at' => '2026-06-04 16:12:00']);
 
     // When
     $this->artisan('repositories:unmapped-digest')->assertSuccessful();
 
     // Then
     $expected = [
-        new UnmappedRepository('Bitbucket', 'Shop', "https://localhost/integrations/{$bitbucket->id}/bitbucket-repositories?search=shop"),
-        new UnmappedRepository('GitHub', 'api', "https://localhost/integrations/{$github->id}/github-repositories?search=acme%2Fapi"),
+        new UnmappedRepository('Bitbucket', 'acme/shop', "https://localhost/integrations/{$bitbucket->id}/bitbucket-repositories?search=shop"),
+        new UnmappedRepository('GitHub', 'acme/api', "https://localhost/integrations/{$github->id}/github-repositories?search=acme%2Fapi"),
     ];
     Mail::assertQueuedCount(2);
     Mail::assertQueued(UnmappedRepositoriesDigest::class, fn (UnmappedRepositoriesDigest $mail): bool => $mail->hasTo('admin@example.com') && $mail->repositories->all() == $expected);
@@ -43,12 +43,12 @@ it('mails every admin one digest of the repositories without a customer', functi
 it('lists the repositories by integration with a link to map each', function () {
     // Given
     $mail = new UnmappedRepositoriesDigest(collect([
-        new UnmappedRepository('Bitbucket', 'Shop', 'https://localhost/integrations/1/bitbucket-repositories?search=shop'),
+        new UnmappedRepository('Bitbucket', 'acme/shop', 'https://localhost/integrations/1/bitbucket-repositories?search=shop'),
     ]));
 
     // Then
     $mail->assertHasSubject('Werk in 1 repository zonder klant')
-        ->assertSeeInOrderInText(['Bitbucket', 'Shop'])
+        ->assertSeeInOrderInText(['Bitbucket', 'acme/shop'])
         ->assertSeeInHtml('https://localhost/integrations/1/bitbucket-repositories?search=shop');
 });
 
@@ -103,7 +103,7 @@ it('does not mention a repository mapped since its work was recorded', function 
     $this->travelTo('2026-06-05 08:00:00');
     User::factory()->create()->givePermissionTo('integrations.update');
     $integration = Integration::create(['title' => 'Bitbucket', 'type' => 'bitbucket', 'config' => []]);
-    Repository::factory()->create(['integration_id' => $integration->id, 'identifier' => 'shop', 'last_work_at' => '2026-06-04 16:12:00']);
+    Repository::factory()->create(['integration_id' => $integration->id, 'identifier' => 'acme/shop', 'last_work_at' => '2026-06-04 16:12:00']);
     BitbucketRepositoryMapping::create([
         'integration_id' => $integration->id,
         'workspace_slug' => 'acme',
