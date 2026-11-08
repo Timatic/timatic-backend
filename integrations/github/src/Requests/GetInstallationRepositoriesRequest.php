@@ -2,6 +2,7 @@
 
 namespace Timatic\GitHub\Requests;
 
+use Carbon\CarbonImmutable;
 use Saloon\Enums\Method;
 use Saloon\Http\Request;
 use Saloon\Http\Response;
@@ -40,6 +41,7 @@ class GetInstallationRepositoriesRequest extends Request
                     fullName: (string) ($repository['full_name'] ?? ''),
                     ownerLogin: (string) ($repository['owner']['login'] ?? ''),
                     isArchived: (bool) ($repository['archived'] ?? false),
+                    pushedAt: isset($repository['pushed_at']) ? CarbonImmutable::parse($repository['pushed_at']) : null,
                 ),
                 $response->json('repositories') ?? [],
             ),

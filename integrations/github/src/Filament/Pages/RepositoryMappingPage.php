@@ -24,14 +24,10 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Livewire\Attributes\Url;
-use Timatic\GitHub\Connector;
-use Timatic\GitHub\DataTransferObjects\GitHubRepository;
-use Timatic\GitHub\DataTransferObjects\GitHubRepositoryPage;
 use Timatic\GitHub\Exceptions\GitHubException;
 use Timatic\GitHub\InstallationService;
 use Timatic\GitHub\Models\RepositoryMapping;
 use Timatic\GitHub\RepositoryWebhookService;
-use Timatic\GitHub\Requests\GetInstallationRepositoriesRequest;
 
 class RepositoryMappingPage extends Page implements HasTable
 {
@@ -248,7 +244,7 @@ class RepositoryMappingPage extends Page implements HasTable
 
         foreach ($this->installationIds() as $installationId) {
             try {
-                $repositories = $this->fetchRepositories($installationId);
+                $repositories = app(InstallationService::class)->repositories($installationId);
             } catch (GitHubException $e) {
                 $this->notifyConnectionUnavailable();
 
@@ -284,33 +280,6 @@ class RepositoryMappingPage extends Page implements HasTable
         }
 
         $this->ignoreRepositoriesNoLongerAccessible($integration, $syncedInstallationIds, $syncedFullNames);
-    }
-
-    /**
-     * @return array<int, GitHubRepository>
-     *
-     * @throws GitHubException
-     */
-    private function fetchRepositories(int $installationId): array
-    {
-        $connector = Connector::forInstallation($installationId);
-        $repositories = [];
-        $page = 1;
-
-        do {
-            $response = $connector->send(new GetInstallationRepositoriesRequest($page));
-
-            if ($response->failed()) {
-                throw new GitHubException('Fetching installation repositories failed with status '.$response->status().'.');
-            }
-
-            /** @var GitHubRepositoryPage $repositoryPage */
-            $repositoryPage = $response->dto();
-            $repositories = [...$repositories, ...$repositoryPage->repositories];
-            $page++;
-        } while ($repositoryPage->repositories !== [] && count($repositories) < $repositoryPage->totalCount);
-
-        return $repositories;
     }
 
     /**

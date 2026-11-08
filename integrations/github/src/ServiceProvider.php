@@ -7,7 +7,9 @@ use App\Integrations\IntegrationTypeRegistry;
 use App\Integrations\Suggestions\SuggestionProviderRegistry;
 use App\Integrations\Tickets\TicketProviderRegistry;
 use App\Models\Integration;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
+use Timatic\GitHub\Commands\ScanRepositoriesCommand;
 use Timatic\GitHub\Filament\Pages\PeoplePage;
 use Timatic\GitHub\Filament\Pages\RepositoryMappingPage;
 use Timatic\GitHub\Filament\Pages\SettingsPage;
@@ -48,5 +50,14 @@ class ServiceProvider extends BaseServiceProvider
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'github');
         $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'github');
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+
+        $this->commands([ScanRepositoriesCommand::class]);
+
+        // before the unmapped repositories digest at 08:00
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
+            $schedule->command(ScanRepositoriesCommand::class)
+                ->dailyAt('07:30')
+                ->onOneServer();
+        });
     }
 }
