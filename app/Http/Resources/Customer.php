@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\Auth\SharedBudgetViewer;
 use Illuminate\Http\Request;
 
 /**
@@ -14,10 +15,12 @@ class Customer extends JsonApiResource
      */
     public function toAttributes(Request $request): array
     {
+        $isSharedWithCustomer = $request->user() instanceof SharedBudgetViewer;
+
         return [
-            'externalId' => $this->external_id,
+            'externalId' => $this->unless($isSharedWithCustomer, $this->external_id),
             'name' => $this->name,
-            'hourlyRate' => $this->hourly_rate ?? config('timatic.default_hourly_rate'),
+            'hourlyRate' => $this->unless($isSharedWithCustomer, $this->hourly_rate ?? config('timatic.default_hourly_rate')),
             'isOwnOrganization' => $this->is_own_organization,
             'createdAt' => $this->created_at,
             'updatedAt' => $this->updated_at,

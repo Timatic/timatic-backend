@@ -2,7 +2,9 @@
 
 namespace App\Http\Resources;
 
+use App\Support\Auth\SharedBudgetViewer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -18,13 +20,7 @@ class Period extends JsonApiResource
         $tags = ['budget.'.$this->budget->id];
         $cacheKey = 'period.'.$this->resource->getId();
 
-        $cachedPeriod = Cache::tags($tags)->get($cacheKey);
-
-        if ($cachedPeriod !== null) {
-            return $cachedPeriod;
-        }
-
-        $attributes = [
+        $attributes = Cache::tags($tags)->remember($cacheKey, 60 * 60 * 24, fn (): array => [
             'budgetTitle' => $this->getTitle(),
             'budgetDescription' => $this->getDescription(),
             'startDate' => $this->getStartDate(),
@@ -34,10 +30,10 @@ class Period extends JsonApiResource
             'spentMinutes' => $this->getSpentMinutes(),
             'ticketCount' => $this->getTicketCount(),
             'totalPrice' => $this->getTotalPrice(),
-        ];
-        Cache::tags($tags)->put($cacheKey, $attributes, 60 * 60 * 24);
+        ]);
 
-        return $attributes;
+        // The cache is shared with logged in users, so the price is left out after reading it
+        return $request->user() instanceof SharedBudgetViewer ? Arr::except($attributes, 'totalPrice') : $attributes;
     }
 
     public function toId(Request $request): string

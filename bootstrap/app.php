@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Middleware\RestrictShareTokenToSharedBudget;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Sentry\Laravel\Integration;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -32,6 +34,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth.redirect',
             $request->boolean('reauthenticate') ? ['reauthenticate' => 1] : [],
         ));
+
+        // A share token must not learn which ids exist, so it is refused before a 404 can happen
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: RestrictShareTokenToSharedBudget::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         Integration::handles($exceptions);

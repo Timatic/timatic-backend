@@ -21,6 +21,7 @@ use UnexpectedValueException;
  * @property int $id
  * @property string $customer_id
  * @property bool $show_to_customer
+ * @property ?string $share_token_hash
  * @property string $budget_type_id
  * @property Carbon $started_at
  * @property Carbon $ended_at
@@ -83,7 +84,24 @@ class Budget extends Model
         'started_at',
     ];
 
+    /**
+     * @var list<string>
+     */
+    protected $hidden = [
+        'share_token_hash',
+    ];
+
     protected $with = ['budgetType', 'budgetVersions'];
+
+    protected static function booted(): void
+    {
+        // Hiding a budget revokes its share link, so showing it again never revives an old link
+        static::saving(function (Budget $budget) {
+            if (! $budget->show_to_customer) {
+                $budget->share_token_hash = null;
+            }
+        });
+    }
 
     /**
      * @return array<string, string>
