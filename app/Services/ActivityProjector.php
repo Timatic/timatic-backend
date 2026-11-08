@@ -143,8 +143,8 @@ class ActivityProjector
     }
 
     /**
-     * Booked entries are always subtracted. Work known to be on another customer or ticket may run
-     * alongside (multitasking), but a fill signal only gets what all other activities left.
+     * Work for another known customer may run alongside (multitasking); within one customer the
+     * stronger evidence claims the time. A fill signal only gets what all entries and activities left.
      * Time the activity already covered stays its own.
      *
      * @return array<int, Activity>
@@ -152,9 +152,12 @@ class ActivityProjector
     private function reduceOverlap(Activity $activity, bool $isFill, ?Period $alreadyCovered = null): array
     {
         $claimed = new PeriodCollection(
-            ...$this->entries->map(fn (Entry $entry) => $this->period($entry->started_at, $entry->ended_at))->all(),
+            ...$this->entries
+                ->filter(fn (Entry $entry) => $isFill || ! $this->isOtherCustomer($activity->customer_id, $entry->customer_id))
+                ->map(fn (Entry $entry) => $this->period($entry->started_at, $entry->ended_at))
+                ->all(),
             ...$this->activities
-                ->filter(fn (Activity $other) => $other !== $activity && ($isFill || ! $this->isOtherWorkItem($activity, $other)))
+                ->filter(fn (Activity $other) => $other !== $activity && ($isFill || ! $this->isOtherCustomer($activity->customer_id, $other->customer_id)))
                 ->map(fn (Activity $other) => $this->period($other->started_at, $other->ended_at))
                 ->all(),
         );
@@ -304,7 +307,8 @@ class ActivityProjector
         $unionStart = $activity->started_at->min($other->started_at);
         $unionEnd = $activity->ended_at->max($other->ended_at);
 
-        return ! $this->entries->contains(fn (Entry $entry) => $entry->started_at->lt($unionEnd) && $entry->ended_at->gt($unionStart))
+        return ! $this->entries->contains(fn (Entry $entry) => ! $this->isOtherCustomer($activity->customer_id, $entry->customer_id)
+            && $entry->started_at->lt($unionEnd) && $entry->ended_at->gt($unionStart))
             && ($gapEnd->lte($gapStart) || ! $this->activities->contains(fn (Activity $claim) => $claim !== $activity && $claim !== $other
                 && $claim->started_at->lt($gapEnd) && $claim->ended_at->gt($gapStart)));
     }
@@ -315,12 +319,11 @@ class ActivityProjector
     }
 
     /**
-     * Unknown is not different: a missing customer or ticket may be the same work.
+     * An unknown customer is not another customer: it may be the same work.
      */
-    private function isOtherWorkItem(Activity $activity, Activity $other): bool
+    private function isOtherCustomer(int|string|null $customerId, int|string|null $otherCustomerId): bool
     {
-        return ($activity->customer_id !== null && $other->customer_id !== null && $activity->customer_id !== $other->customer_id)
-            || ($activity->ticket_number !== null && $other->ticket_number !== null && $activity->ticket_number !== $other->ticket_number);
+        return $customerId !== null && $otherCustomerId !== null && (string) $customerId !== (string) $otherCustomerId;
     }
 
     /**

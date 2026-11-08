@@ -271,19 +271,19 @@ test('a null-ticket event of another customer is not glued', function () {
     expect($activities)->toHaveCount(2);
 });
 
-test('a browser focus event overlapping a ticket activity is clipped to what the work left', function () {
+test('within one customer the higher-weight group keeps its period and the lower one is trimmed', function () {
     $light = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
         'ticket_number' => 'TIC-1',
-        'event_type_id' => 'browser_focus',
+        'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 00:10'),
         'ended_at' => Carbon::parse('2026-07-16 00:20'),
     ]);
-    $light->setRelation('eventType', new EventType(['id' => 'browser_focus', 'weight' => 100]));
+    $light->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 99]));
     $heavy = new Event([
         'user_id' => 1,
-        'customer_id' => 'customerY',
+        'customer_id' => 'customerX',
         'ticket_number' => 'TIC-2',
         'event_type_id' => 'calendar_event_started',
         'started_at' => Carbon::parse('2026-07-16 00:05'),
@@ -330,7 +330,7 @@ test('a group fully covered by a dominant group of the same customer hands its e
         ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:30'));
 });
 
-test('a covered group of another customer stays unattached instead of mixing customers', function () {
+test('a browser event covered by work for another customer stays unattached instead of mixing customers', function () {
     $covering = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
@@ -357,7 +357,7 @@ test('a covered group of another customer stays unattached instead of mixing cus
         ->and($activities[0]->events->first())->toBe($covering);
 });
 
-test('on equal weight the earlier-starting group is dominant', function () {
+test('within one customer on equal weight the earlier-starting group is dominant', function () {
     $earlier = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
@@ -366,16 +366,16 @@ test('on equal weight the earlier-starting group is dominant', function () {
         'started_at' => Carbon::parse('2026-07-16 09:00'),
         'ended_at' => Carbon::parse('2026-07-16 10:00'),
     ]);
-    $earlier->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 100]));
+    $earlier->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 5]));
     $later = new Event([
         'user_id' => 1,
-        'customer_id' => 'customerY',
+        'customer_id' => 'customerX',
         'ticket_number' => 'TIC-2',
         'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:30'),
         'ended_at' => Carbon::parse('2026-07-16 10:30'),
     ]);
-    $later->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 100]));
+    $later->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 5]));
 
     $activities = (new ActivityProjector)->project(collect([$earlier, $later]), collect());
 
@@ -385,7 +385,7 @@ test('on equal weight the earlier-starting group is dominant', function () {
         ->and($laterActivity->started_at)->toEqual(Carbon::parse('2026-07-16 10:00'));
 });
 
-test('a subordinate group starts after the latest dominant overlapping group', function () {
+test('within one customer a subordinate group starts after the latest dominant overlapping group', function () {
     $heavyType = new EventType(['id' => 'calendar_event_started', 'weight' => 1]);
     $firstDominant = new Event([
         'user_id' => 1,
@@ -398,7 +398,7 @@ test('a subordinate group starts after the latest dominant overlapping group', f
     $firstDominant->setRelation('eventType', $heavyType);
     $secondDominant = new Event([
         'user_id' => 1,
-        'customer_id' => 'customerY',
+        'customer_id' => 'customerX',
         'ticket_number' => 'TIC-2',
         'event_type_id' => 'calendar_event_started',
         'started_at' => Carbon::parse('2026-07-16 10:00'),
@@ -407,13 +407,13 @@ test('a subordinate group starts after the latest dominant overlapping group', f
     $secondDominant->setRelation('eventType', $heavyType);
     $subordinate = new Event([
         'user_id' => 1,
-        'customer_id' => 'customerZ',
+        'customer_id' => 'customerX',
         'ticket_number' => 'TIC-3',
         'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 10:15'),
         'ended_at' => Carbon::parse('2026-07-16 11:00'),
     ]);
-    $subordinate->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 100]));
+    $subordinate->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 99]));
 
     $activities = (new ActivityProjector)->project(collect([$firstDominant, $secondDominant, $subordinate]), collect());
 
@@ -576,7 +576,7 @@ test('a meeting spanning two commits is split into three activities around the c
         ->and($meetingActivities[2]->events->contains($meeting))->toBeTrue();
 });
 
-test('point events on different tickets each keep their estimated time, overlapping or not', function () {
+test('fast sequential point events of equal weight each get their own time slice', function () {
     $eventType = new EventType(['id' => 'commit_created', 'weight' => 1]);
 
     $commit1 = new Event([
@@ -613,16 +613,21 @@ test('point events on different tickets each keep their estimated time, overlapp
     $tic2 = $activities->filter(fn ($a) => $a->ticket_number === 'TIC-2')
         ->sortBy('started_at')->values();
 
-    expect($tic1)->toHaveCount(1)
+    expect($activities)
+        ->and($tic1)->toHaveCount(2)
         ->and($tic1[0]->started_at)->toEqual(Carbon::parse('2026-07-16 09:45'))
-        ->and($tic1[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:10'))
-        ->and($tic1[0]->events->all())->toBe([$commit1, $commit3])
+        ->and($tic1[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
+        ->and((int) $tic1[0]->started_at->diffInMinutes($tic1[0]->ended_at))->toBe(15)
+        ->and($tic1[1]->started_at)->toEqual(Carbon::parse('2026-07-16 10:05'))
+        ->and($tic1[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:10'))
+        ->and((int) $tic1[1]->started_at->diffInMinutes($tic1[1]->ended_at))->toBe(5)
         ->and($tic2)->toHaveCount(1)
-        ->and($tic2[0]->started_at)->toEqual(Carbon::parse('2026-07-16 09:50'))
-        ->and($tic2[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:05'));
+        ->and($tic2[0]->started_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
+        ->and($tic2[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:05'))
+        ->and((int) $tic2[0]->started_at->diffInMinutes($tic2[0]->ended_at))->toBe(5);
 });
 
-test('a high-weight event inside a low-weight event splits the low-weight into two activities', function () {
+test('within one customer a high-weight event inside a low-weight event splits the low-weight into two activities', function () {
     $meeting = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
@@ -631,10 +636,10 @@ test('a high-weight event inside a low-weight event splits the low-weight into t
         'started_at' => Carbon::parse('2026-07-16 09:00'),
         'ended_at' => Carbon::parse('2026-07-16 10:00'),
     ]);
-    $meeting->setRelation('eventType', new EventType(['id' => 'calendar_event_started', 'weight' => 100]));
+    $meeting->setRelation('eventType', new EventType(['id' => 'calendar_event_started', 'weight' => 99]));
     $commit = new Event([
         'user_id' => 1,
-        'customer_id' => 'customerY',
+        'customer_id' => 'customerX',
         'ticket_number' => 'TIC-2',
         'event_type_id' => 'commit_created',
         'started_at' => Carbon::parse('2026-07-16 09:30'),
@@ -1017,7 +1022,7 @@ test('a new activity next to an activity of the same ticket merges with it', fun
         ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:20'))
         ->and($activities[0]->events->all())->toEqualCanonicalizing([$first, $commit])
         ->and($activities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 08:45'))
-        ->and($activities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:00'))
+        ->and($activities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 08:55'))
         ->and($activities[1]->events->all())->toEqualCanonicalizing([$otherTicket]);
 });
 
@@ -1052,8 +1057,12 @@ test('merging the parts of a split event lists each event once', function () {
 
     $activities = (new ActivityProjector)->project(collect([$otherTicket, $work, $long]), collect());
 
-    expect($activities)->toHaveCount(2)
-        ->and($activities[1]->events->all())->toBe([$work, $long]);
+    $periods = $activities
+        ->map(fn ($activity) => $activity->ticket_number.' '.$activity->started_at->format('H:i').'-'.$activity->ended_at->format('H:i'))
+        ->all();
+    expect($periods)->toBe(['TIC-2 10:00-10:30', 'TIC-1 09:00-10:00', 'TIC-1 10:30-12:00'])
+        ->and($activities[1]->events->all())->toBe([$work, $long])
+        ->and($activities[2]->events->all())->toBe([$work, $long]);
 });
 
 test('a fill event widening an activity across a booked entry splits it around the entry', function () {
@@ -1091,7 +1100,7 @@ test('a fill event widening an activity across a booked entry splits it around t
         ->and($activities[1]->events->all())->toBe([$work, $long]);
 });
 
-test('a Claude Code session on one ticket and a review of another ticket both keep their full time', function () {
+test('a Claude Code session for one customer and a review for another customer both keep their full time', function () {
     $session = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
@@ -1103,7 +1112,7 @@ test('a Claude Code session on one ticket and a review of another ticket both ke
     $session->setRelation('eventType', new EventType(['id' => 'prompt_submitted', 'weight' => 20]));
     $commented = new Event([
         'user_id' => 1,
-        'customer_id' => 'customerX',
+        'customer_id' => 'customerY',
         'ticket_number' => 'TIC-2',
         'event_type_id' => 'pr_commented',
         'ended_at' => Carbon::parse('2026-07-16 09:40'),
@@ -1111,7 +1120,7 @@ test('a Claude Code session on one ticket and a review of another ticket both ke
     $commented->setRelation('eventType', new EventType(['id' => 'pr_commented', 'weight' => 40]));
     $approved = new Event([
         'user_id' => 1,
-        'customer_id' => 'customerX',
+        'customer_id' => 'customerY',
         'ticket_number' => 'TIC-2',
         'event_type_id' => 'pr_approved',
         'ended_at' => Carbon::parse('2026-07-16 10:00'),
@@ -1157,7 +1166,7 @@ test('overlapping work on the same ticket becomes one activity', function () {
         ->and($activities[0]->events->all())->toBe([$session, $review]);
 });
 
-test('a booked entry is subtracted from both overlapping activities', function () {
+test('a booked entry only claims time from activities of its own customer', function () {
     $session = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
@@ -1176,17 +1185,27 @@ test('a booked entry is subtracted from both overlapping activities', function (
         'ended_at' => Carbon::parse('2026-07-16 10:30'),
     ]);
     $review->setRelation('eventType', new EventType(['id' => 'pr_commented', 'weight' => 40]));
+    $otherTicket = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-3',
+        'event_type_id' => 'commit_created',
+        'started_at' => Carbon::parse('2026-07-16 09:30'),
+        'ended_at' => Carbon::parse('2026-07-16 10:30'),
+    ]);
+    $otherTicket->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 10]));
     $entry = new Entry([
+        'customer_id' => 'customerX',
         'started_at' => Carbon::parse('2026-07-16 10:00'),
         'ended_at' => Carbon::parse('2026-07-16 10:15'),
     ]);
 
-    $activities = (new ActivityProjector)->project(collect([$session, $review]), collect([$entry]));
+    $activities = (new ActivityProjector)->project(collect([$session, $review, $otherTicket]), collect([$entry]));
 
     $periods = $activities
         ->map(fn ($activity) => $activity->ticket_number.' '.$activity->started_at->format('H:i').'-'.$activity->ended_at->format('H:i'))
         ->all();
-    expect($periods)->toBe(['TIC-1 09:00-10:00', 'TIC-1 10:15-11:00', 'TIC-2 09:30-10:00', 'TIC-2 10:15-10:30']);
+    expect($periods)->toBe(['TIC-3 09:30-10:00', 'TIC-3 10:15-10:30', 'TIC-1 09:00-09:30', 'TIC-1 10:30-11:00', 'TIC-2 09:30-10:30']);
 });
 
 test('a ticketless meeting held back for a neighbour still claims its time before a browser session', function () {
@@ -1259,8 +1278,8 @@ test('shuffled overlapping work produces the same activities as chronological in
         $events = [];
         foreach ([
             ['09:00', '11:00', 'customerX', 'TIC-1', 20],
-            [null, '09:40', 'customerX', 'TIC-2', 40],
-            [null, '10:00', 'customerX', 'TIC-2', 50],
+            [null, '09:40', 'customerY', 'TIC-2', 40],
+            [null, '10:00', 'customerY', 'TIC-2', 50],
             ['09:50', '10:20', 'customerX', 'TIC-1', 40],
             ['08:30', '12:00', 'customerY', null, 100],
         ] as [$start, $end, $customer, $ticket, $weight]) {
@@ -1289,9 +1308,9 @@ test('shuffled overlapping work produces the same activities as chronological in
         ->and($signature($chronological))->toBe([
             'customerX|TIC-1|09:00|10:30|2',
             'customerX|TIC-1|10:45|11:00|1',
-            'customerX|TIC-2|09:25|10:00|2',
-            'customerY||08:30|09:00|1',
-            'customerY||11:00|12:00|1',
+            'customerY|TIC-2|08:30|09:00|1',
+            'customerY|TIC-2|09:25|10:00|3',
+            'customerY|TIC-2|11:00|12:00|1',
         ]);
 });
 
@@ -1331,4 +1350,40 @@ test('a browser event chained onto an activity leaves its overlap with other wor
         ->all();
     expect($periods)->toBe(['TIC-1 09:00-10:00', 'TIC-2 09:30-10:45'])
         ->and($activities[0]->events->all())->toBe([$session, $browsing]);
+});
+
+test('a ticketless meeting chained onto one ticket does not double count another ticket of its customer', function () {
+    $otherTicket = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-2',
+        'event_type_id' => 'branch_created',
+        'started_at' => Carbon::parse('2026-07-16 09:30'),
+        'ended_at' => Carbon::parse('2026-07-16 11:00'),
+    ]);
+    $otherTicket->setRelation('eventType', new EventType(['id' => 'branch_created', 'weight' => 10]));
+    $commit = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'commit_created',
+        'started_at' => Carbon::parse('2026-07-16 08:50'),
+        'ended_at' => Carbon::parse('2026-07-16 09:00'),
+    ]);
+    $commit->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 20]));
+    $meeting = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'event_type_id' => 'calendar_event_started',
+        'started_at' => Carbon::parse('2026-07-16 09:00'),
+        'ended_at' => Carbon::parse('2026-07-16 12:00'),
+    ]);
+    $meeting->setRelation('eventType', new EventType(['id' => 'calendar_event_started', 'weight' => 75]));
+
+    $activities = (new ActivityProjector)->project(collect([$otherTicket, $commit, $meeting]), collect());
+
+    $periods = $activities
+        ->map(fn ($activity) => $activity->ticket_number.' '.$activity->started_at->format('H:i').'-'.$activity->ended_at->format('H:i'))
+        ->all();
+    expect($periods)->toBe(['TIC-2 09:30-11:00', 'TIC-1 08:50-09:30', 'TIC-1 11:00-12:00']);
 });
