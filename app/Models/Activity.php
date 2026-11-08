@@ -27,13 +27,11 @@ use Illuminate\Support\Collection;
  * @property Carbon $started_at
  * @property Carbon $ended_at
  * @property ?bool $is_internal
- * @property ?string $event_type_id
  * @property ?int $entry_suggestion_id
  * @property ?Carbon $created_at
  * @property ?Carbon $updated_at
  * @property Collection<int, Event> $events
  * @property ?EntrySuggestion $entrySuggestion
- * @property ?EventType $eventType
  */
 class Activity extends Model
 {
@@ -47,7 +45,6 @@ class Activity extends Model
     protected $fillable = [
         'started_at',
         'ended_at',
-        'event_type_id',
         'customer_id',
         'ticket_id',
         'user_id',
@@ -93,13 +90,5 @@ class Activity extends Model
     public function entrySuggestion(): BelongsTo
     {
         return $this->belongsTo(EntrySuggestion::class);
-    }
-
-    /**
-     * @return BelongsTo<EventType, $this>
-     */
-    public function eventType(): BelongsTo
-    {
-        return $this->belongsTo(EventType::class);
     }
 }
