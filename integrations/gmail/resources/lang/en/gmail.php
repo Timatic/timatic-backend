@@ -3,7 +3,7 @@
 return [
     'integration' => [
         'label' => 'Gmail',
-        'instructions' => "The emails you send and the drafts you save show up as suggestions, linked to the customer whose email domain is among the recipients.\n\nOnly the recipients, subject and time of a mail are read, never its content.",
+        'instructions' => "The emails you send and the drafts you save show up as suggestions, linked to the customer whose email domain is among the recipients.\n\nOnly the recipients, subject and time of a mail are read, never its content.\n\nOnly mail from after you connect is picked up.",
     ],
 
     'settings' => [

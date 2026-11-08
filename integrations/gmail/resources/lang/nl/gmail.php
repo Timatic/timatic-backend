@@ -3,7 +3,7 @@
 return [
     'integration' => [
         'label' => 'Gmail',
-        'instructions' => "De e-mails die je verstuurt en de concepten die je opslaat verschijnen als suggesties, gekoppeld aan de klant van wie het e-maildomein bij de ontvangers staat.\n\nAlleen de ontvangers, het onderwerp en het tijdstip van een mail worden gelezen, nooit de inhoud.",
+        'instructions' => "De e-mails die je verstuurt en de concepten die je opslaat verschijnen als suggesties, gekoppeld aan de klant op wiens e-maildomein een van de ontvangers zit.\n\nAlleen de ontvangers, het onderwerp en het tijdstip van een mail worden gelezen, nooit de inhoud.\n\nAlleen mail van na het koppelen wordt opgehaald.",
     ],
 
     'settings' => [
