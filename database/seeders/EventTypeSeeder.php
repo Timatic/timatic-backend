@@ -14,7 +14,8 @@ class EventTypeSeeder extends Seeder
      * weight: the activity projector processes events by ascending weight and subtracts time that
      * earlier activities already claimed. Jira, GitHub and calendar activity therefore win, and a
      * browser session only fills what is left. An attended meeting is stronger evidence than the
-     * calendar item (75) that planned it.
+     * calendar item (75) that planned it, so its real duration wins, even though its customer stays
+     * unknown until the meeting code has been booked once.
      *
      * @var array<string, array{name: string, weight: int}>
      */

@@ -2,19 +2,20 @@
 
 use App\Models\EventType;
 use App\Models\Source;
+use Database\Seeders\EventTypeSeeder;
+use Database\Seeders\SourceSeeder;
 use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
     /**
-     * A meeting the user actually sat in is stronger evidence than the calendar item (75) that
-     * planned it, so it gets the lower weight and claims its time first.
+     * The data lives in the seeders; this only makes sure a deployment has the google_meet rows.
+     * Both seeders are idempotent, so rerunning them leaves the other rows as they are.
      */
     public function up(): void
     {
-        Source::firstOrCreate(['id' => 'google_meet'], ['title' => 'Google Meet']);
-
-        EventType::query()->updateOrCreate(['id' => 'meeting_attended'], ['name' => 'Meeting attended', 'weight' => 60]);
+        (new SourceSeeder)->run();
+        (new EventTypeSeeder)->run();
     }
 
     public function down(): void

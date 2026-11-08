@@ -142,7 +142,9 @@ it('stores a google meet attendance posted by the chrome extension', function ()
                 'endedAt' => '2026-11-02T09:45:00+01:00',
             ],
         ],
-    ], ['Authorization' => 'Bearer extension-token'])->assertCreated();
+    ], ['Authorization' => 'Bearer extension-token'])
+        ->assertCreated()
+        ->assertJsonPath('data.attributes.externalId', 'abc-defg-hij');
 
     $this->assertDatabaseHas('events', [
         'user_id' => $user->id,
