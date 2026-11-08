@@ -200,6 +200,7 @@ it('denies a share token everything but reading its own budget', function (strin
     $this->json($method, $uri, [], ['X-Share-Token' => 'secret-token'])->assertForbidden();
 })->with([
     'another budget' => ['GET', 'budgets/{otherBudget}'],
+    'a budget that does not exist' => ['GET', 'budgets/999999'],
     'the periods of another budget' => ['GET', 'budgets/{otherBudget}/periods'],
     'the totals of another budget' => ['GET', 'budget-time-spent-totals?filter[budgetId]={otherBudget}&periodUnit=month'],
     'all budgets' => ['GET', 'budgets'],
