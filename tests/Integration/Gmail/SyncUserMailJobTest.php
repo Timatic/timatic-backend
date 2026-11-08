@@ -235,3 +235,64 @@ it('keeps the history id when a message cannot be read for now', function () {
 
     expect($connection->refresh()->history_id)->toBe('1000');
 });
+
+it('reads every page of the history', function () {
+    $connection = GmailConnection::factory()->create(['history_id' => '1000']);
+
+    $mock = MockClient::global([
+        MockResponse::make([
+            'history' => [
+                ['id' => '1001', 'messagesAdded' => [['message' => ['id' => 'message-1', 'threadId' => 'thread-1', 'labelIds' => ['SENT']]]]],
+            ],
+            'historyId' => '1050',
+            'nextPageToken' => 'page-2',
+        ]),
+        MockResponse::make([
+            'history' => [
+                ['id' => '1002', 'messagesAdded' => [['message' => ['id' => 'message-2', 'threadId' => 'thread-2', 'labelIds' => ['SENT']]]]],
+            ],
+            'historyId' => '1060',
+        ]),
+        MockResponse::make(['id' => 'message-1', 'threadId' => 'thread-1', 'labelIds' => ['SENT'], 'internalDate' => '1793872800000', 'payload' => ['headers' => []]]),
+        MockResponse::make(['id' => 'message-2', 'threadId' => 'thread-2', 'labelIds' => ['SENT'], 'internalDate' => '1793872900000', 'payload' => ['headers' => []]]),
+    ]);
+
+    new SyncUserMailJob($connection)->handle(app(OAuthService::class), app(CustomerEmailDomainResolver::class));
+
+    $mock->assertSent(fn (ListHistoryRequest $request): bool => $request->query()->get('pageToken') === 'page-2');
+
+    expect(Event::pluck('external_id')->sort()->values()->all())->toBe(['thread-1', 'thread-2'])
+        ->and($connection->refresh()->history_id)->toBe('1060');
+});
+
+it('keeps the history id when the history cannot be read', function () {
+    $connection = GmailConnection::factory()->create(['history_id' => '1000']);
+
+    MockClient::global([
+        ListHistoryRequest::class => MockResponse::make(['error' => ['code' => 500]], 500),
+    ]);
+
+    new SyncUserMailJob($connection)->handle(app(OAuthService::class), app(CustomerEmailDomainResolver::class));
+
+    expect($connection->refresh()->history_id)->toBe('1000');
+});
+
+it('ignores incoming mail', function () {
+    $connection = GmailConnection::factory()->create(['history_id' => '1000']);
+
+    $mock = MockClient::global([
+        ListHistoryRequest::class => MockResponse::make([
+            'history' => [
+                ['id' => '1001', 'messagesAdded' => [['message' => ['id' => 'message-1', 'threadId' => 'thread-1', 'labelIds' => ['INBOX']]]]],
+            ],
+            'historyId' => '1050',
+        ]),
+    ]);
+
+    new SyncUserMailJob($connection)->handle(app(OAuthService::class), app(CustomerEmailDomainResolver::class));
+
+    $mock->assertNotSent(GetMessageRequest::class);
+
+    expect(Event::count())->toBe(0)
+        ->and($connection->refresh()->history_id)->toBe('1050');
+});
