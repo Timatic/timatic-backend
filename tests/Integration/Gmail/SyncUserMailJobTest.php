@@ -198,3 +198,40 @@ it('starts reading from now when gmail no longer knows the stored history id', f
 
     expect($connection->refresh()->history_id)->toBe('2000');
 });
+
+it('skips a message that is gone and still moves the history on', function () {
+    $connection = GmailConnection::factory()->create(['history_id' => '1000']);
+
+    MockClient::global([
+        ListHistoryRequest::class => MockResponse::make([
+            'history' => [
+                ['id' => '1001', 'messagesAdded' => [['message' => ['id' => 'draft-message-1', 'threadId' => 'thread-1', 'labelIds' => ['DRAFT']]]]],
+            ],
+            'historyId' => '1050',
+        ]),
+        GetMessageRequest::class => MockResponse::make(['error' => ['code' => 404]], 404),
+    ]);
+
+    new SyncUserMailJob($connection)->handle(app(OAuthService::class), app(CustomerEmailDomainResolver::class));
+
+    expect(Event::count())->toBe(0)
+        ->and($connection->refresh()->history_id)->toBe('1050');
+});
+
+it('keeps the history id when a message cannot be read for now', function () {
+    $connection = GmailConnection::factory()->create(['history_id' => '1000']);
+
+    MockClient::global([
+        ListHistoryRequest::class => MockResponse::make([
+            'history' => [
+                ['id' => '1001', 'messagesAdded' => [['message' => ['id' => 'message-1', 'threadId' => 'thread-1', 'labelIds' => ['SENT']]]]],
+            ],
+            'historyId' => '1050',
+        ]),
+        GetMessageRequest::class => MockResponse::make(['error' => ['code' => 429]], 429),
+    ]);
+
+    new SyncUserMailJob($connection)->handle(app(OAuthService::class), app(CustomerEmailDomainResolver::class));
+
+    expect($connection->refresh()->history_id)->toBe('1000');
+});

@@ -71,8 +71,13 @@ class SyncUserMailJob implements ShouldQueue
             $response = $gmail->send(new GetMessageRequest($messageId));
 
             // Each save replaces a draft by a new message, so an earlier save is usually gone by now.
-            if ($response->failed()) {
+            if ($response->status() === 404) {
                 continue;
+            }
+
+            // Stop without moving the history id, so the next run reads these messages again.
+            if ($response->failed()) {
+                return;
             }
 
             $message = $response->dto();
