@@ -20,6 +20,9 @@ class ActivityProjector
 {
     private const CHAIN_GAP_MINUTES = 15;
 
+    /** Event types at or above this weight (browser focus) are weak evidence that only fills gaps. */
+    private const FILL_WEIGHT = 100;
+
     /** @var Collection<int, Activity> */
     private Collection $activities;
 
@@ -50,10 +53,24 @@ class ActivityProjector
                 ?: $a->effectiveStart()->getTimestamp() <=> $b->effectiveStart()->getTimestamp();
         })->values();
 
+        [$fillEvents, $workEvents] = $sorted->partition(fn (Event $event) => $this->isFill($event))->all();
+
+        // Fill signals go after the held-back ticketless work too, so they only get what all work left.
+        $this->projectEvents($workEvents);
+        $this->projectEvents($fillEvents);
+
+        return $this->activities;
+    }
+
+    /**
+     * @param  Collection<int, Event>  $events
+     */
+    private function projectEvents(Collection $events): void
+    {
         /** @var Collection<int, Event> $unclaimed */
         $unclaimed = collect();
 
-        foreach ($sorted as $event) {
+        foreach ($events as $event) {
             $customerId = $this->customerId($event);
 
             if ($customerId === null) {
@@ -100,14 +117,12 @@ class ActivityProjector
                 $this->createActivity($event);
             }
         }
-
-        return $this->activities;
     }
 
     private function createActivity(Event $event): void
     {
         $newActivity = $this->activityFromEvent($event);
-        $newActivityPartsWithoutOverlap = $this->reduceOverlap($newActivity);
+        $newActivityPartsWithoutOverlap = $this->reduceOverlap($newActivity, $this->isFill($event));
         $this->activities->push(...$newActivityPartsWithoutOverlap);
 
         foreach ($newActivityPartsWithoutOverlap as $part) {
@@ -128,13 +143,19 @@ class ActivityProjector
     }
 
     /**
+     * Booked entries are always subtracted. Work known to be on another customer or ticket may run
+     * alongside (multitasking), but a fill signal only gets what all other activities left.
+     *
      * @return array<int, Activity>
      */
-    private function reduceOverlap(Activity $activity): array
+    private function reduceOverlap(Activity $activity, bool $isFill): array
     {
         $claimed = new PeriodCollection(
             ...$this->entries->map(fn (Entry $entry) => $this->period($entry->started_at, $entry->ended_at))->all(),
-            ...$this->activities->map(fn (Activity $activity) => $this->period($activity->started_at, $activity->ended_at))->all(),
+            ...$this->activities
+                ->filter(fn (Activity $other) => $other !== $activity && ($isFill || ! $this->isOtherWorkItem($activity, $other)))
+                ->map(fn (Activity $other) => $this->period($other->started_at, $other->ended_at))
+                ->all(),
         );
 
         $activityPeriod = $this->period($activity->started_at, $activity->ended_at);
@@ -159,7 +180,7 @@ class ActivityProjector
 
             $events = $activity->events->filter(
                 fn (Event $event) => $event->effectiveStart()->lt($segment->end()) && $event->ended_at->gt($segment->start())
-            );
+            )->values();
             $partialActivity->setRelation('events', $events);
             $parts[] = $partialActivity;
         }
@@ -275,6 +296,20 @@ class ActivityProjector
         return ! $this->entries->contains(fn (Entry $entry) => $entry->started_at->lt($unionEnd) && $entry->ended_at->gt($unionStart))
             && ($gapEnd->lte($gapStart) || ! $this->activities->contains(fn (Activity $claim) => $claim !== $activity && $claim !== $other
                 && $claim->started_at->lt($gapEnd) && $claim->ended_at->gt($gapStart)));
+    }
+
+    private function isFill(Event $event): bool
+    {
+        return (int) $event->eventType?->weight >= self::FILL_WEIGHT;
+    }
+
+    /**
+     * Unknown is not different: a missing customer or ticket may be the same work.
+     */
+    private function isOtherWorkItem(Activity $activity, Activity $other): bool
+    {
+        return ($activity->customer_id !== null && $other->customer_id !== null && $activity->customer_id !== $other->customer_id)
+            || ($activity->ticket_number !== null && $other->ticket_number !== null && $activity->ticket_number !== $other->ticket_number);
     }
 
     /**
