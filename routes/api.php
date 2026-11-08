@@ -44,6 +44,7 @@ use App\Http\Controllers\Users\TeamController;
 use App\Http\Controllers\Users\UserController;
 use App\Http\Middleware\EncapsulateRequestBodyWithData;
 use App\Http\Middleware\ImpersonateUsers;
+use App\Http\Middleware\RestrictShareTokenToSharedBudget;
 use Illuminate\Support\Facades\Route;
 
 Route::post('oauth/token', IssueTokenController::class)
@@ -55,7 +56,8 @@ Route::delete('oauth/token', RevokeTokenController::class)
     ->name('oauth.token.destroy');
 
 Route::middleware([
-    'auth:api',
+    'auth:api,share_token',
+    RestrictShareTokenToSharedBudget::class,
     EncapsulateRequestBodyWithData::class,
     ImpersonateUsers::class,
 ])->group(function () {

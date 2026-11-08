@@ -11,8 +11,10 @@ use App\Integrations\Suggestions\SuggestionProviderRegistry;
 use App\Integrations\Tickets\TicketProviderRegistry;
 use App\Integrations\Tickets\TicketService;
 use App\Models\ApiToken;
+use App\Models\Budget;
 use App\Models\User;
 use App\Policies\PermissionPolicy;
+use App\Support\Auth\SharedBudgetViewer;
 use App\Support\Scramble\RenamePathParametersTransformer;
 use BezhanSalleh\FilamentShield\Facades\FilamentShield;
 use Dedoc\Scramble\Configuration\ParametersExtractors;
@@ -142,6 +144,21 @@ class AppServiceProvider extends ServiceProvider
             $token->touchLastUsed();
 
             return $token->user ?? $token;
+        });
+
+        Auth::viaRequest('share_token', function (Request $request) {
+            $token = $request->header('X-Share-Token');
+
+            if ($token === null) {
+                return null;
+            }
+
+            $budget = Budget::query()
+                ->where('share_token_hash', hash('sha256', $token))
+                ->where('show_to_customer', true)
+                ->first();
+
+            return $budget === null ? null : new SharedBudgetViewer($budget);
         });
 
         Event::listen(function (SocialiteWasCalled $event) {

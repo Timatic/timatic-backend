@@ -87,7 +87,7 @@ class User extends \Illuminate\Foundation\Auth\User implements FilamentUser, Has
 
     public function impersonate(): void
     {
-        $this->isImpersonatedById = Auth::user()?->id;
+        $this->isImpersonatedById = Auth::user()?->getAuthIdentifier();
     }
 
     public function isImpersonated(): bool
