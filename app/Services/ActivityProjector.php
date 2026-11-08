@@ -7,28 +7,18 @@ use App\Models\Activity;
 use App\Models\Entry;
 use App\Models\Event;
 use Carbon\Carbon;
-use Carbon\CarbonInterface;
 use Closure;
-use DateTimeImmutable;
 use Illuminate\Support\Collection;
 use LogicException;
-use Spatie\Period\Boundaries;
-use Spatie\Period\Period;
-use Spatie\Period\PeriodCollection;
-use Spatie\Period\Precision;
 
 class ActivityProjector
 {
     private const CHAIN_GAP_MINUTES = 15;
 
-    /** Event types at or above this weight (browser focus) are weak evidence that only fills gaps. */
-    private const FILL_WEIGHT = 100;
-
     /** @var Collection<int, Activity> */
     private Collection $activities;
 
-    /** @var Collection<int, Entry> */
-    private Collection $entries;
+    private ActivityOverlap $overlap;
 
     private EventAttribution $attribution;
 
@@ -45,7 +35,7 @@ class ActivityProjector
      */
     public function project(Collection $events, Collection $entries, Collection $previousSequenceBookings = new Collection): Collection
     {
-        $this->entries = $entries;
+        $this->overlap = new ActivityOverlap($entries);
         $this->attribution = new EventAttribution($previousSequenceBookings);
 
         $sorted = $events->sort(function (Event $a, Event $b) {
@@ -55,7 +45,7 @@ class ActivityProjector
                 ?: $a->id <=> $b->id;
         })->values();
 
-        [$fillEvents, $workEvents] = $sorted->partition(fn (Event $event) => $this->isFill($event))->all();
+        [$fillEvents, $workEvents] = $sorted->partition(fn (Event $event) => $this->overlap->isFill($event))->all();
 
         // Fill signals go after the held-back ticketless work too, so they only get what all work left.
         $this->projectEvents($workEvents);
@@ -124,11 +114,11 @@ class ActivityProjector
     private function createActivity(Event $event): void
     {
         $newActivity = $this->activityFromEvent($event);
-        $newActivityPartsWithoutOverlap = $this->reduceOverlap($newActivity, $this->isFill($event));
+        $newActivityPartsWithoutOverlap = $this->overlap->reduceOverlap($newActivity, $this->activities, $this->overlap->isFill($event));
         $this->activities->push(...$newActivityPartsWithoutOverlap);
 
         foreach ($newActivityPartsWithoutOverlap as $part) {
-            $this->mergeNeighbours($part, $this->isFill($event));
+            $this->mergeNeighbours($part, $this->overlap->isFill($event));
         }
 
         // Fully covered, the event has no time of its own left, but it still underlines the work of
@@ -149,60 +139,6 @@ class ActivityProjector
     }
 
     /**
-     * Work for another known customer may run alongside (multitasking); within one customer the
-     * stronger evidence claims the time. A fill signal only gets what all entries and activities left.
-     * Time the activity already covered stays its own.
-     *
-     * @return array<int, Activity>
-     */
-    private function reduceOverlap(Activity $activity, bool $isFill, ?Period $alreadyCovered = null): array
-    {
-        $claimed = new PeriodCollection(
-            ...$this->entries
-                ->filter(fn (Entry $entry) => $isFill || ! $this->isOtherCustomer($activity->customer_id, $entry->customer_id))
-                ->map(fn (Entry $entry) => $this->period($entry->started_at, $entry->ended_at))
-                ->all(),
-            ...$this->activities
-                ->filter(fn (Activity $other) => $other !== $activity && ($isFill || ! $this->isOtherCustomer($activity->customer_id, $other->customer_id)))
-                ->map(fn (Activity $other) => $this->period($other->started_at, $other->ended_at))
-                ->all(),
-        );
-
-        if ($alreadyCovered !== null) {
-            $claimed = $claimed->subtract($alreadyCovered);
-        }
-
-        $activityPeriod = $this->period($activity->started_at, $activity->ended_at);
-        $segments = PeriodCollection::make($activityPeriod)->subtract($claimed);
-
-        if ($segments->isEmpty()) {
-            return [];
-        }
-
-        if ($segments->count() === 1) {
-            $activity->started_at = Carbon::instance($segments[0]->start());
-            $activity->ended_at = Carbon::instance($segments[0]->end());
-
-            return [$activity];
-        }
-
-        $parts = [];
-        foreach ($segments as $segment) {
-            $partialActivity = $activity->replicate(except: ['started_at', 'ended_at']);
-            $partialActivity->started_at = Carbon::instance($segment->start());
-            $partialActivity->ended_at = Carbon::instance($segment->end());
-
-            $events = $activity->events->filter(
-                fn (Event $event) => $event->effectiveStart()->lt($segment->end()) && $event->ended_at->gt($segment->start())
-            )->values();
-            $partialActivity->setRelation('events', $events);
-            $parts[] = $partialActivity;
-        }
-
-        return $parts;
-    }
-
-    /**
      * The nearest activity of the event's own customer decides; work for another customer runs
      * alongside and does not interrupt the chain.
      *
@@ -213,7 +149,7 @@ class ActivityProjector
         $eventStart = $event->effectiveStart();
         $eventEnd = $event->ended_at->copy();
         $ownWork = $this->activities
-            ->reject(fn (Activity $a) => $this->isOtherCustomer($this->attribution->customerId($event), $a->customer_id));
+            ->reject(fn (Activity $a) => $this->overlap->isOtherCustomer($this->attribution->customerId($event), $a->customer_id));
 
         $precedingActivity = $ownWork
             ->filter(fn (Activity $a) => $a->ended_at->isBefore($eventEnd)
@@ -262,7 +198,7 @@ class ActivityProjector
 
     private function appendEventToActivity(Activity $activity, Event $event): void
     {
-        $alreadyCovered = $this->period($activity->started_at, $activity->ended_at);
+        $alreadyCovered = $this->overlap->period($activity->started_at, $activity->ended_at);
         $activity->events->push($event);
         $effectiveStart = $event->effectiveStart();
 
@@ -274,7 +210,7 @@ class ActivityProjector
             $activity->ended_at = $event->ended_at;
         }
 
-        $parts = $this->reduceOverlap($activity, $this->isFill($event), $alreadyCovered);
+        $parts = $this->overlap->reduceOverlap($activity, $this->activities, $this->overlap->isFill($event), $alreadyCovered);
         $position = $this->activities->search($activity, true);
 
         if ($position === false) {
@@ -284,7 +220,7 @@ class ActivityProjector
         $this->activities->splice($position, 1, $parts);
 
         foreach ($parts as $part) {
-            $this->mergeNeighbours($part, $this->isFill($event));
+            $this->mergeNeighbours($part, $this->overlap->isFill($event));
         }
     }
 
@@ -333,36 +269,6 @@ class ActivityProjector
             return false;
         }
 
-        $unionStart = $activity->started_at->min($other->started_at);
-        $unionEnd = $activity->ended_at->max($other->ended_at);
-
-        return ! $this->entries->contains(fn (Entry $entry) => ($isFill || ! $this->isOtherCustomer($activity->customer_id, $entry->customer_id))
-            && $entry->started_at->lt($unionEnd) && $entry->ended_at->gt($unionStart))
-            && ($gapEnd->lte($gapStart) || ! $this->activities->contains(fn (Activity $claim) => $claim !== $activity && $claim !== $other
-                && ($isFill || ! $this->isOtherCustomer($activity->customer_id, $claim->customer_id))
-                && $claim->started_at->lt($gapEnd) && $claim->ended_at->gt($gapStart)));
-    }
-
-    private function isFill(Event $event): bool
-    {
-        return (int) $event->eventType?->weight >= self::FILL_WEIGHT;
-    }
-
-    /**
-     * An unknown customer is not another customer: it may be the same work.
-     */
-    private function isOtherCustomer(int|string|null $customerId, int|string|null $otherCustomerId): bool
-    {
-        return $customerId !== null && $otherCustomerId !== null && (string) $customerId !== (string) $otherCustomerId;
-    }
-
-    private function period(CarbonInterface $start, CarbonInterface $end): Period
-    {
-        return new Period(
-            DateTimeImmutable::createFromInterface($start),
-            DateTimeImmutable::createFromInterface($end),
-            Precision::SECOND(),
-            Boundaries::EXCLUDE_END(),
-        );
+        return ! $this->overlap->isClaimedBetween($activity, $other, $this->activities, $isFill);
     }
 }
