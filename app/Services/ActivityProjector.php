@@ -207,11 +207,9 @@ class ActivityProjector
         $activity->description = $event->description;
         $activity->customer_id = $this->customerId($event);
         $activity->is_internal = $this->isInternal($event);
-        $activity->event_type_id = $event->event_type_id;
         $activity->started_at = Carbon::instance($event->effectiveStart());
         $activity->ended_at = $event->ended_at;
         $activity->setRelation('events', collect([$event]));
-        $activity->setRelation('eventType', $event->eventType);
 
         return $activity;
     }

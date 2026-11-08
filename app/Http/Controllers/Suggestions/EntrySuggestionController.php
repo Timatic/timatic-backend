@@ -52,7 +52,6 @@ class EntrySuggestionController extends Controller implements HasMiddleware
                 AllowedInclude::custom('activities.events', new IncludedRelationship),
                 AllowedInclude::custom('activities.events.source', new IncludedRelationship),
                 AllowedInclude::custom('activities.events.eventType', new IncludedRelationship),
-                AllowedInclude::custom('activities.eventType', new IncludedRelationship),
             ])
             ->jsonPaginate();
 
@@ -61,7 +60,7 @@ class EntrySuggestionController extends Controller implements HasMiddleware
 
     public function show(EntrySuggestion $entrySuggestion): EntrySuggestionResource
     {
-        $entrySuggestion->load(['activities.events.source', 'activities.events.eventType', 'activities.eventType']);
+        $entrySuggestion->load(['activities.events.source', 'activities.events.eventType']);
 
         return new EntrySuggestionResource($entrySuggestion);
     }
