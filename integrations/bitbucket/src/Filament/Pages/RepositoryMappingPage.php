@@ -221,10 +221,12 @@ class RepositoryMappingPage extends Page implements HasTable
             }
         }
 
-        Notification::make()
-            ->title(__('bitbucket::bitbucket.repository_mapping.assigned_title'))
-            ->success()
-            ->send();
+        if (filled($data['customer_id'])) {
+            Notification::make()
+                ->title(__('bitbucket::bitbucket.repository_mapping.assigned_title'))
+                ->success()
+                ->send();
+        }
     }
 
     private function hasCredentials(): bool
