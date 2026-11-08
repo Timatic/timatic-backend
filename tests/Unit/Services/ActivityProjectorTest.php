@@ -1282,7 +1282,10 @@ test('shuffled overlapping work produces the same activities as chronological in
             [null, '10:00', 'customerY', 'TIC-2', 50],
             ['09:50', '10:20', 'customerX', 'TIC-1', 40],
             ['08:30', '12:00', 'customerY', null, 100],
-        ] as [$start, $end, $customer, $ticket, $weight]) {
+            ['13:00', '13:30', 'customerX', 'TIC-3', 30],
+            ['13:00', '13:20', 'customerX', 'TIC-4', 30],
+            ['13:00', '13:20', 'customerX', 'TIC-5', 30],
+        ] as $id => [$start, $end, $customer, $ticket, $weight]) {
             $event = new Event([
                 'user_id' => 1,
                 'customer_id' => $customer,
@@ -1290,6 +1293,7 @@ test('shuffled overlapping work produces the same activities as chronological in
                 'started_at' => $start === null ? null : Carbon::parse("2026-07-16 $start"),
                 'ended_at' => Carbon::parse("2026-07-16 $end"),
             ]);
+            $event->id = $id + 1;
             $event->setRelation('eventType', new EventType(['weight' => $weight]));
             $events[] = $event;
         }
@@ -1308,6 +1312,8 @@ test('shuffled overlapping work produces the same activities as chronological in
         ->and($signature($chronological))->toBe([
             'customerX|TIC-1|09:00|10:30|2',
             'customerX|TIC-1|10:45|11:00|1',
+            'customerX|TIC-3|13:20|13:30|1',
+            'customerX|TIC-4|13:00|13:20|2',
             'customerY|TIC-2|08:30|09:00|1',
             'customerY|TIC-2|09:25|10:00|3',
             'customerY|TIC-2|11:00|12:00|1',

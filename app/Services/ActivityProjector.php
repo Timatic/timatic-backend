@@ -50,7 +50,9 @@ class ActivityProjector
 
         $sorted = $events->sort(function (Event $a, Event $b) {
             return ((int) $a->eventType?->weight <=> (int) $b->eventType?->weight)
-                ?: $a->effectiveStart()->getTimestamp() <=> $b->effectiveStart()->getTimestamp();
+                ?: $a->effectiveStart()->getTimestamp() <=> $b->effectiveStart()->getTimestamp()
+                ?: $a->ended_at->getTimestamp() <=> $b->ended_at->getTimestamp()
+                ?: $a->id <=> $b->id;
         })->values();
 
         [$fillEvents, $workEvents] = $sorted->partition(fn (Event $event) => $this->isFill($event))->all();
