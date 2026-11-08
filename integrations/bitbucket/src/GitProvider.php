@@ -7,6 +7,7 @@ namespace Timatic\Bitbucket;
 use App\DataTransferObjects\GitRemote;
 use App\DataTransferObjects\GitRepositoryMapping;
 use App\Integrations\Git\GitProviderInterface;
+use Timatic\Bitbucket\Filament\Pages\RepositoryMappingPage;
 use Timatic\Bitbucket\Models\RepositoryMapping;
 
 final class GitProvider implements GitProviderInterface
@@ -41,5 +42,19 @@ final class GitProvider implements GitProviderInterface
         }
 
         return new GitRepositoryMapping($remote->name(), $mapping->customer_id, $mapping->budget_id);
+    }
+
+    public function isMapped(string $repositoryIdentifier): bool
+    {
+        return RepositoryMapping::query()
+            ->where('integration_id', $this->config['integration_id'])
+            ->where('repository_slug', $repositoryIdentifier)
+            ->whereNotNull('customer_id')
+            ->exists();
+    }
+
+    public function mappingPageUrl(string $repositoryIdentifier): string
+    {
+        return RepositoryMappingPage::getUrl(['record' => $this->config['integration_id'], 'search' => $repositoryIdentifier], panel: 'admin');
     }
 }
