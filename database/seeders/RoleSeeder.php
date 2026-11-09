@@ -70,7 +70,6 @@ class RoleSeeder extends Seeder
             'customers.read',
             'teams.read',
             'users.read',
-            'permissions.read',
             'tracked-domains.read',
             'tracked-domains.create',
         ]);
