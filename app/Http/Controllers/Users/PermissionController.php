@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Users;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PermissionCreateRequest;
 use App\Http\Resources;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -13,6 +14,12 @@ use Spatie\QueryBuilder\QueryBuilder;
 
 class PermissionController extends Controller implements HasMiddleware
 {
+    /** Leaves out the permissions Filament Shield generated, which nothing checks */
+    private const array EXPOSED_ENTITIES = [
+        'budget-types', 'budgets', 'corrections', 'customers', 'entries', 'entry-suggestions', 'events',
+        'integrations', 'overtimes', 'permissions', 'roles', 'teams', 'tracked-domains', 'users',
+    ];
+
     public static function middleware(): array
     {
         return [
@@ -25,6 +32,11 @@ class PermissionController extends Controller implements HasMiddleware
     {
         $permissions = QueryBuilder::for(Permission::class)
             ->where('guard_name', 'web')
+            ->where(function (Builder $query): void {
+                foreach (self::EXPOSED_ENTITIES as $entity) {
+                    $query->orWhere('name', 'like', $entity.'.%');
+                }
+            })
             ->jsonPaginate();
 
         return Resources\Permission::collection($permissions);
