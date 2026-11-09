@@ -12,6 +12,7 @@ use App\Models\Source;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -126,34 +127,43 @@ test('an entry blocks its period and entry-backed suggestions survive the rebuil
         ->and(EntrySuggestion::query()->whereKey($acceptedSuggestion->id)->exists())->toBeTrue();
 });
 
+test('a suggestion whose entry was deleted survives the rebuild', function () {
+    Illuminate\Support\Facades\Event::fake([EventCreated::class]);
+    $user = User::factory()->create();
+    $acceptedSuggestion = EntrySuggestion::factory()->create([
+        'user_id' => $user->id,
+        'date' => '2026-07-16',
+    ]);
+    $deletedEntry = Entry::factory()->create([
+        'user_id' => $user->id,
+        'entry_suggestion_id' => $acceptedSuggestion->id,
+        'started_at' => Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam'),
+        'ended_at' => Carbon::parse('2026-07-16 11:00', 'Europe/Amsterdam'),
+        'deleted_at' => now(),
+    ]);
+
+    RebuildUserDay::dispatchSync($user->id, '2026-07-16');
+
+    expect(EntrySuggestion::query()->whereKey($acceptedSuggestion->id)->exists())->toBeTrue()
+        ->and(Entry::withTrashed()->find($deletedEntry->id)->entry_suggestion_id)->toBe($acceptedSuggestion->id);
+});
+
 test('the unique id combines user and date', function () {
     expect((new RebuildUserDay(1, '2026-07-16'))->uniqueId())->toBe('1:2026-07-16');
 });
 
-test('a customerless event takes customer and budget from the entry booked on the previous event of its sequence', function () {
+test('a customerless event takes customer and budget from the entry booked on its sequence after the events are pruned', function () {
     Illuminate\Support\Facades\Event::fake([EventCreated::class]);
     $user = User::factory()->create();
     $source = Source::factory()->create();
     $budget = Budget::factory()->create();
     $eventTypeId = EventType::factory()->create(['weight' => 1])->id;
-    $previousMeeting = Event::factory()->create([
-        'user_id' => $user->id,
+    $usedSuggestion = EntrySuggestion::factory()->create(['user_id' => $user->id, 'date' => '2026-07-09']);
+    DB::table('entry_suggestion_sequences')->insert([
+        'entry_suggestion_id' => $usedSuggestion->id,
         'source_id' => $source->id,
         'external_id' => 'weekly-sync',
-        'customer_id' => null,
-        'ticket_id' => null,
-        'ticket_number' => null,
-        'event_type_id' => $eventTypeId,
-        'started_at' => Carbon::parse('2026-07-09 10:00', 'Europe/Amsterdam'),
-        'ended_at' => Carbon::parse('2026-07-09 10:30', 'Europe/Amsterdam'),
     ]);
-    $usedSuggestion = EntrySuggestion::factory()->create(['user_id' => $user->id, 'date' => '2026-07-09']);
-    Activity::factory()->create([
-        'user_id' => $user->id,
-        'entry_suggestion_id' => $usedSuggestion->id,
-        'started_at' => $previousMeeting->started_at,
-        'ended_at' => $previousMeeting->ended_at,
-    ])->events()->attach($previousMeeting);
     $usedSuggestion->delete();
     Entry::factory()->create([
         'user_id' => $user->id,
@@ -161,8 +171,8 @@ test('a customerless event takes customer and budget from the entry booked on th
         'customer_id' => $budget->customer_id,
         'budget_id' => $budget->id,
         'is_internal' => false,
-        'started_at' => $previousMeeting->started_at,
-        'ended_at' => $previousMeeting->ended_at,
+        'started_at' => Carbon::parse('2026-07-09 10:00', 'Europe/Amsterdam'),
+        'ended_at' => Carbon::parse('2026-07-09 10:30', 'Europe/Amsterdam'),
     ]);
     Event::factory()->create([
         'user_id' => $user->id,
@@ -190,24 +200,12 @@ test('a dismissed suggestion for the customer learned from the event sequence st
     $source = Source::factory()->create();
     $budget = Budget::factory()->create();
     $eventTypeId = EventType::factory()->create(['weight' => 1])->id;
-    $previousMeeting = Event::factory()->create([
-        'user_id' => $user->id,
+    $usedSuggestion = EntrySuggestion::factory()->create(['user_id' => $user->id, 'date' => '2026-07-09']);
+    DB::table('entry_suggestion_sequences')->insert([
+        'entry_suggestion_id' => $usedSuggestion->id,
         'source_id' => $source->id,
         'external_id' => 'weekly-sync',
-        'customer_id' => null,
-        'ticket_id' => null,
-        'ticket_number' => null,
-        'event_type_id' => $eventTypeId,
-        'started_at' => Carbon::parse('2026-07-09 10:00', 'Europe/Amsterdam'),
-        'ended_at' => Carbon::parse('2026-07-09 10:30', 'Europe/Amsterdam'),
     ]);
-    $usedSuggestion = EntrySuggestion::factory()->create(['user_id' => $user->id, 'date' => '2026-07-09']);
-    Activity::factory()->create([
-        'user_id' => $user->id,
-        'entry_suggestion_id' => $usedSuggestion->id,
-        'started_at' => $previousMeeting->started_at,
-        'ended_at' => $previousMeeting->ended_at,
-    ])->events()->attach($previousMeeting);
     $usedSuggestion->delete();
     Entry::factory()->create([
         'user_id' => $user->id,
@@ -215,8 +213,8 @@ test('a dismissed suggestion for the customer learned from the event sequence st
         'customer_id' => $budget->customer_id,
         'budget_id' => $budget->id,
         'is_internal' => false,
-        'started_at' => $previousMeeting->started_at,
-        'ended_at' => $previousMeeting->ended_at,
+        'started_at' => Carbon::parse('2026-07-09 10:00', 'Europe/Amsterdam'),
+        'ended_at' => Carbon::parse('2026-07-09 10:30', 'Europe/Amsterdam'),
     ]);
     Event::factory()->create([
         'user_id' => $user->id,
@@ -243,4 +241,77 @@ test('a dismissed suggestion for the customer learned from the event sequence st
 
     expect(EntrySuggestion::query()->where('date', '2026-07-16')->exists())->toBeFalse()
         ->and((int) Activity::query()->where('started_at', '>=', '2026-07-16')->sole()->customer_id)->toBe($budget->customer_id);
+});
+
+test('rebuilding stores the event sequences of each suggestion', function () {
+    Illuminate\Support\Facades\Event::fake([EventCreated::class]);
+    $user = User::factory()->create();
+    $source = Source::factory()->create();
+    $eventTypeId = EventType::factory()->create(['weight' => 1])->id;
+    Event::factory()->create([
+        'user_id' => $user->id,
+        'source_id' => $source->id,
+        'external_id' => 'weekly-sync',
+        'customer_id' => 'customerX',
+        'ticket_number' => null,
+        'event_type_id' => $eventTypeId,
+        'started_at' => Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam'),
+        'ended_at' => Carbon::parse('2026-07-16 10:30', 'Europe/Amsterdam'),
+    ]);
+    Event::factory()->create([
+        'user_id' => $user->id,
+        'source_id' => $source->id,
+        'external_id' => null,
+        'customer_id' => 'customerX',
+        'ticket_number' => null,
+        'event_type_id' => $eventTypeId,
+        'started_at' => Carbon::parse('2026-07-16 10:30', 'Europe/Amsterdam'),
+        'ended_at' => Carbon::parse('2026-07-16 10:45', 'Europe/Amsterdam'),
+    ]);
+
+    RebuildUserDay::dispatchSync($user->id, '2026-07-16');
+
+    expect(DB::table('entry_suggestion_sequences')->get(['entry_suggestion_id', 'source_id', 'external_id'])->map(fn (object $row) => (array) $row)->all())
+        ->toBe([['entry_suggestion_id' => EntrySuggestion::sole()->id, 'source_id' => $source->id, 'external_id' => 'weekly-sync']]);
+});
+
+test('a booked sequence still teaches a later occurrence after its day is rebuilt and pruned', function () {
+    Illuminate\Support\Facades\Event::fake([EventCreated::class]);
+    $user = User::factory()->create();
+    $source = Source::factory()->create();
+    $budget = Budget::factory()->create();
+    $eventTypeId = EventType::factory()->create(['weight' => 1])->id;
+    $weeklySync = fn (string $date) => Event::factory()->create([
+        'user_id' => $user->id,
+        'source_id' => $source->id,
+        'external_id' => 'weekly-sync',
+        'customer_id' => null,
+        'ticket_id' => null,
+        'ticket_number' => null,
+        'event_type_id' => $eventTypeId,
+        'started_at' => Carbon::parse("{$date} 10:00", 'Europe/Amsterdam'),
+        'ended_at' => Carbon::parse("{$date} 10:30", 'Europe/Amsterdam'),
+    ]);
+    $weeklySync('2026-07-09');
+    RebuildUserDay::dispatchSync($user->id, '2026-07-09');
+    Entry::factory()->create([
+        'user_id' => $user->id,
+        'entry_suggestion_id' => EntrySuggestion::sole()->id,
+        'customer_id' => $budget->customer_id,
+        'budget_id' => $budget->id,
+        'is_internal' => false,
+        'started_at' => Carbon::parse('2026-07-09 10:00', 'Europe/Amsterdam'),
+        'ended_at' => Carbon::parse('2026-07-09 10:30', 'Europe/Amsterdam'),
+    ]);
+    RebuildUserDay::dispatchSync($user->id, '2026-07-09');
+    Activity::query()->delete();
+    Event::query()->delete();
+    $weeklySync('2026-07-16');
+
+    RebuildUserDay::dispatchSync($user->id, '2026-07-16');
+
+    $suggestion = EntrySuggestion::query()->where('date', '2026-07-16')->sole();
+    expect((int) $suggestion->customer_id)->toBe($budget->customer_id)
+        ->and($suggestion->budget_id)->toBe($budget->id)
+        ->and($suggestion->is_internal)->toBeFalse();
 });

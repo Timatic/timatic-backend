@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Activity;
+use App\Models\Entry;
+use App\Models\EntrySuggestion;
 use App\Models\Event;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -24,4 +26,18 @@ it('deletes activities that are older than the retention period', function () {
 
     expect(Activity::whereKey($recent->id)->exists())->toBeTrue()
         ->and(Activity::whereKey($expired->id)->exists())->toBeFalse();
+});
+
+it('deletes open suggestions that are older than the retention period', function () {
+    $recent = EntrySuggestion::factory()->create(['created_at' => now()->subDays(29)]);
+    $expired = EntrySuggestion::factory()->create(['created_at' => now()->subDays(31)]);
+    $dismissed = EntrySuggestion::factory()->create(['created_at' => now()->subDays(31), 'deleted_at' => now()->subDays(31)]);
+    $booked = EntrySuggestion::factory()->create(['created_at' => now()->subDays(31)]);
+    Entry::factory()->create(['entry_suggestion_id' => $booked->id, 'deleted_at' => now()]);
+
+    $this->artisan('model:prune', ['--model' => [EntrySuggestion::class]])->assertSuccessful();
+
+    expect(EntrySuggestion::withTrashed()->pluck('id')->sort()->values()->all())
+        ->toBe(collect([$recent->id, $dismissed->id, $booked->id])->sort()->values()->all())
+        ->and(EntrySuggestion::withTrashed()->whereKey($expired->id)->exists())->toBeFalse();
 });
