@@ -14,10 +14,10 @@ use Spatie\QueryBuilder\QueryBuilder;
 
 class PermissionController extends Controller implements HasMiddleware
 {
-    /** Leaves out the permissions Filament Shield generated, which nothing checks */
-    private const array EXPOSED_ENTITIES = [
-        'budget-types', 'budgets', 'corrections', 'customers', 'entries', 'entry-suggestions', 'events',
-        'integrations', 'overtimes', 'permissions', 'roles', 'teams', 'tracked-domains', 'users',
+    /** The actions Filament Shield prefixes its generated permissions with, which nothing checks */
+    private const array FILAMENT_SHIELD_PREFIXES = [
+        'view-any', 'view', 'create', 'update', 'delete', 'delete-any', 'restore', 'restore-any',
+        'force-delete', 'force-delete-any', 'replicate', 'reorder',
     ];
 
     public static function middleware(): array
@@ -33,8 +33,8 @@ class PermissionController extends Controller implements HasMiddleware
         $permissions = QueryBuilder::for(Permission::class)
             ->where('guard_name', 'web')
             ->where(function (Builder $query): void {
-                foreach (self::EXPOSED_ENTITIES as $entity) {
-                    $query->orWhere('name', 'like', $entity.'.%');
+                foreach (self::FILAMENT_SHIELD_PREFIXES as $prefix) {
+                    $query->whereNot('name', 'like', $prefix.'.%');
                 }
             })
             ->jsonPaginate();
