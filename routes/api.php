@@ -33,6 +33,7 @@ use App\Http\Controllers\Overtimes\OvertimeController;
 use App\Http\Controllers\Reports\GetDailyProgressController;
 use App\Http\Controllers\Reports\GetTimeSpentTotalsController;
 use App\Http\Controllers\Reports\GetUserCustomerHoursAggregatesController;
+use App\Http\Controllers\Settings\ShowSettingsController;
 use App\Http\Controllers\Suggestions\EntrySuggestionController;
 use App\Http\Controllers\Suggestions\EventController;
 use App\Http\Controllers\Suggestions\SuggestionIntegrationController;
@@ -59,6 +60,8 @@ Route::middleware([
     ImpersonateUsers::class,
 ])->group(function () {
     Route::get('me', ShowCurrentUserController::class)->name('me');
+
+    Route::get('settings', ShowSettingsController::class)->name('settings.show');
 
     Route::get('daily-progress', GetDailyProgressController::class)->name('daily-progress');
 

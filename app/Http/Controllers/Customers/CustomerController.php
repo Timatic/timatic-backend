@@ -52,9 +52,12 @@ class CustomerController extends Controller implements HasMiddleware
             'external_id' => $validated['externalId'] ?? null,
             'name' => $validated['name'],
             'is_own_organization' => $validated['isOwnOrganization'] ?? false,
+            'hourly_rate' => $validated['hourlyRate'] ?? null,
+            'color' => $validated['color'] ?? null,
+            'account_manager_user_id' => $request->validated('data.relationships.accountManager.data.id'),
         ]);
 
-        return new Resources\Customer($customer);
+        return new Resources\Customer($customer->load('accountManager'));
     }
 
     public function show(Customer $customer): Resources\Customer
@@ -68,13 +71,28 @@ class CustomerController extends Controller implements HasMiddleware
     {
         $validated = $request->validated()['data']['attributes'];
 
-        $customer->update(array_filter([
+        $attributes = array_filter([
             'external_id' => $validated['externalId'] ?? null,
             'name' => $validated['name'] ?? null,
             'is_own_organization' => $validated['isOwnOrganization'] ?? null,
-        ], fn ($value) => $value !== null));
+        ], fn ($value) => $value !== null);
 
-        return new Resources\Customer($customer);
+        // These can be cleared, so only a missing key leaves them untouched
+        if (array_key_exists('hourlyRate', $validated)) {
+            $attributes['hourly_rate'] = $validated['hourlyRate'];
+        }
+
+        if (array_key_exists('color', $validated)) {
+            $attributes['color'] = $validated['color'];
+        }
+
+        if ($request->has('data.relationships.accountManager')) {
+            $attributes['account_manager_user_id'] = $request->validated('data.relationships.accountManager.data.id');
+        }
+
+        $customer->update($attributes);
+
+        return new Resources\Customer($customer->load('accountManager'));
     }
 
     public function destroy(Customer $customer, ResponseFactory $responseFactory): Response

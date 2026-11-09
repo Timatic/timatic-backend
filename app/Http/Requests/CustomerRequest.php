@@ -31,6 +31,11 @@ class CustomerRequest extends FormRequest
             'data.attributes.externalId' => ['string'],
             'data.attributes.name' => ['required', 'string'],
             'data.attributes.isOwnOrganization' => ['boolean'],
+            'data.attributes.hourlyRate' => ['nullable', 'numeric', 'min:0'],
+            'data.attributes.color' => ['nullable', 'string', 'regex:/^[0-9a-f]{6}$/'],
+            'data.relationships.accountManager.data' => ['nullable', 'array'],
+            'data.relationships.accountManager.data.type' => ['required_with:data.relationships.accountManager.data', 'in:users'],
+            'data.relationships.accountManager.data.id' => ['required_with:data.relationships.accountManager.data', 'string', 'exists:users,id'],
         ]);
     }
 }

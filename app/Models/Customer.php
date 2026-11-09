@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property ?int $id
  * @property ?string $external_id
  * @property ?string $name
+ * @property ?string $color
  * @property ?string $hourly_rate
  * @property bool $is_own_organization
  * @property ?int $account_manager_user_id
@@ -34,6 +35,7 @@ class Customer extends Model
     protected $fillable = [
         'external_id',
         'name',
+        'color',
         'hourly_rate',
         'is_own_organization',
         'account_manager_user_id',
