@@ -3678,6 +3678,37 @@
                 }
             }
         },
+        "/settings": {
+            "get": {
+                "operationId": "settings.show",
+                "tags": [
+                    "ShowSettings"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`Settings`",
+                        "content": {
+                            "application/vnd.api+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Settings"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/suggestion-integrations": {
             "get": {
                 "operationId": "suggestion-integrations.index",
@@ -5795,8 +5826,17 @@
                                     "null"
                                 ]
                             },
+                            "color": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
                             "hourlyRate": {
-                                "type": "string"
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
                             },
                             "isOwnOrganization": {
                                 "type": "boolean"
@@ -5876,11 +5916,52 @@
                                     },
                                     "isOwnOrganization": {
                                         "type": "boolean"
+                                    },
+                                    "hourlyRate": {
+                                        "type": [
+                                            "number",
+                                            "null"
+                                        ],
+                                        "minimum": 0
+                                    },
+                                    "color": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "pattern": "^[0-9a-f]{6}$"
                                     }
                                 },
                                 "required": [
                                     "name"
                                 ]
+                            },
+                            "relationships": {
+                                "type": "object",
+                                "properties": {
+                                    "accountManager": {
+                                        "type": "object",
+                                        "properties": {
+                                            "data": {
+                                                "type": [
+                                                    "object",
+                                                    "null"
+                                                ],
+                                                "properties": {
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "users"
+                                                        ]
+                                                    },
+                                                    "id": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         },
                         "required": [
@@ -7307,6 +7388,34 @@
                 ],
                 "title": "RoleUpdateRequest"
             },
+            "Settings": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string",
+                        "const": "settings"
+                    },
+                    "attributes": {
+                        "type": "object",
+                        "properties": {
+                            "defaultHourlyRate": {
+                                "type": [
+                                    "number",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "type"
+                ],
+                "title": "Settings"
+            },
             "Source": {
                 "type": "object",
                 "properties": {
@@ -7792,7 +7901,10 @@
                                         "type": "boolean"
                                     },
                                     "userId": {
-                                        "type": "string"
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
                                     },
                                     "parentId": {
                                         "type": [
