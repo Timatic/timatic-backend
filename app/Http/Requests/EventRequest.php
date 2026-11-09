@@ -58,6 +58,7 @@ class EventRequest extends FormRequest
                 'exists:'.User::class.',external_id',
                 'required_without:data.attributes.userId',
             ],
+            'data.attributes.externalId' => ['string', 'max:255'],
             'data.attributes.budgetId' => ['integer', 'exists:'.Budget::class.',id'],
             'data.attributes.ticketId' => ['string'],
             'data.attributes.ticketNumber' => [],
