@@ -94,7 +94,7 @@ Schema::create('{name}_{resource}_mappings', function (Blueprint $table) {
 - SettingsPage stores credentials in `Integration.config` (encrypted). No redirect/callback flow.
 - See TOPdesk integration (`integrations/topdesk/`) as reference implementation.
 
-For OAuth 2.0 implementation details (OAuthService pattern, controllers, routes), see `.claude/docs/integration-oauth.md`.
+For OAuth 2.0 implementation details (OAuthService pattern, controllers, routes), see `docs/integration-oauth.md`.
 
 ### 6. Saloon Connector
 - Extend `Saloon\Http\Connector`

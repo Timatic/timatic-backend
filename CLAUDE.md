@@ -31,26 +31,20 @@ php artisan migrate --seed
 
 ## Architecture
 
-**Timatic is a time-tracking system** for engineers to log work against customers, tickets, and budgets. There are two interfaces: a Filament admin panel (subdomain `admin.*`) and a JSON:API (subdomain `api.*`).
+**Timatic is a time-tracking system** for engineers to log work against customers, tickets, and budgets. There are two interfaces: a JSON:API (subdomain `api.*`) that serves the frontend, the extension and every day-to-day feature, and a Filament admin panel (subdomain `admin.*`) that exists only for setup. A new feature that users touch regularly belongs in the API; the admin panel is for configuration that is set once, such as a new suggestion source or an integration.
 
 ### Domain model
 
 ```
-Customer
-  └── Budget (immutable fields: type, customer, frequency, start)
-        └── BudgetVersion (mutable: title, price, hours — audit trail)
-              └── Period (dynamically generated, never stored)
-                    └── Entry (time log: ticket, minutes, budget or pay-per-hour)
-                          └── Overtime (night/evening/weekend buckets, stored as JSON)
-
-Source (integration) → Event → Activity (grouped) → EntrySuggestion → Entry
+Customer ─▶ Budget ─▶ BudgetVersion ─▶ Period (computed, never stored) ─▶ Entry
+Source ─▶ Event ─▶ Activity ─▶ EntrySuggestion ─▶ Entry
 ```
 
-**Periods are not stored** — they are calculated at runtime from `Budget.renewal_frequency` and start/end dates.
+Terms: `docs/GLOSSARY.md`. The rules below are pinned by tests; change a rule, its test and its doc bullet together.
 
-**Budget versioning** — `Budget` holds immutable fields; `BudgetVersion` holds mutable fields so history is preserved without data loss.
-
-**Entry without budget** (`budget_id = null`, `is_internal = false`) is treated as "paid per hour".
+- **Touching `Budget`, `BudgetVersion`, `BudgetType`, `Period`, `BudgetUsageService` or budget mail → read `docs/budgets/` first.**
+- **Touching `Entry`, `EntryPolicy`, corrections, locked dates, minutes spent or time spent totals → read `docs/entries/` first.**
+- **Touching `Event`, `EventType`, `Activity`, `EntrySuggestion`, the projectors, `RebuildUserDay` or tracked domains → read `docs/suggestions/` first.**
 
 **Events are immutable** — they are stored exactly as the source delivered them and never altered afterwards. Activities and suggestions are projections rebuilt from events (`RebuildUserDay`) and may contain anything we derive. Suggestions "learn" from stored entries: an event without a customer or budget of its own is booked like the entry the user last made on an earlier occurrence of the same sequence (e.g. last week's instance of a recurring meeting). That resolution happens in `ActivityProjector`, before activities are chained, so a learned customer merges with adjacent work for that customer.
 
@@ -77,7 +71,7 @@ These apply when reading or writing any code in `/integrations/`:
 - **Every Saloon request implements `createDtoFromResponse()`** returning typed DTOs, never raw arrays
 - **Connector credentials bound in `ServiceProvider::register()`** via a typed credentials class — `app(Connector::class)` must resolve without manual credential passing
 
-OAuth proxy flow and callback implementation details: see `.claude/docs/integration-oauth.md`.
+OAuth proxy flow and callback implementation details: see `docs/integration-oauth.md`.
 
 ### JSON:API
 
