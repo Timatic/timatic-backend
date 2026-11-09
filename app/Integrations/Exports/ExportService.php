@@ -3,7 +3,7 @@
 namespace App\Integrations\Exports;
 
 use App\DataTransferObjects\ExportFormat;
-use App\DataTransferObjects\ExportPeriod;
+use App\DataTransferObjects\ExportParameters;
 use App\Exports\CoreExportProvider;
 use App\Models\Integration;
 use Illuminate\Support\Collection;
@@ -44,7 +44,7 @@ class ExportService
         return array_values($this->formats()->map(fn (ExportFormat $format) => $format->key)->all());
     }
 
-    public function createExport(string $key, ExportPeriod $period): ExportInterface
+    public function createExport(string $key, ExportParameters $period): ExportInterface
     {
         $provider = $this->resolveProviders()->first(
             fn (ExportProviderInterface $provider) => $provider->exportFormats()->contains(
