@@ -33,7 +33,7 @@ class WebhookController extends Controller
 
         $eventKey = (string) $request->header('X-Event-Key', '');
 
-        ProcessWebhookJob::dispatch($payload, $mapping, $eventKey);
+        ProcessWebhookJob::dispatch($payload, $mapping, $eventKey, $integration);
 
         return response('', 200);
     }

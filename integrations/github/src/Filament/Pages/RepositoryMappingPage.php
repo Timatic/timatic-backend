@@ -23,14 +23,11 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Timatic\GitHub\Connector;
-use Timatic\GitHub\DataTransferObjects\GitHubRepository;
-use Timatic\GitHub\DataTransferObjects\GitHubRepositoryPage;
+use Livewire\Attributes\Url;
 use Timatic\GitHub\Exceptions\GitHubException;
 use Timatic\GitHub\InstallationService;
 use Timatic\GitHub\Models\RepositoryMapping;
 use Timatic\GitHub\RepositoryWebhookService;
-use Timatic\GitHub\Requests\GetInstallationRepositoriesRequest;
 
 class RepositoryMappingPage extends Page implements HasTable
 {
@@ -40,6 +37,10 @@ class RepositoryMappingPage extends Page implements HasTable
     protected static string $resource = IntegrationResource::class;
 
     protected string $view = 'github::filament.pages.github-repository-mapping-page';
+
+    /** @var ?string */
+    #[Url(as: 'search')]
+    public $tableSearch = '';
 
     public function getTitle(): string
     {
@@ -89,11 +90,11 @@ class RepositoryMappingPage extends Page implements HasTable
         }
 
         return $table
-            ->query(RepositoryMapping::query()->where('integration_id', $this->getRecord()->getKey()))
+            ->query(RepositoryMapping::query()->withIsIgnored()->where('integration_id', $this->getRecord()->getKey()))
             ->columns([
                 TextColumn::make('repository_full_name')
                     ->label(__('github::github.repository_mapping.column_repository'))
-                    ->color(fn (RepositoryMapping $record) => $record->is_archived ? 'gray' : null)
+                    ->color(fn (RepositoryMapping $record) => $record->is_ignored ? 'gray' : null)
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('customer.name')
@@ -110,8 +111,12 @@ class RepositoryMappingPage extends Page implements HasTable
                     ->label(__('github::github.repository_mapping.filter_unmapped'))
                     ->default()
                     ->query(fn (Builder $query) => $query->whereNull('customer_id')),
-                TernaryFilter::make('is_archived')
-                    ->label(__('github::github.repository_mapping.filter_archived'))
+                TernaryFilter::make('is_ignored')
+                    ->label(__('github::github.repository_mapping.filter_ignored'))
+                    ->queries(
+                        true: fn (Builder $query) => $query->scopes('ignored'),
+                        false: fn (Builder $query) => $query->scopes('active'),
+                    )
                     ->default(false),
             ])
             ->recordActions([
@@ -123,6 +128,21 @@ class RepositoryMappingPage extends Page implements HasTable
                     ])
                     ->schema($this->assignmentSchema())
                     ->action(fn (RepositoryMapping $record, array $data) => $this->assign(new Collection([$record]), $data)),
+                Action::make('ignore')
+                    ->label(__('github::github.repository_mapping.action_ignore'))
+                    ->icon('heroicon-o-eye-slash')
+                    ->color('warning')
+                    ->iconButton()
+                    ->requiresConfirmation()
+                    ->modalDescription(__('github::github.repository_mapping.ignore_confirmation'))
+                    ->visible(fn (RepositoryMapping $record) => ! $record->is_ignored)
+                    ->action(fn (RepositoryMapping $record) => $record->ignore()),
+                Action::make('restore')
+                    ->label(__('github::github.repository_mapping.action_restore'))
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->iconButton()
+                    ->visible(fn (RepositoryMapping $record) => (bool) $record->is_ignored)
+                    ->action(fn (RepositoryMapping $record) => $record->stopIgnoring()),
             ])
             ->recordAction('assign')
             ->bulkActions([
@@ -130,6 +150,19 @@ class RepositoryMappingPage extends Page implements HasTable
                     ->label(__('github::github.common.assign_action'))
                     ->schema($this->assignmentSchema())
                     ->action(fn (Collection $records, array $data) => $this->assign($records, $data))
+                    ->deselectRecordsAfterCompletion(),
+                BulkAction::make('ignore')
+                    ->label(__('github::github.repository_mapping.action_ignore'))
+                    ->icon('heroicon-o-eye-slash')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalDescription(__('github::github.repository_mapping.ignore_confirmation'))
+                    ->action(function (Collection $records): void {
+                        /** @var RepositoryMapping $record */
+                        foreach ($records as $record) {
+                            $record->ignore();
+                        }
+                    })
                     ->deselectRecordsAfterCompletion(),
             ])
             ->heading(__('github::github.repository_mapping.table_heading'))
@@ -189,11 +222,22 @@ class RepositoryMappingPage extends Page implements HasTable
                 'budget_id' => $data['budget_id'] ?: null,
             ]);
 
+            if ($mapping->customer_id !== null) {
+                $mapping->stopIgnoring();
+            }
+
             try {
                 $webhookService->sync($mapping);
             } catch (GitHubException $e) {
                 $failedRepositories[] = $mapping->repository_full_name;
             }
+        }
+
+        if (filled($data['customer_id'])) {
+            Notification::make()
+                ->title(__('github::github.repository_mapping.assigned_title'))
+                ->success()
+                ->send();
         }
 
         if ($failedRepositories !== []) {
@@ -220,12 +264,10 @@ class RepositoryMappingPage extends Page implements HasTable
     private function syncRepositoriesFromGitHub(): void
     {
         $integration = $this->getIntegration();
-        $syncedFullNames = [];
-        $syncedInstallationIds = [];
 
         foreach ($this->installationIds() as $installationId) {
             try {
-                $repositories = $this->fetchRepositories($installationId);
+                $repositories = app(InstallationService::class)->repositories($installationId);
             } catch (GitHubException $e) {
                 $this->notifyConnectionUnavailable();
 
@@ -246,60 +288,10 @@ class RepositoryMappingPage extends Page implements HasTable
                         'installation_id' => $installationId,
                         'owner_login' => $repository->ownerLogin,
                         'repository_name' => $repository->name,
-                        'is_archived' => $repository->isArchived,
                     ]
                 );
-
-                $syncedFullNames[] = $repository->fullName;
             }
-
-            $syncedInstallationIds[] = $installationId;
         }
-
-        $this->archiveRepositoriesNoLongerAccessible($integration, $syncedInstallationIds, $syncedFullNames);
-    }
-
-    /**
-     * @return array<int, GitHubRepository>
-     *
-     * @throws GitHubException
-     */
-    private function fetchRepositories(int $installationId): array
-    {
-        $connector = Connector::forInstallation($installationId);
-        $repositories = [];
-        $page = 1;
-
-        do {
-            $response = $connector->send(new GetInstallationRepositoriesRequest($page));
-
-            if ($response->failed()) {
-                throw new GitHubException('Fetching installation repositories failed with status '.$response->status().'.');
-            }
-
-            /** @var GitHubRepositoryPage $repositoryPage */
-            $repositoryPage = $response->dto();
-            $repositories = [...$repositories, ...$repositoryPage->repositories];
-            $page++;
-        } while ($repositoryPage->repositories !== [] && count($repositories) < $repositoryPage->totalCount);
-
-        return $repositories;
-    }
-
-    /**
-     * Only installations that answered are swept, so a failing installation does not
-     * archive the repositories it still owns.
-     *
-     * @param  array<int, int>  $syncedInstallationIds
-     * @param  array<int, string>  $syncedFullNames
-     */
-    private function archiveRepositoriesNoLongerAccessible(Integration $integration, array $syncedInstallationIds, array $syncedFullNames): void
-    {
-        RepositoryMapping::query()
-            ->where('integration_id', $integration->id)
-            ->whereIn('installation_id', $syncedInstallationIds)
-            ->whereNotIn('repository_full_name', $syncedFullNames)
-            ->update(['is_archived' => true]);
     }
 
     private function notifyConnectionUnavailable(): void

@@ -26,6 +26,7 @@
   </testsuites>
   <php>
     <env name="APP_ENV" value="testing"/>
+    <env name="ADMIN_URL" value="https://admin.timatic.test"/>
     <env name="FILESYSTEM_DISK" value="local"/>
     <env name="BCRYPT_ROUNDS" value="4"/>
     <env name="CACHE_STORE" value="array"/>

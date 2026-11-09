@@ -6,6 +6,8 @@ use App\DataTransferObjects\Ticket;
 use App\Integrations\Tickets\TicketService;
 use App\Models\Event;
 use App\Models\GitCommitEmail;
+use App\Models\Integration;
+use App\Models\Repository;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -34,6 +36,7 @@ class ProcessWebhookJob implements ShouldQueue
         private readonly array $payload,
         private readonly ?RepositoryMapping $mapping,
         private readonly string $eventKey = 'repo:push',
+        private readonly ?Integration $integration = null,
     ) {}
 
     public function handle(TicketService $ticketService): void
@@ -159,6 +162,11 @@ class ProcessWebhookJob implements ShouldQueue
             'ticket_type' => $ticket?->type,
         ];
 
+        // work booked on a customer through its ticket needs no mapping
+        if ($customerId === null) {
+            $this->recordUnmappedWork();
+        }
+
         if ($externalId !== null) {
             Event::firstOrCreate(['source_id' => ServiceProvider::SOURCE_ID, 'external_id' => $externalId], $attributes);
 
@@ -166,6 +174,17 @@ class ProcessWebhookJob implements ShouldQueue
         }
 
         Event::create($attributes);
+    }
+
+    private function recordUnmappedWork(): void
+    {
+        $fullName = $this->payload['repository']['full_name'] ?? null;
+
+        if ($this->integration === null || ! is_string($fullName) || ! str_contains($fullName, '/')) {
+            return;
+        }
+
+        Repository::recordWork($this->integration->id, $fullName, now());
     }
 
     /** @param array<string, mixed> $commit */
