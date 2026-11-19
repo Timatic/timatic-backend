@@ -101,7 +101,7 @@ class OAuthService
 
     public function refreshIfExpired(Integration $integration): Integration
     {
-        if (now()->timestamp < ($integration->config['expires_at'] ?? 0)) {
+        if (! isset($integration->config['refresh_token']) || now()->timestamp < ($integration->config['expires_at'] ?? 0)) {
             return $integration;
         }
 
@@ -158,14 +158,15 @@ class OAuthService
 
         $response = new OAuthConnector()->send(new RefreshTokenRequest($config['refresh_token'] ?? ''));
 
-        if ($response->status() === 400) {
+        // Atlassian answers an unknown, expired or rotated-away refresh token with 403 invalid_grant
+        if (in_array($response->status(), [400, 403], true) && $response->json('error') === 'invalid_grant') {
             $this->disconnect($integration);
 
             return $integration->refresh();
         }
 
         if ($response->failed()) {
-            throw new RuntimeException('Token refresh failed.');
+            throw new RuntimeException("Token refresh failed with status {$response->status()}: {$response->body()}");
         }
 
         /** @var JiraTokens $tokens */
