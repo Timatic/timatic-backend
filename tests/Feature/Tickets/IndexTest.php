@@ -15,6 +15,10 @@ use Timatic\Jira\Requests\RefreshTokenRequest;
 uses(LoginUser::class);
 uses(RefreshDatabase::class);
 
+afterEach(function () {
+    MockClient::destroyGlobal();
+});
+
 it('includes the customer and actions of the tickets', function () {
     $this->loginUser();
 
@@ -67,5 +71,4 @@ it('returns no tickets instead of failing when jira no longer accepts the refres
 
     $response->assertSuccessful()->assertJson(['data' => []]);
     expect($integration->refresh()->config)->toBe([]);
-    MockClient::destroyGlobal();
 });
