@@ -18,6 +18,8 @@ class ServiceProvider extends BaseServiceProvider
 
     public function register(): void
     {
+        $this->app->singleton(WorklogSourceRegistry::class);
+
         $this->callAfterResolving(IntegrationTypeRegistry::class, function (IntegrationTypeRegistry $types): void {
             $types->register('jira', [
                 'jira.projects' => ProjectMappingPage::class,

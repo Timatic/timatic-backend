@@ -5,6 +5,7 @@ namespace Timatic\Jira\Commands;
 use App\Models\Integration;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
+use Timatic\Jira\WorklogSourceRegistry;
 use Timatic\Jira\WorklogSync;
 
 class SyncWorklogsCommand extends Command
@@ -13,13 +14,19 @@ class SyncWorklogsCommand extends Command
 
     protected $description = 'Copy the Jira worklogs changed since the last run to Timatic entries';
 
-    public function handle(WorklogSync $worklogSync): int
+    public function handle(WorklogSync $worklogSync, WorklogSourceRegistry $sources): int
     {
         foreach (Integration::query()->where('type', 'jira')->get() as $integration) {
             $label = $integration->display_title;
 
             if (blank($integration->config['access_token'] ?? null) || blank($integration->config['cloud_id'] ?? null)) {
                 $this->info("{$label}: Jira is not connected, nothing to sync.");
+
+                continue;
+            }
+
+            if ($sources->isClaimed($integration)) {
+                $this->info("{$label}: worklogs are synced by another integration.");
 
                 continue;
             }

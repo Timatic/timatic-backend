@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\EntryDeleted;
 use App\Events\EntrySaved;
 use Brick\Math\BigDecimal;
 use Carbon\Carbon;
@@ -108,6 +109,7 @@ class Entry extends Model
      */
     protected $dispatchesEvents = [
         'saved' => EntrySaved::class,
+        'deleted' => EntryDeleted::class,
     ];
 
     protected function casts(): array
