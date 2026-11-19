@@ -20,6 +20,8 @@ use InvalidArgumentException;
 /**
  * @property int $id
  * @property ?int $entry_suggestion_id
+ * @property ?string $external_source
+ * @property ?string $external_id
  * @property string $ticket_id
  * @property string $ticket_number
  * @property string $ticket_title
@@ -78,6 +80,8 @@ class Entry extends Model
 
     protected $fillable = [
         'entry_suggestion_id',
+        'external_source',
+        'external_id',
         'ticket_id',
         'ticket_type',
         'ticket_title',
