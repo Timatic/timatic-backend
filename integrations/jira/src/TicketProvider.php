@@ -126,9 +126,9 @@ final class TicketProvider implements TicketProviderInterface
 
     public function fetchTicketDetails(string $key): ?Ticket
     {
-        $response = $this->connector()->send(new GetIssueRequest(strtoupper($key)));
+        $response = $this->connector()?->send(new GetIssueRequest(strtoupper($key)));
 
-        if ($response->status() === 404) {
+        if ($response === null || $response->status() === 404) {
             return null;
         }
 
@@ -165,7 +165,7 @@ final class TicketProvider implements TicketProviderInterface
     private function fetchIssuesByJql(string $jql): Collection
     {
         /** @var array<int, JiraIssue> $issues */
-        $issues = $this->connector()->send(new GetIssuesRequest($jql))->dto() ?? [];
+        $issues = $this->connector()?->send(new GetIssuesRequest($jql))->dto() ?? [];
 
         return collect($issues)->map(fn (JiraIssue $issue) => $this->mapToTicket($issue));
     }
@@ -179,7 +179,7 @@ final class TicketProvider implements TicketProviderInterface
         }
 
         /** @var array<int, JiraUser> $users */
-        $users = $this->connector()->send(new GetUserRequest($email))->dto() ?? [];
+        $users = $this->connector()?->send(new GetUserRequest($email))->dto() ?? [];
 
         $matchingUser = collect($users)
             ->first(fn (JiraUser $u) => strcasecmp($u->emailAddress, $email) === 0);
@@ -193,15 +193,19 @@ final class TicketProvider implements TicketProviderInterface
         return $accountId;
     }
 
-    private function connector(): Connector
+    private function connector(): ?Connector
     {
         if (isset($this->config['integration_id'])) {
             $integration = Integration::find((int) $this->config['integration_id']);
 
             if ($integration) {
                 $integration = app(OAuthService::class)->refreshIfExpired($integration);
-                $this->config = array_merge($this->config, $integration->config ?? []);
+                $this->config = [...($integration->config ?? []), 'integration_id' => $integration->id];
             }
+        }
+
+        if (! isset($this->config['access_token'], $this->config['cloud_id'])) {
+            return null;
         }
 
         return new Connector($this->config);
