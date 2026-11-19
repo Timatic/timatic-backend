@@ -145,9 +145,9 @@ it('keeps an invoiced entry when its worklog is deleted in Tempo', function () {
 
 it('records a worklog on a mirrored issue against the original issue of the other Jira instance', function () {
     // Given
-    $pionect = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp, 'mirrored_issues_enabled' => true, 'mirrored_issue_prefixes' => ['SILO']]]);
+    $pionect = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
     $thesis = Integration::factory()->create(['type' => 'jira', 'config' => []]);
-    Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $pionect->id, 'sync_to_timatic' => true, 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
+    Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $pionect->id, 'sync_to_timatic' => true, 'mirrored_issues_enabled' => true, 'mirrored_issue_prefixes' => ['SILO'], 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
     $budget = Budget::factory()->has(BudgetVersion::factory()->state(['effective_from' => now()->subYear(), 'effective_to' => null]))->create();
     ProjectMapping::query()->create(['integration_id' => $thesis->id, 'project_key' => 'SILO', 'project_name' => 'Silo', 'customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
     User::factory()->create(['email' => 'ann@example.com']);

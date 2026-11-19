@@ -1,6 +1,6 @@
 <?php
 
-namespace Timatic\Jira\DataTransferObjects;
+namespace Timatic\Tempo\DataTransferObjects;
 
 use Illuminate\Support\Collection;
 

@@ -7,12 +7,14 @@ use App\Models\Integration;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Schemas\Components\Callout;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 /**
@@ -45,6 +47,8 @@ class SettingsPage extends Page
             'jira_integration_id' => $config['jira_integration_id'] ?? null,
             'sync_to_timatic' => (bool) ($config['sync_to_timatic'] ?? false),
             'sync_to_tempo' => (bool) ($config['sync_to_tempo'] ?? false),
+            'mirrored_issues_enabled' => (bool) ($config['mirrored_issues_enabled'] ?? false),
+            'mirrored_issue_prefixes' => $config['mirrored_issue_prefixes'] ?? [],
         ]);
     }
 
@@ -80,6 +84,17 @@ class SettingsPage extends Page
             Toggle::make('sync_to_tempo')
                 ->label(__('tempo::tempo.settings.field_sync_to_tempo'))
                 ->helperText(__('tempo::tempo.settings.field_sync_to_tempo_helper')),
+            Toggle::make('mirrored_issues_enabled')
+                ->label(__('tempo::tempo.settings.field_mirrored_issues'))
+                ->helperText(__('tempo::tempo.settings.field_mirrored_issues_helper'))
+                ->live(),
+            TagsInput::make('mirrored_issue_prefixes')
+                ->label(__('tempo::tempo.settings.field_mirrored_issue_prefixes'))
+                ->helperText(__('tempo::tempo.settings.field_mirrored_issue_prefixes_helper'))
+                ->placeholder('SILO')
+                ->nestedRecursiveRules(['regex:/^[A-Z][A-Z0-9_]*$/i'])
+                ->visible(fn (Get $get): bool => (bool) $get('mirrored_issues_enabled'))
+                ->dehydratedWhenHidden(),
         ])->statePath('data');
     }
 
@@ -102,6 +117,8 @@ class SettingsPage extends Page
                             'jira_integration_id' => (int) $data['jira_integration_id'],
                             'sync_to_timatic' => (bool) ($data['sync_to_timatic'] ?? false),
                             'sync_to_tempo' => (bool) ($data['sync_to_tempo'] ?? false),
+                            'mirrored_issues_enabled' => (bool) ($data['mirrored_issues_enabled'] ?? false),
+                            'mirrored_issue_prefixes' => array_values(array_map('strtoupper', $data['mirrored_issue_prefixes'] ?? [])),
                         ]),
                     ]);
 

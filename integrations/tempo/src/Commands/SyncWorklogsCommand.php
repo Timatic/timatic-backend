@@ -5,9 +5,7 @@ namespace Timatic\Tempo\Commands;
 use App\Models\Integration;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
-use Timatic\Jira\WorklogSync;
-use Timatic\Tempo\Connector;
-use Timatic\Tempo\TempoWorklogFeed;
+use Timatic\Tempo\WorklogSync;
 
 class SyncWorklogsCommand extends Command
 {
@@ -47,8 +45,7 @@ class SyncWorklogsCommand extends Command
                 $this->warn("{$label}: no sync position stored yet, starting from now. Pass --since=YYYY-MM-DD to import older worklogs.");
             }
 
-            $feed = new TempoWorklogFeed(new Connector($config['api_token']));
-            $report = $worklogSync->run($jira, (int) $updatedSince, (int) $deletedSince, $feed);
+            $report = $worklogSync->run($integration, $jira, (int) $updatedSince, (int) $deletedSince);
 
             $integration->update(['config' => array_merge($config, [
                 'worklog_sync_updated_since' => $report->nextUpdatedSinceMilliseconds,

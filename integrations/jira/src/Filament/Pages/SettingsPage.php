@@ -9,16 +9,13 @@ use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Navigation\NavigationItem;
 use Filament\Notifications\Notification;
 use Filament\Pages\Enums\SubNavigationPosition;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Schemas\Components\Callout;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Timatic\Jira\OAuthService;
 
@@ -48,8 +45,6 @@ class SettingsPage extends Page
 
         $this->form->fill([
             'title' => $integration->title,
-            'mirrored_issues_enabled' => (bool) ($integration->config['mirrored_issues_enabled'] ?? false),
-            'mirrored_issue_prefixes' => $integration->config['mirrored_issue_prefixes'] ?? [],
         ]);
 
         if (session('jira_success')) {
@@ -118,17 +113,6 @@ class SettingsPage extends Page
             Callout::make(__('jira::jira.settings.callout_connected_title'))
                 ->success()
                 ->description(__('jira::jira.settings.callout_connected_description', ['cloud_url' => $config['cloud_url'] ?? ''])),
-            Toggle::make('mirrored_issues_enabled')
-                ->label(__('jira::jira.settings.field_mirrored_issues'))
-                ->helperText(__('jira::jira.settings.field_mirrored_issues_helper'))
-                ->live(),
-            TagsInput::make('mirrored_issue_prefixes')
-                ->label(__('jira::jira.settings.field_mirrored_issue_prefixes'))
-                ->helperText(__('jira::jira.settings.field_mirrored_issue_prefixes_helper'))
-                ->placeholder('SILO')
-                ->nestedRecursiveRules(['regex:/^[A-Z][A-Z0-9_]*$/i'])
-                ->visible(fn (Get $get): bool => (bool) $get('mirrored_issues_enabled'))
-                ->dehydratedWhenHidden(),
         ])->statePath('data');
     }
 
@@ -185,13 +169,7 @@ class SettingsPage extends Page
                     $data = $this->form->getState();
                     $integration = $this->getIntegration();
 
-                    $integration->update([
-                        'title' => $data['title'],
-                        'config' => array_merge($integration->config ?? [], [
-                            'mirrored_issues_enabled' => (bool) ($data['mirrored_issues_enabled'] ?? false),
-                            'mirrored_issue_prefixes' => array_values(array_map('strtoupper', $data['mirrored_issue_prefixes'] ?? [])),
-                        ]),
-                    ]);
+                    $integration->update(['title' => $data['title']]);
 
                     Notification::make()->title(__('jira::jira.settings.notification_saved'))->success()->send();
                 })
