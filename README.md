@@ -96,6 +96,23 @@ title, e.g. "SILO-12 Fix login". Switch on "Record mirrored issues on the origin
 list the project keys of the originals to record such time on the original issue and its
 project mapping instead of the copy.
 
+### Sync Tempo worklogs
+
+Tempo strips the author and description from the worklogs it mirrors into Jira, so on a Jira
+instance with Tempo the worklogs are read from Tempo instead. Add a Tempo integration in the
+admin with a Tempo API token and the Jira instance Tempo runs on, then switch on "Sync Tempo
+worklogs to Timatic entries". The Jira worklog sync then skips that instance. The first run
+starts from the current moment; pass a day to import older worklogs:
+
+```bash
+php artisan tempo:sync-worklogs [--since=2026-01-01]
+```
+
+With "Sync Timatic entries to Tempo" on, every entry saved or deleted on an issue of a project
+mapped in that Jira instance is created, updated or deleted in Tempo as a worklog of the
+entry's user. Worklog times are sent in the preferred timezone of Timatic, which has to match
+the timezone of the Tempo instance.
+
 ## License
 
 Copyright (c) 2025 Timatic.
