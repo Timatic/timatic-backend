@@ -19,11 +19,6 @@ final class TempoWorklogFeed implements WorklogFeed
 {
     public function __construct(private readonly Connector $connector) {}
 
-    public function externalSource(): string
-    {
-        return ServiceProvider::SOURCE_ID;
-    }
-
     public function changedSince(int $sinceMilliseconds): WorklogChanges
     {
         $since = CarbonImmutable::createFromTimestampMs($sinceMilliseconds);

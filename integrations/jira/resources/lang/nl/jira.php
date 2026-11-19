@@ -32,8 +32,6 @@ return [
         'field_select_site' => 'Jira omgeving',
         'notification_connected' => 'Verbonden met Jira.',
         'notification_select_site_required' => 'Selecteer een Jira omgeving.',
-        'field_worklog_sync' => 'Jira-worklogs synchroniseren naar Timatic-entries',
-        'field_worklog_sync_helper' => 'Elke vijftien minuten worden de in Jira gewijzigde worklogs naar entries gekopieerd. Gefactureerde of vergrendelde entries blijven ongewijzigd.',
         'field_mirrored_issues' => 'Gespiegelde issues op het originele issue boeken',
         'field_mirrored_issues_helper' => 'Voor issues die uit een andere Jira-instantie zijn gekopieerd en waarvan de titel begint met de originele issue key, bijv. "SILO-12 Fix login", wordt de tijd op het originele issue en zijn projectkoppeling geboekt.',
         'field_mirrored_issue_prefixes' => 'Project keys van de originele issues',
