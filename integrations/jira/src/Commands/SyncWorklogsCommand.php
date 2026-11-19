@@ -15,42 +15,44 @@ class SyncWorklogsCommand extends Command
 
     public function handle(WorklogSync $worklogSync): int
     {
-        $integration = Integration::where('type', 'jira')->first();
+        foreach (Integration::query()->where('type', 'jira')->get() as $integration) {
+            $label = $integration->display_title;
 
-        if ($integration === null || blank($integration->config['access_token'] ?? null) || blank($integration->config['cloud_id'] ?? null)) {
-            $this->info('Jira is not connected, nothing to sync.');
+            if (blank($integration->config['access_token'] ?? null) || blank($integration->config['cloud_id'] ?? null)) {
+                $this->info("{$label}: Jira is not connected, nothing to sync.");
 
-            return self::SUCCESS;
+                continue;
+            }
+
+            if (! ($integration->config['worklog_sync_enabled'] ?? false)) {
+                $this->info("{$label}: worklog sync is disabled in the Jira integration settings.");
+
+                continue;
+            }
+
+            $updatedSince = $integration->config['worklog_sync_updated_since'] ?? null;
+            $deletedSince = $integration->config['worklog_sync_deleted_since'] ?? null;
+
+            if ($this->option('since') !== null) {
+                $updatedSince = $deletedSince = CarbonImmutable::parse($this->option('since'), config('timatic.preferred_timezone'))->getTimestampMs();
+            }
+
+            if ($updatedSince === null || $deletedSince === null) {
+                $updatedSince = $deletedSince = now()->getTimestampMs();
+                $this->warn("{$label}: no sync position stored yet, starting from now. Pass --since=YYYY-MM-DD to import older worklogs.");
+            }
+
+            $report = $worklogSync->run($integration, (int) $updatedSince, (int) $deletedSince);
+
+            // refreshIfExpired may have rewritten the config during the run
+            $integration->refresh();
+            $integration->update(['config' => array_merge($integration->config, [
+                'worklog_sync_updated_since' => $report->nextUpdatedSinceMilliseconds,
+                'worklog_sync_deleted_since' => $report->nextDeletedSinceMilliseconds,
+            ])]);
+
+            $this->info("{$label}: created {$report->created}, updated {$report->updated}, deleted {$report->deleted}, skipped {$report->skipped} entries.");
         }
-
-        if (! ($integration->config['worklog_sync_enabled'] ?? false)) {
-            $this->info('Worklog sync is disabled in the Jira integration settings.');
-
-            return self::SUCCESS;
-        }
-
-        $updatedSince = $integration->config['worklog_sync_updated_since'] ?? null;
-        $deletedSince = $integration->config['worklog_sync_deleted_since'] ?? null;
-
-        if ($this->option('since') !== null) {
-            $updatedSince = $deletedSince = CarbonImmutable::parse($this->option('since'), config('timatic.preferred_timezone'))->getTimestampMs();
-        }
-
-        if ($updatedSince === null || $deletedSince === null) {
-            $updatedSince = $deletedSince = now()->getTimestampMs();
-            $this->warn('No sync position stored yet, starting from now. Pass --since=YYYY-MM-DD to import older worklogs.');
-        }
-
-        $report = $worklogSync->run($integration, (int) $updatedSince, (int) $deletedSince);
-
-        // refreshIfExpired may have rewritten the config during the run
-        $integration->refresh();
-        $integration->update(['config' => array_merge($integration->config, [
-            'worklog_sync_updated_since' => $report->nextUpdatedSinceMilliseconds,
-            'worklog_sync_deleted_since' => $report->nextDeletedSinceMilliseconds,
-        ])]);
-
-        $this->info("Created {$report->created}, updated {$report->updated}, deleted {$report->deleted}, skipped {$report->skipped} entries.");
 
         return self::SUCCESS;
     }
