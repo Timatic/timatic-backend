@@ -26,8 +26,6 @@ final class WorklogSync
 
     private int $integrationId;
 
-    private string $externalSource;
-
     private int $created = 0;
 
     private int $updated = 0;
@@ -48,15 +46,13 @@ final class WorklogSync
      * Copies the Jira worklogs changed since the given moment to entries and removes the entries of deleted worklogs.
      * Entries that are invoiced or in a locked period are left untouched and logged.
      */
-    public function run(Integration $integration, int $updatedSinceMilliseconds, int $deletedSinceMilliseconds, ?WorklogFeed $feed = null): WorklogSyncReport
+    public function run(Integration $integration, int $updatedSinceMilliseconds, int $deletedSinceMilliseconds, WorklogFeed $feed): WorklogSyncReport
     {
         $integration = $this->oauthService->refreshIfExpired($integration);
         $this->connector = new Connector($integration->config);
         $this->integrationId = $integration->id;
-        $feed ??= new JiraWorklogFeed($this->connector);
-        $this->externalSource = $feed->externalSource();
         // Lets outbound listeners tell an imported change from one made in Timatic
-        Context::add('entry_sync_source', $this->externalSource);
+        Context::add('entry_sync_source', true);
         $this->mirroredIssuePrefixes = ($integration->config['mirrored_issues_enabled'] ?? false)
             ? ($integration->config['mirrored_issue_prefixes'] ?? [])
             : [];
@@ -93,7 +89,7 @@ final class WorklogSync
                 continue;
             }
 
-            $entry = Entry::withTrashed()->firstWhere(['external_source' => $this->externalSource, 'external_id' => $worklog->id]);
+            $entry = Entry::withTrashed()->firstWhere('external_id', $worklog->id);
 
             if ($entry?->trashed()) {
                 $this->skipped++;
@@ -109,7 +105,7 @@ final class WorklogSync
             }
 
             $isNew = $entry === null;
-            $entry ??= new Entry(['external_source' => $this->externalSource, 'external_id' => $worklog->id]);
+            $entry ??= new Entry(['external_id' => $worklog->id]);
             $entry->fill([
                 'ticket_id' => $issue->key,
                 'ticket_number' => $issue->key,
@@ -147,7 +143,6 @@ final class WorklogSync
     private function syncDeleted(Collection $worklogIds): void
     {
         Entry::query()
-            ->where('external_source', $this->externalSource)
             ->whereIn('external_id', $worklogIds)
             ->get()
             ->each(function (Entry $entry): void {

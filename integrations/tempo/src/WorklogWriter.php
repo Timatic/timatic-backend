@@ -14,12 +14,10 @@ use Timatic\Jira\Models\ProjectMapping;
 use Timatic\Jira\OAuthService;
 use Timatic\Jira\Requests\GetIssuesRequest;
 use Timatic\Jira\Requests\GetUserByEmailRequest;
-use Timatic\Jira\ServiceProvider as JiraServiceProvider;
 use Timatic\Tempo\DataTransferObjects\TempoWorklogPayload;
 use Timatic\Tempo\DataTransferObjects\TempoWorklogReference;
 use Timatic\Tempo\Requests\CreateWorklogRequest;
 use Timatic\Tempo\Requests\DeleteWorklogRequest;
-use Timatic\Tempo\Requests\GetWorklogByJiraIdRequest;
 use Timatic\Tempo\Requests\UpdateWorklogRequest;
 
 /**
@@ -45,31 +43,26 @@ final class WorklogWriter
 
             $connector = new Connector($tempo->config['api_token']);
             $payload = TempoWorklogPayload::fromEntry($entry, $issueId, $accountId);
-            $tempoWorklogId = $this->tempoWorklogId($connector, $entry);
-
-            if ($tempoWorklogId !== null) {
-                $connector->send(new UpdateWorklogRequest($tempoWorklogId, $payload))->throw();
+            if ($entry->external_id !== null) {
+                $connector->send(new UpdateWorklogRequest($entry->external_id, $payload))->throw();
 
                 continue;
             }
 
             /** @var TempoWorklogReference $created */
             $created = $connector->send(new CreateWorklogRequest($payload))->throw()->dto();
-            $entry->forceFill(['external_source' => ServiceProvider::SOURCE_ID, 'external_id' => $created->tempoWorklogId])->saveQuietly();
+            $entry->forceFill(['external_id' => $created->tempoWorklogId])->saveQuietly();
         }
     }
 
     public function remove(Entry $entry): void
     {
         foreach ($this->integrationsFor($entry) as $tempo) {
-            $connector = new Connector($tempo->config['api_token']);
-            $tempoWorklogId = $this->tempoWorklogId($connector, $entry);
-
-            if ($tempoWorklogId === null) {
+            if ($entry->external_id === null) {
                 continue;
             }
 
-            $response = $connector->send(new DeleteWorklogRequest($tempoWorklogId));
+            $response = new Connector($tempo->config['api_token'])->send(new DeleteWorklogRequest($entry->external_id));
 
             if ($response->status() !== 404) {
                 $response->throw();
@@ -122,31 +115,5 @@ final class WorklogWriter
 
             return $user?->accountId;
         });
-    }
-
-    private function tempoWorklogId(Connector $connector, Entry $entry): ?string
-    {
-        if ($entry->external_id === null) {
-            return null;
-        }
-
-        if ($entry->external_source === ServiceProvider::SOURCE_ID) {
-            return $entry->external_id;
-        }
-
-        if ($entry->external_source !== JiraServiceProvider::SOURCE_ID) {
-            return null;
-        }
-
-        $response = $connector->send(new GetWorklogByJiraIdRequest($entry->external_id));
-
-        if ($response->status() === 404) {
-            return null;
-        }
-
-        /** @var TempoWorklogReference $reference */
-        $reference = $response->throw()->dto();
-
-        return $reference->tempoWorklogId;
     }
 }

@@ -52,8 +52,7 @@ it('creates a Tempo worklog of the user for a saved entry and stores the Tempo i
         'timeSpentSeconds' => 5400,
         'description' => 'Fixed the login',
     ]);
-    expect($entry->refresh()->external_source)->toBe('tempo')
-        ->and($entry->external_id)->toBe('70010');
+    expect($entry->refresh()->external_id)->toBe('70010');
 });
 
 it('updates the Tempo worklog of an entry that already has one', function () {
@@ -63,7 +62,7 @@ it('updates the Tempo worklog of an entry that already has one', function () {
     ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'ACME', 'project_name' => 'Acme']);
     $user = User::factory()->create(['email' => 'ann@example.com']);
     Context::add('entry_sync_source', 'tempo');
-    $entry = Entry::factory()->create(['user_id' => $user->id, 'ticket_number' => 'ACME-12', 'external_source' => 'tempo', 'external_id' => '70010']);
+    $entry = Entry::factory()->create(['user_id' => $user->id, 'ticket_number' => 'ACME-12', 'external_id' => '70010']);
     Context::forget('entry_sync_source');
     $mock = MockClient::global([
         GetIssuesRequest::class => MockResponse::make(['issues' => [['id' => '21840', 'key' => 'ACME-12', 'fields' => ['summary' => 'Login fails', 'issuetype' => ['name' => 'Bug'], 'created' => '2026-09-01T10:00:00.000+0000']]]]),
@@ -85,7 +84,7 @@ it('deletes the Tempo worklog when its entry is deleted', function () {
     Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_tempo' => true]]);
     ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'ACME', 'project_name' => 'Acme']);
     Context::add('entry_sync_source', 'tempo');
-    $entry = Entry::factory()->create(['ticket_number' => 'ACME-12', 'external_source' => 'tempo', 'external_id' => '70010']);
+    $entry = Entry::factory()->create(['ticket_number' => 'ACME-12', 'external_id' => '70010']);
     Context::forget('entry_sync_source');
     $mock = MockClient::global([DeleteWorklogRequest::class => MockResponse::make([], 204)]);
 

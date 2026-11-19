@@ -48,7 +48,6 @@ class SettingsPage extends Page
 
         $this->form->fill([
             'title' => $integration->title,
-            'worklog_sync_enabled' => (bool) ($integration->config['worklog_sync_enabled'] ?? false),
             'mirrored_issues_enabled' => (bool) ($integration->config['mirrored_issues_enabled'] ?? false),
             'mirrored_issue_prefixes' => $integration->config['mirrored_issue_prefixes'] ?? [],
         ]);
@@ -119,9 +118,6 @@ class SettingsPage extends Page
             Callout::make(__('jira::jira.settings.callout_connected_title'))
                 ->success()
                 ->description(__('jira::jira.settings.callout_connected_description', ['cloud_url' => $config['cloud_url'] ?? ''])),
-            Toggle::make('worklog_sync_enabled')
-                ->label(__('jira::jira.settings.field_worklog_sync'))
-                ->helperText(__('jira::jira.settings.field_worklog_sync_helper')),
             Toggle::make('mirrored_issues_enabled')
                 ->label(__('jira::jira.settings.field_mirrored_issues'))
                 ->helperText(__('jira::jira.settings.field_mirrored_issues_helper'))
@@ -192,7 +188,6 @@ class SettingsPage extends Page
                     $integration->update([
                         'title' => $data['title'],
                         'config' => array_merge($integration->config ?? [], [
-                            'worklog_sync_enabled' => (bool) ($data['worklog_sync_enabled'] ?? false),
                             'mirrored_issues_enabled' => (bool) ($data['mirrored_issues_enabled'] ?? false),
                             'mirrored_issue_prefixes' => array_values(array_map('strtoupper', $data['mirrored_issue_prefixes'] ?? [])),
                         ]),

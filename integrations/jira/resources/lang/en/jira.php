@@ -32,8 +32,6 @@ return [
         'field_select_site' => 'Jira environment',
         'notification_connected' => 'Connected to Jira.',
         'notification_select_site_required' => 'Please select a Jira environment.',
-        'field_worklog_sync' => 'Sync Jira worklogs to Timatic entries',
-        'field_worklog_sync_helper' => 'Every fifteen minutes the worklogs changed in Jira are copied to entries. Invoiced or locked entries are left untouched.',
         'field_mirrored_issues' => 'Record mirrored issues on the original issue',
         'field_mirrored_issues_helper' => 'For issues copied from another Jira instance whose title starts with the original issue key, e.g. "SILO-12 Fix login", the synced time is recorded on the original issue and its project mapping.',
         'field_mirrored_issue_prefixes' => 'Project keys of the original issues',
