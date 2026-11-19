@@ -88,7 +88,13 @@ entries. The first run starts from the current moment; pass a day to import olde
 php artisan jira:sync-worklogs [--since=2026-01-01]
 ```
 
-Entries that are invoiced or in a locked period are left untouched and logged.
+Entries that are invoiced or in a locked period are left untouched and logged. Every connected
+Jira instance with the switch on is synced.
+
+Issues mirrored from another Jira instance usually start with the original issue key in their
+title, e.g. "SILO-12 Fix login". Switch on "Record mirrored issues on the original issue" and
+list the project keys of the originals to record such time on the original issue and its
+project mapping instead of the copy.
 
 ## License
 

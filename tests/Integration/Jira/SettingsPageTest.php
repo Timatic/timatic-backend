@@ -19,10 +19,12 @@ it('switches the worklog sync on from the settings page', function () {
     // When
     Livewire::test(SettingsPage::class, ['record' => $integration->id])
         ->assertSuccessful()
-        ->fillForm(['worklog_sync_enabled' => true])
+        ->fillForm(['worklog_sync_enabled' => true, 'mirrored_issues_enabled' => true, 'mirrored_issue_prefixes' => ['silo']])
         ->callAction('save');
 
     // Then
     expect($integration->refresh()->config['worklog_sync_enabled'])->toBeTrue()
+        ->and($integration->config['mirrored_issues_enabled'])->toBeTrue()
+        ->and($integration->config['mirrored_issue_prefixes'])->toBe(['SILO'])
         ->and($integration->config['access_token'])->toBe('token');
 });
