@@ -14,7 +14,6 @@ return [
         'action_save' => 'Save',
         'action_refresh' => 'Refresh',
         'field_title' => 'Title',
-        'notification_title_changed' => 'Title updated.',
         'connection_expired_title' => 'Jira connection expired',
         'connection_expired_body' => 'Reconnect Jira via Settings.',
     ],
@@ -33,6 +32,9 @@ return [
         'field_select_site' => 'Jira environment',
         'notification_connected' => 'Connected to Jira.',
         'notification_select_site_required' => 'Please select a Jira environment.',
+        'field_worklog_sync' => 'Sync Jira worklogs to Timatic entries',
+        'field_worklog_sync_helper' => 'Every fifteen minutes the worklogs changed in Jira are copied to entries. Invoiced or locked entries are left untouched.',
+        'notification_saved' => 'Settings saved.',
     ],
 
     'project_mapping' => [

@@ -1,0 +1,28 @@
+<?php
+
+use App\Models\Integration;
+use Filament\Facades\Filament;
+use Livewire\Livewire;
+use Tests\Concerns\LoginUser;
+use Timatic\Jira\Filament\Pages\SettingsPage;
+
+uses(LoginUser::class);
+
+it('switches the worklog sync on from the settings page', function () {
+    // Given
+    config()->set('jira.client_id', 'client-id');
+    config()->set('jira.client_secret', 'client-secret');
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $integration = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'cloud_url' => 'https://acme.atlassian.net']]);
+
+    // When
+    Livewire::test(SettingsPage::class, ['record' => $integration->id])
+        ->assertSuccessful()
+        ->fillForm(['worklog_sync_enabled' => true])
+        ->callAction('save');
+
+    // Then
+    expect($integration->refresh()->config['worklog_sync_enabled'])->toBeTrue()
+        ->and($integration->config['access_token'])->toBe('token');
+});

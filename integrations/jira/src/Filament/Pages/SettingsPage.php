@@ -10,6 +10,7 @@ use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Navigation\NavigationItem;
 use Filament\Notifications\Notification;
 use Filament\Pages\Enums\SubNavigationPosition;
@@ -41,7 +42,12 @@ class SettingsPage extends Page
     public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
-        $this->form->fill(['title' => $this->getIntegration()->title]);
+        $integration = $this->getIntegration();
+
+        $this->form->fill([
+            'title' => $integration->title,
+            'worklog_sync_enabled' => (bool) ($integration->config['worklog_sync_enabled'] ?? false),
+        ]);
 
         if (session('jira_success')) {
             Notification::make()->title(session('jira_success'))->success()->send();
@@ -109,6 +115,9 @@ class SettingsPage extends Page
             Callout::make(__('jira::jira.settings.callout_connected_title'))
                 ->success()
                 ->description(__('jira::jira.settings.callout_connected_description', ['cloud_url' => $config['cloud_url'] ?? ''])),
+            Toggle::make('worklog_sync_enabled')
+                ->label(__('jira::jira.settings.field_worklog_sync'))
+                ->helperText(__('jira::jira.settings.field_worklog_sync_helper')),
         ])->statePath('data');
     }
 
@@ -163,8 +172,16 @@ class SettingsPage extends Page
                 ->label(__('jira::jira.common.action_save'))
                 ->action(function (): void {
                     $data = $this->form->getState();
-                    $this->getIntegration()->update(['title' => $data['title']]);
-                    Notification::make()->title(__('jira::jira.common.notification_title_changed'))->success()->send();
+                    $integration = $this->getIntegration();
+
+                    $integration->update([
+                        'title' => $data['title'],
+                        'config' => array_merge($integration->config ?? [], [
+                            'worklog_sync_enabled' => (bool) ($data['worklog_sync_enabled'] ?? false),
+                        ]),
+                    ]);
+
+                    Notification::make()->title(__('jira::jira.settings.notification_saved'))->success()->send();
                 })
                 ->visible($this->isConnected($config)),
         ];

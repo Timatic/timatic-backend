@@ -105,9 +105,9 @@ same user-days cannot interleave with the rebundle.
 
 ### Sync Jira worklogs
 
-Runs every fifteen minutes when the Jira integration is connected and copies the worklogs
-changed or deleted since the previous run to entries. The first run starts from the current
-moment; pass a day to import older worklogs:
+Runs every fifteen minutes once "Sync Jira worklogs to Timatic entries" is switched on in the Jira integration
+settings of the admin, and copies the worklogs changed or deleted since the previous run to
+entries. The first run starts from the current moment; pass a day to import older worklogs:
 
 ```bash
 php artisan jira:sync-worklogs [--since=2026-01-01]
