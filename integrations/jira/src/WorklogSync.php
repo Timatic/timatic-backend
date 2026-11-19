@@ -231,6 +231,7 @@ final class WorklogSync
 
             if ($email !== '') {
                 Cache::forever('jira.email.'.$accountId, $email);
+                Cache::forever('jira.account_id.'.strtolower($email), $accountId);
             }
 
             return [$accountId => strtolower($email)];
