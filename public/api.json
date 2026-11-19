@@ -2116,7 +2116,7 @@
                     {
                         "name": "include",
                         "in": "query",
-                        "description": "Available includes are `activities`, `activities.events`, `activities.events.source`, `activities.eventType`. You can include multiple options by separating them with a comma.",
+                        "description": "Available includes are `activities`, `activities.events`, `activities.events.source`, `activities.events.eventType`, `activities.eventType`. You can include multiple options by separating them with a comma.",
                         "schema": {
                             "type": "string"
                         }
@@ -2451,7 +2451,14 @@
                                         "included": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/Source"
+                                                "anyOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/Source"
+                                                    },
+                                                    {
+                                                        "$ref": "#/components/schemas/EventType"
+                                                    }
+                                                ]
                                             }
                                         }
                                     },
@@ -6782,6 +6789,30 @@
                                             "type": {
                                                 "type": "string",
                                                 "const": "sources"
+                                            }
+                                        },
+                                        "required": [
+                                            "id",
+                                            "type"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "data"
+                                ]
+                            },
+                            "eventType": {
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string"
+                                            },
+                                            "type": {
+                                                "type": "string",
+                                                "const": "eventTypes"
                                             }
                                         },
                                         "required": [
