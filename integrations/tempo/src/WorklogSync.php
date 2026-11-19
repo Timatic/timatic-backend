@@ -1,6 +1,6 @@
 <?php
 
-namespace Timatic\Jira;
+namespace Timatic\Tempo;
 
 use App\Models\Entry;
 use App\Models\Integration;
@@ -12,19 +12,21 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
+use Timatic\Jira\Connector as JiraConnector;
 use Timatic\Jira\DataTransferObjects\JiraIssue;
-use Timatic\Jira\DataTransferObjects\JiraWorklog;
-use Timatic\Jira\DataTransferObjects\WorklogSyncReport;
 use Timatic\Jira\Models\ProjectMapping;
+use Timatic\Jira\OAuthService;
 use Timatic\Jira\Requests\GetIssuesRequest;
 use Timatic\Jira\Requests\GetUserByAccountIdRequest;
+use Timatic\Tempo\DataTransferObjects\TempoWorklog;
+use Timatic\Tempo\DataTransferObjects\WorklogSyncReport;
 
 // @arch-ignore app-boundary: turns worklogs into entries with the enricher and lock rules of the core
 final class WorklogSync
 {
-    private Connector $connector;
+    private JiraConnector $jira;
 
-    private int $integrationId;
+    private int $jiraIntegrationId;
 
     private int $created = 0;
 
@@ -43,23 +45,26 @@ final class WorklogSync
     ) {}
 
     /**
-     * Copies the Jira worklogs changed since the given moment to entries and removes the entries of deleted worklogs.
+     * Copies the Tempo worklogs changed since the given moment to entries and removes the entries of deleted worklogs.
+     * Issues, authors and the project mapping are resolved through the Jira instance Tempo runs on.
      * Entries that are invoiced or in a locked period are left untouched and logged.
      */
-    public function run(Integration $integration, int $updatedSinceMilliseconds, int $deletedSinceMilliseconds, WorklogFeed $feed): WorklogSyncReport
+    public function run(Integration $tempo, Integration $jira, int $updatedSinceMilliseconds, int $deletedSinceMilliseconds): WorklogSyncReport
     {
-        $integration = $this->oauthService->refreshIfExpired($integration);
-        $this->connector = new Connector($integration->config);
-        $this->integrationId = $integration->id;
-        // Lets outbound listeners tell an imported change from one made in Timatic
-        Context::add('entry_sync_source', true);
-        $this->mirroredIssuePrefixes = ($integration->config['mirrored_issues_enabled'] ?? false)
-            ? ($integration->config['mirrored_issue_prefixes'] ?? [])
+        $jira = $this->oauthService->refreshIfExpired($jira);
+        $this->jira = new JiraConnector($jira->config);
+        $this->jiraIntegrationId = $jira->id;
+        $this->mirroredIssuePrefixes = ($tempo->config['mirrored_issues_enabled'] ?? false)
+            ? ($tempo->config['mirrored_issue_prefixes'] ?? [])
             : [];
         $this->created = $this->updated = $this->deleted = $this->skipped = 0;
 
+        $feed = new TempoWorklogFeed(new Connector($tempo->config['api_token']));
         $changes = $feed->changedSince($updatedSinceMilliseconds);
         $deleted = $feed->deletedSince($deletedSinceMilliseconds);
+
+        // Lets the outbound subscriber tell an imported change from one made in Timatic
+        Context::add('entry_sync_source', true);
 
         try {
             $this->syncUpdated($changes->worklogs);
@@ -71,7 +76,7 @@ final class WorklogSync
         return new WorklogSyncReport($this->created, $this->updated, $this->deleted, $this->skipped, $changes->nextSinceMilliseconds, $deleted->nextSinceMilliseconds);
     }
 
-    /** @param Collection<int, JiraWorklog> $worklogs */
+    /** @param Collection<int, TempoWorklog> $worklogs */
     private function syncUpdated(Collection $worklogs): void
     {
         $issues = $this->fetchIssues($worklogs->pluck('issueId')->unique())->map(fn (JiraIssue $issue) => $this->resolveMirroredIssue($issue));
@@ -83,7 +88,7 @@ final class WorklogSync
             $user = $users->get($worklog->authorAccountId);
 
             if ($issue === null || $mapping === null || $user === null) {
-                Log::warning("Jira worklog {$worklog->id} skipped: no issue, budget mapping or Timatic user", ['issue' => $issue?->key, 'author' => $worklog->authorAccountId]);
+                Log::warning("Tempo worklog {$worklog->id} skipped: no issue, budget mapping or Timatic user", ['issue' => $issue?->key, 'author' => $worklog->authorAccountId]);
                 $this->skipped++;
 
                 continue;
@@ -98,7 +103,7 @@ final class WorklogSync
             }
 
             if ($entry !== null && $this->isLocked($entry)) {
-                Log::warning("Jira worklog {$worklog->id} changed but entry {$entry->id} is locked or invoiced");
+                Log::warning("Tempo worklog {$worklog->id} changed but entry {$entry->id} is locked or invoiced");
                 $this->skipped++;
 
                 continue;
@@ -117,13 +122,13 @@ final class WorklogSync
                 'user_email' => $user->email,
                 'user_full_name' => $user->full_name,
                 'entry_type' => 'regular',
-                'description' => $worklog->comment !== '' ? $worklog->comment : null,
+                'description' => $worklog->description !== '' ? $worklog->description : null,
                 'is_internal' => false,
                 'started_at' => $worklog->startedAt,
                 'ended_at' => $worklog->startedAt->addSeconds($worklog->timeSpentSeconds),
             ]);
 
-            // Jira's since filter is inclusive, so the last changed worklog comes back every run
+            // Tempo's updatedFrom filter is inclusive, so the last changed worklog comes back every run
             if (! $entry->isDirty()) {
                 continue;
             }
@@ -147,7 +152,7 @@ final class WorklogSync
             ->get()
             ->each(function (Entry $entry): void {
                 if ($this->isLocked($entry)) {
-                    Log::warning("Jira worklog {$entry->external_id} deleted but entry {$entry->id} is locked or invoiced");
+                    Log::warning("Tempo worklog {$entry->external_id} deleted but entry {$entry->id} is locked or invoiced");
                     $this->skipped++;
 
                     return;
@@ -158,13 +163,14 @@ final class WorklogSync
             });
     }
 
+    /** The mapping of the issue's project, preferring the linked Jira instance when the key exists in several instances */
     private function findBudgetMapping(JiraIssue $issue): ?ProjectMapping
     {
         return ProjectMapping::active()
             ->where('project_key', strtoupper(explode('-', $issue->key)[0]))
             ->whereNotNull('customer_id')
             ->whereNotNull('budget_id')
-            ->orderByRaw('integration_id = ? desc', [$this->integrationId])
+            ->orderByRaw('integration_id = ? desc', [$this->jiraIntegrationId])
             ->first();
     }
 
@@ -214,7 +220,7 @@ final class WorklogSync
         return $issueIds->chunk(50)
             ->flatMap(function (Collection $chunk): array {
                 /** @var array<int, JiraIssue> $issues */
-                $issues = $this->connector->send(new GetIssuesRequest('id in ('.$chunk->implode(', ').')'))->dto();
+                $issues = $this->jira->send(new GetIssuesRequest('id in ('.$chunk->implode(', ').')'))->dto();
 
                 return $issues;
             })
@@ -228,7 +234,7 @@ final class WorklogSync
     private function fetchUsers(Collection $accountIds): Collection
     {
         $emails = $accountIds->mapWithKeys(function (string $accountId): array {
-            $email = Cache::get('jira.email.'.$accountId) ?? $this->connector->send(new GetUserByAccountIdRequest($accountId))->dto()->emailAddress;
+            $email = Cache::get('jira.email.'.$accountId) ?? $this->jira->send(new GetUserByAccountIdRequest($accountId))->dto()->emailAddress;
 
             if ($email !== '') {
                 Cache::forever('jira.email.'.$accountId, $email);

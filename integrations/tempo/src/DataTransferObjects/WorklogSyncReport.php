@@ -1,6 +1,6 @@
 <?php
 
-namespace Timatic\Jira\DataTransferObjects;
+namespace Timatic\Tempo\DataTransferObjects;
 
 readonly class WorklogSyncReport
 {

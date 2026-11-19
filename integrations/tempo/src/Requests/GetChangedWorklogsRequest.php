@@ -6,7 +6,7 @@ use Carbon\CarbonImmutable;
 use Saloon\Enums\Method;
 use Saloon\Http\Request;
 use Saloon\Http\Response;
-use Timatic\Jira\DataTransferObjects\JiraWorklog;
+use Timatic\Tempo\DataTransferObjects\TempoWorklog;
 use Timatic\Tempo\DataTransferObjects\TempoWorklogPage;
 
 class GetChangedWorklogsRequest extends Request
@@ -38,13 +38,13 @@ class GetChangedWorklogsRequest extends Request
         $worklogs = collect($results);
 
         return new TempoWorklogPage(
-            worklogs: $worklogs->map(fn (array $worklog) => new JiraWorklog(
+            worklogs: $worklogs->map(fn (array $worklog) => new TempoWorklog(
                 id: (string) $worklog['tempoWorklogId'],
                 issueId: (string) $worklog['issue']['id'],
                 authorAccountId: $worklog['author']['accountId'] ?? '',
                 startedAt: CarbonImmutable::parse($worklog['startDateTimeUtc'])->utc(),
                 timeSpentSeconds: (int) $worklog['timeSpentSeconds'],
-                comment: trim((string) ($worklog['description'] ?? '')),
+                description: trim((string) ($worklog['description'] ?? '')),
             )),
             latestUpdatedAt: $worklogs->map(fn (array $worklog) => CarbonImmutable::parse($worklog['updatedAt'])->utc())->max(),
             hasNext: filled($response->json('metadata.next')),

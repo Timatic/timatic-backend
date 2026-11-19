@@ -1,10 +1,10 @@
 <?php
 
-namespace Timatic\Jira\DataTransferObjects;
+namespace Timatic\Tempo\DataTransferObjects;
 
 use Carbon\CarbonImmutable;
 
-readonly class JiraWorklog
+readonly class TempoWorklog
 {
     public function __construct(
         public string $id,
@@ -12,6 +12,6 @@ readonly class JiraWorklog
         public string $authorAccountId,
         public CarbonImmutable $startedAt,
         public int $timeSpentSeconds,
-        public string $comment,
+        public string $description,
     ) {}
 }

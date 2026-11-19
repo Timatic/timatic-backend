@@ -3,11 +3,10 @@
 namespace Timatic\Tempo;
 
 use Carbon\CarbonImmutable;
-use Timatic\Jira\DataTransferObjects\DeletedWorklogs;
-use Timatic\Jira\DataTransferObjects\WorklogChanges;
-use Timatic\Jira\WorklogFeed;
+use Timatic\Tempo\DataTransferObjects\DeletedWorklogs;
 use Timatic\Tempo\DataTransferObjects\TempoDeletedWorklogPage;
 use Timatic\Tempo\DataTransferObjects\TempoWorklogPage;
+use Timatic\Tempo\DataTransferObjects\WorklogChanges;
 use Timatic\Tempo\Requests\GetChangedWorklogsRequest;
 use Timatic\Tempo\Requests\GetDeletedWorklogsRequest;
 
@@ -15,7 +14,7 @@ use Timatic\Tempo\Requests\GetDeletedWorklogsRequest;
  * Reads worklogs from Tempo, which keeps the real author and description
  * that Tempo strips from its Jira copies.
  */
-final class TempoWorklogFeed implements WorklogFeed
+final class TempoWorklogFeed
 {
     public function __construct(private readonly Connector $connector) {}
 

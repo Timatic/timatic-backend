@@ -8,7 +8,7 @@ use Timatic\Tempo\Filament\Pages\SettingsPage;
 
 uses(LoginUser::class);
 
-it('stores the token, the linked Jira instance and both sync switches', function () {
+it('stores the token, the linked Jira instance, both sync switches and the mirrored issue settings', function () {
     // Given
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
@@ -18,7 +18,7 @@ it('stores the token, the linked Jira instance and both sync switches', function
     // When
     Livewire::test(SettingsPage::class, ['record' => $tempo->id])
         ->assertSuccessful()
-        ->fillForm(['api_token' => 'secret-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'sync_to_tempo' => true])
+        ->fillForm(['api_token' => 'secret-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'sync_to_tempo' => true, 'mirrored_issues_enabled' => true, 'mirrored_issue_prefixes' => ['silo']])
         ->callAction('save');
 
     // Then
@@ -27,6 +27,8 @@ it('stores the token, the linked Jira instance and both sync switches', function
         'jira_integration_id' => $jira->id,
         'sync_to_timatic' => true,
         'sync_to_tempo' => true,
+        'mirrored_issues_enabled' => true,
+        'mirrored_issue_prefixes' => ['SILO'],
     ]);
 });
 
