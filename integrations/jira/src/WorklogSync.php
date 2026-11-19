@@ -19,6 +19,7 @@ use Timatic\Jira\Models\ProjectMapping;
 use Timatic\Jira\Requests\GetIssuesRequest;
 use Timatic\Jira\Requests\GetUserByAccountIdRequest;
 
+// @arch-ignore app-boundary: turns worklogs into entries with the enricher and lock rules of the core
 final class WorklogSync
 {
     private Connector $connector;
@@ -26,6 +27,14 @@ final class WorklogSync
     private int $integrationId;
 
     private string $externalSource;
+
+    private int $created = 0;
+
+    private int $updated = 0;
+
+    private int $deleted = 0;
+
+    private int $skipped = 0;
 
     /** @var array<int, string> */
     private array $mirroredIssuePrefixes = [];
@@ -51,26 +60,23 @@ final class WorklogSync
         $this->mirroredIssuePrefixes = ($integration->config['mirrored_issues_enabled'] ?? false)
             ? ($integration->config['mirrored_issue_prefixes'] ?? [])
             : [];
-        $report = new WorklogSyncReport;
+        $this->created = $this->updated = $this->deleted = $this->skipped = 0;
 
         $changes = $feed->changedSince($updatedSinceMilliseconds);
         $deleted = $feed->deletedSince($deletedSinceMilliseconds);
 
         try {
-            $this->syncUpdated($changes->worklogs, $report);
-            $this->syncDeleted($deleted->worklogIds, $report);
+            $this->syncUpdated($changes->worklogs);
+            $this->syncDeleted($deleted->worklogIds);
         } finally {
             Context::forget('entry_sync_source');
         }
 
-        $report->nextUpdatedSinceMilliseconds = $changes->nextSinceMilliseconds;
-        $report->nextDeletedSinceMilliseconds = $deleted->nextSinceMilliseconds;
-
-        return $report;
+        return new WorklogSyncReport($this->created, $this->updated, $this->deleted, $this->skipped, $changes->nextSinceMilliseconds, $deleted->nextSinceMilliseconds);
     }
 
     /** @param Collection<int, JiraWorklog> $worklogs */
-    private function syncUpdated(Collection $worklogs, WorklogSyncReport $report): void
+    private function syncUpdated(Collection $worklogs): void
     {
         $issues = $this->fetchIssues($worklogs->pluck('issueId')->unique())->map(fn (JiraIssue $issue) => $this->resolveMirroredIssue($issue));
         $users = $this->fetchUsers($worklogs->pluck('authorAccountId')->unique());
@@ -82,7 +88,7 @@ final class WorklogSync
 
             if ($issue === null || $mapping === null || $user === null) {
                 Log::warning("Jira worklog {$worklog->id} skipped: no issue, budget mapping or Timatic user", ['issue' => $issue?->key, 'author' => $worklog->authorAccountId]);
-                $report->skipped++;
+                $this->skipped++;
 
                 continue;
             }
@@ -90,14 +96,14 @@ final class WorklogSync
             $entry = Entry::withTrashed()->firstWhere(['external_source' => $this->externalSource, 'external_id' => $worklog->id]);
 
             if ($entry?->trashed()) {
-                $report->skipped++;
+                $this->skipped++;
 
                 continue;
             }
 
             if ($entry !== null && $this->isLocked($entry)) {
                 Log::warning("Jira worklog {$worklog->id} changed but entry {$entry->id} is locked or invoiced");
-                $report->skipped++;
+                $this->skipped++;
 
                 continue;
             }
@@ -130,30 +136,30 @@ final class WorklogSync
             $this->entryEnricher->enrich($entry, isPartialUpdate: false, hasOvertime: false, hasCustomerOvertime: false, overtimeStartedAt: null, overtimeEndedAt: null);
 
             if ($isNew) {
-                $report->created++;
+                $this->created++;
             } else {
-                $report->updated++;
+                $this->updated++;
             }
         }
     }
 
     /** @param Collection<int, string> $worklogIds */
-    private function syncDeleted(Collection $worklogIds, WorklogSyncReport $report): void
+    private function syncDeleted(Collection $worklogIds): void
     {
         Entry::query()
             ->where('external_source', $this->externalSource)
             ->whereIn('external_id', $worklogIds)
             ->get()
-            ->each(function (Entry $entry) use ($report): void {
+            ->each(function (Entry $entry): void {
                 if ($this->isLocked($entry)) {
                     Log::warning("Jira worklog {$entry->external_id} deleted but entry {$entry->id} is locked or invoiced");
-                    $report->skipped++;
+                    $this->skipped++;
 
                     return;
                 }
 
                 $entry->delete();
-                $report->deleted++;
+                $this->deleted++;
             });
     }
 
