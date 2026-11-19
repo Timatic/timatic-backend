@@ -28,6 +28,11 @@ final class WorklogSync
 {
     private Connector $connector;
 
+    private int $integrationId;
+
+    /** @var array<int, string> */
+    private array $mirroredIssuePrefixes = [];
+
     public function __construct(
         private readonly OAuthService $oauthService,
         private readonly EntryEnricher $entryEnricher,
@@ -41,6 +46,10 @@ final class WorklogSync
     {
         $integration = $this->oauthService->refreshIfExpired($integration);
         $this->connector = new Connector($integration->config);
+        $this->integrationId = $integration->id;
+        $this->mirroredIssuePrefixes = ($integration->config['mirrored_issues_enabled'] ?? false)
+            ? ($integration->config['mirrored_issue_prefixes'] ?? [])
+            : [];
         $report = new WorklogSyncReport;
 
         $updated = $this->fetchFeed(fn (int $since) => new GetUpdatedWorklogIdsRequest($since), $updatedSinceMilliseconds);
@@ -59,7 +68,7 @@ final class WorklogSync
     private function syncUpdated(Collection $worklogIds, WorklogSyncReport $report): void
     {
         $worklogs = $this->fetchWorklogs($worklogIds);
-        $issues = $this->fetchIssues($worklogs->pluck('issueId')->unique());
+        $issues = $this->fetchIssues($worklogs->pluck('issueId')->unique())->map(fn (JiraIssue $issue) => $this->resolveMirroredIssue($issue));
         $users = $this->fetchUsers($worklogs->pluck('authorAccountId')->unique());
 
         foreach ($worklogs as $worklog) {
@@ -150,7 +159,36 @@ final class WorklogSync
             ->where('project_key', strtoupper(explode('-', $issue->key)[0]))
             ->whereNotNull('customer_id')
             ->whereNotNull('budget_id')
+            ->orderByRaw('integration_id = ? desc', [$this->integrationId])
             ->first();
+    }
+
+    /**
+     * Issues mirrored from another Jira instance start with the original issue key, e.g. "SILO-12 Fix login".
+     * Time on such a copy counts for the original issue.
+     */
+    private function resolveMirroredIssue(JiraIssue $issue): JiraIssue
+    {
+        if ($this->mirroredIssuePrefixes === []) {
+            return $issue;
+        }
+
+        $prefixes = implode('|', array_map(fn (string $prefix) => preg_quote($prefix, '/'), $this->mirroredIssuePrefixes));
+
+        if (preg_match('/^((?:'.$prefixes.')-\d+)\b[\s:\-]*(.*)$/i', $issue->summary, $matches) !== 1) {
+            return $issue;
+        }
+
+        $title = trim($matches[2]);
+
+        return new JiraIssue(
+            key: strtoupper($matches[1]),
+            issueType: $issue->issueType,
+            summary: $title !== '' ? $title : $issue->summary,
+            createdAt: $issue->createdAt,
+            resolvedAt: $issue->resolvedAt,
+            id: $issue->id,
+        );
     }
 
     private function isLocked(Entry $entry): bool

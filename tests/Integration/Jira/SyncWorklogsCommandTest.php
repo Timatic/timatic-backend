@@ -147,3 +147,42 @@ it('does not contact Jira while the worklog sync is disabled in the settings', f
     // Then
     expect(Entry::query()->count())->toBe(1);
 });
+
+it('records a worklog on a mirrored issue against the original issue of the other Jira instance', function () {
+    // Given
+    $pionect = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp, 'worklog_sync_enabled' => true, 'mirrored_issues_enabled' => true, 'mirrored_issue_prefixes' => ['SILO']]]);
+    $thesis = Integration::factory()->create(['type' => 'jira', 'config' => []]);
+    $budget = Budget::factory()->has(BudgetVersion::factory()->state(['effective_from' => now()->subYear(), 'effective_to' => null]))->create();
+    ProjectMapping::query()->create(['integration_id' => $thesis->id, 'project_key' => 'SILO', 'project_name' => 'Silo', 'customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
+    User::factory()->create(['email' => 'ann@example.com']);
+    MockClient::global([
+        GetUpdatedWorklogIdsRequest::class => MockResponse::make(['values' => [['worklogId' => 1001]], 'until' => 1763500000000, 'lastPage' => true]),
+        GetDeletedWorklogIdsRequest::class => MockResponse::make(['values' => [], 'until' => 1763500000000, 'lastPage' => true]),
+        GetWorklogsRequest::class => MockResponse::make([[
+            'id' => '1001',
+            'issueId' => '5001',
+            'author' => ['accountId' => 'acc-1'],
+            'started' => '2026-11-18T09:00:00.000+0100',
+            'timeSpentSeconds' => 3600,
+            'comment' => '',
+        ]]),
+        GetIssuesRequest::class => MockResponse::make(['issues' => [[
+            'id' => '5001',
+            'key' => 'PIO-7',
+            'fields' => ['summary' => 'SILO-42 Fix login', 'issuetype' => ['name' => 'Task'], 'created' => '2026-09-01T10:00:00.000+0000'],
+        ]]]),
+        GetUserByAccountIdRequest::class => MockResponse::make(['accountId' => 'acc-1', 'emailAddress' => 'ann@example.com']),
+    ]);
+
+    // When
+    $this->artisan('jira:sync-worklogs')->assertSuccessful();
+
+    // Then
+    $entry = Entry::query()->sole();
+    expect($entry->ticket_number)->toBe('SILO-42')
+        ->and($entry->ticket_id)->toBe('SILO-42')
+        ->and($entry->ticket_title)->toBe('Fix login')
+        ->and($entry->customer_id)->toBe($budget->customer_id)
+        ->and($entry->budget_id)->toBe($budget->id)
+        ->and($pionect->refresh()->config['worklog_sync_updated_since'])->toBe(1763500000000);
+});
