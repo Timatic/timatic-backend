@@ -16,6 +16,7 @@ use Timatic\Jira\Requests\GetIssuesRequest;
 use Timatic\Jira\Requests\GetUserByEmailRequest;
 use Timatic\Jira\ServiceProvider as JiraServiceProvider;
 use Timatic\Tempo\DataTransferObjects\TempoWorklogPayload;
+use Timatic\Tempo\DataTransferObjects\TempoWorklogReference;
 use Timatic\Tempo\Requests\CreateWorklogRequest;
 use Timatic\Tempo\Requests\DeleteWorklogRequest;
 use Timatic\Tempo\Requests\GetWorklogByJiraIdRequest;
@@ -52,8 +53,9 @@ final class WorklogWriter
                 continue;
             }
 
-            $response = $connector->send(new CreateWorklogRequest($payload))->throw();
-            $entry->forceFill(['external_source' => ServiceProvider::SOURCE_ID, 'external_id' => (string) $response->json('tempoWorklogId')])->saveQuietly();
+            /** @var TempoWorklogReference $created */
+            $created = $connector->send(new CreateWorklogRequest($payload))->throw()->dto();
+            $entry->forceFill(['external_source' => ServiceProvider::SOURCE_ID, 'external_id' => $created->tempoWorklogId])->saveQuietly();
         }
     }
 
@@ -138,6 +140,13 @@ final class WorklogWriter
 
         $response = $connector->send(new GetWorklogByJiraIdRequest($entry->external_id));
 
-        return $response->status() === 404 ? null : (string) $response->throw()->json('tempoWorklogId');
+        if ($response->status() === 404) {
+            return null;
+        }
+
+        /** @var TempoWorklogReference $reference */
+        $reference = $response->throw()->dto();
+
+        return $reference->tempoWorklogId;
     }
 }
