@@ -6,7 +6,9 @@ use App\Integrations\IntegrationTypeRegistry;
 use App\Integrations\Suggestions\SuggestionProviderRegistry;
 use App\Integrations\Tickets\TicketProviderRegistry;
 use App\Models\Integration;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
+use Timatic\Jira\Commands\SyncWorklogsCommand;
 use Timatic\Jira\Filament\Pages\ProjectMappingPage;
 use Timatic\Jira\Filament\Pages\SettingsPage;
 
@@ -42,5 +44,11 @@ class ServiceProvider extends BaseServiceProvider
         $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'jira');
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
         $this->loadRoutesFrom(__DIR__.'/../routes/api.php');
+
+        $this->commands([SyncWorklogsCommand::class]);
+
+        $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
+            $schedule->command(SyncWorklogsCommand::class)->everyFifteenMinutes()->onOneServer()->withoutOverlapping();
+        });
     }
 }
