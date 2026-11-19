@@ -8,27 +8,24 @@ use App\Models\User;
 use App\Services\ClosedMonthDateService;
 use App\Services\EntryEnricher;
 use App\Services\EntryLockedDateService;
-use Closure;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
-use Saloon\Http\Request;
 use Timatic\Jira\DataTransferObjects\JiraIssue;
 use Timatic\Jira\DataTransferObjects\JiraWorklog;
-use Timatic\Jira\DataTransferObjects\JiraWorklogFeedPage;
 use Timatic\Jira\DataTransferObjects\WorklogSyncReport;
 use Timatic\Jira\Models\ProjectMapping;
-use Timatic\Jira\Requests\GetDeletedWorklogIdsRequest;
 use Timatic\Jira\Requests\GetIssuesRequest;
-use Timatic\Jira\Requests\GetUpdatedWorklogIdsRequest;
 use Timatic\Jira\Requests\GetUserByAccountIdRequest;
-use Timatic\Jira\Requests\GetWorklogsRequest;
 
 final class WorklogSync
 {
     private Connector $connector;
 
     private int $integrationId;
+
+    private string $externalSource;
 
     /** @var array<int, string> */
     private array $mirroredIssuePrefixes = [];
@@ -42,32 +39,39 @@ final class WorklogSync
      * Copies the Jira worklogs changed since the given moment to entries and removes the entries of deleted worklogs.
      * Entries that are invoiced or in a locked period are left untouched and logged.
      */
-    public function run(Integration $integration, int $updatedSinceMilliseconds, int $deletedSinceMilliseconds): WorklogSyncReport
+    public function run(Integration $integration, int $updatedSinceMilliseconds, int $deletedSinceMilliseconds, ?WorklogFeed $feed = null): WorklogSyncReport
     {
         $integration = $this->oauthService->refreshIfExpired($integration);
         $this->connector = new Connector($integration->config);
         $this->integrationId = $integration->id;
+        $feed ??= new JiraWorklogFeed($this->connector);
+        $this->externalSource = $feed->externalSource();
+        // Lets outbound listeners tell an imported change from one made in Timatic
+        Context::add('entry_sync_source', $this->externalSource);
         $this->mirroredIssuePrefixes = ($integration->config['mirrored_issues_enabled'] ?? false)
             ? ($integration->config['mirrored_issue_prefixes'] ?? [])
             : [];
         $report = new WorklogSyncReport;
 
-        $updated = $this->fetchFeed(fn (int $since) => new GetUpdatedWorklogIdsRequest($since), $updatedSinceMilliseconds);
-        $deleted = $this->fetchFeed(fn (int $since) => new GetDeletedWorklogIdsRequest($since), $deletedSinceMilliseconds);
+        $changes = $feed->changedSince($updatedSinceMilliseconds);
+        $deleted = $feed->deletedSince($deletedSinceMilliseconds);
 
-        $this->syncUpdated($updated->worklogIds, $report);
-        $this->syncDeleted($deleted->worklogIds, $report);
+        try {
+            $this->syncUpdated($changes->worklogs, $report);
+            $this->syncDeleted($deleted->worklogIds, $report);
+        } finally {
+            Context::forget('entry_sync_source');
+        }
 
-        $report->nextUpdatedSinceMilliseconds = $updated->until;
-        $report->nextDeletedSinceMilliseconds = $deleted->until;
+        $report->nextUpdatedSinceMilliseconds = $changes->nextSinceMilliseconds;
+        $report->nextDeletedSinceMilliseconds = $deleted->nextSinceMilliseconds;
 
         return $report;
     }
 
-    /** @param Collection<int, string> $worklogIds */
-    private function syncUpdated(Collection $worklogIds, WorklogSyncReport $report): void
+    /** @param Collection<int, JiraWorklog> $worklogs */
+    private function syncUpdated(Collection $worklogs, WorklogSyncReport $report): void
     {
-        $worklogs = $this->fetchWorklogs($worklogIds);
         $issues = $this->fetchIssues($worklogs->pluck('issueId')->unique())->map(fn (JiraIssue $issue) => $this->resolveMirroredIssue($issue));
         $users = $this->fetchUsers($worklogs->pluck('authorAccountId')->unique());
 
@@ -83,7 +87,7 @@ final class WorklogSync
                 continue;
             }
 
-            $entry = Entry::withTrashed()->firstWhere(['external_source' => ServiceProvider::SOURCE_ID, 'external_id' => $worklog->id]);
+            $entry = Entry::withTrashed()->firstWhere(['external_source' => $this->externalSource, 'external_id' => $worklog->id]);
 
             if ($entry?->trashed()) {
                 $report->skipped++;
@@ -99,7 +103,7 @@ final class WorklogSync
             }
 
             $isNew = $entry === null;
-            $entry ??= new Entry(['external_source' => ServiceProvider::SOURCE_ID, 'external_id' => $worklog->id]);
+            $entry ??= new Entry(['external_source' => $this->externalSource, 'external_id' => $worklog->id]);
             $entry->fill([
                 'ticket_id' => $issue->key,
                 'ticket_number' => $issue->key,
@@ -137,7 +141,7 @@ final class WorklogSync
     private function syncDeleted(Collection $worklogIds, WorklogSyncReport $report): void
     {
         Entry::query()
-            ->where('external_source', ServiceProvider::SOURCE_ID)
+            ->where('external_source', $this->externalSource)
             ->whereIn('external_id', $worklogIds)
             ->get()
             ->each(function (Entry $entry) use ($report): void {
@@ -198,36 +202,6 @@ final class WorklogSync
         }
 
         return (new EntryLockedDateService($entry->user, new ClosedMonthDateService($entry->user)))->get()->isAfter($entry->started_at);
-    }
-
-    /** @param Closure(int): Request $makeRequest */
-    private function fetchFeed(Closure $makeRequest, int $sinceMilliseconds): JiraWorklogFeedPage
-    {
-        $worklogIds = collect();
-
-        do {
-            /** @var JiraWorklogFeedPage $page */
-            $page = $this->connector->send($makeRequest($sinceMilliseconds))->dto();
-            $worklogIds = $worklogIds->merge($page->worklogIds);
-            $hasAdvanced = $page->until > $sinceMilliseconds;
-            $sinceMilliseconds = $page->until;
-        } while (! $page->isLastPage && $hasAdvanced);
-
-        return new JiraWorklogFeedPage($worklogIds->unique()->values(), $page->until, true);
-    }
-
-    /**
-     * @param  Collection<int, string>  $worklogIds
-     * @return Collection<int, JiraWorklog>
-     */
-    private function fetchWorklogs(Collection $worklogIds): Collection
-    {
-        return $worklogIds->chunk(1000)->flatMap(function (Collection $chunk): array {
-            /** @var array<int, JiraWorklog> $worklogs */
-            $worklogs = $this->connector->send(new GetWorklogsRequest($chunk->values()->all()))->dto();
-
-            return $worklogs;
-        });
     }
 
     /**
