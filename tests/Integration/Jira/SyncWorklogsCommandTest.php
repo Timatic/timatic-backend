@@ -25,7 +25,7 @@ afterEach(function () {
 
 it('creates an entry for a worklog updated in Jira and stores the next sync position', function () {
     // Given
-    $integration = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    $integration = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp, 'worklog_sync_enabled' => true]]);
     $budget = Budget::factory()->has(BudgetVersion::factory()->state(['effective_from' => now()->subYear(), 'effective_to' => null]))->create();
     ProjectMapping::query()->create(['integration_id' => $integration->id, 'project_key' => 'ACME', 'project_name' => 'Acme', 'customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
     $user = User::factory()->create(['email' => 'ann@example.com']);
@@ -71,7 +71,7 @@ it('creates an entry for a worklog updated in Jira and stores the next sync posi
 
 it('updates the entry of a worklog that was changed in Jira', function () {
     // Given
-    $integration = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    $integration = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp, 'worklog_sync_enabled' => true]]);
     $budget = Budget::factory()->has(BudgetVersion::factory()->state(['effective_from' => now()->subYear(), 'effective_to' => null]))->create();
     ProjectMapping::query()->create(['integration_id' => $integration->id, 'project_key' => 'ACME', 'project_name' => 'Acme', 'customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
     User::factory()->create(['email' => 'ann@example.com']);
@@ -106,7 +106,7 @@ it('updates the entry of a worklog that was changed in Jira', function () {
 
 it('removes the entry of a worklog that was deleted in Jira', function () {
     // Given
-    Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp, 'worklog_sync_enabled' => true]]);
     $entry = Entry::factory()->create(['external_source' => 'jira', 'external_id' => '1001', 'started_at' => now()->subDay(), 'ended_at' => now()->subDay()->addHour()]);
     MockClient::global([
         GetUpdatedWorklogIdsRequest::class => MockResponse::make(['values' => [], 'until' => 1763500000000, 'lastPage' => true]),
@@ -122,7 +122,7 @@ it('removes the entry of a worklog that was deleted in Jira', function () {
 
 it('keeps an invoiced entry when its worklog is deleted in Jira', function () {
     // Given
-    Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp, 'worklog_sync_enabled' => true]]);
     $entry = Entry::factory()->create(['external_source' => 'jira', 'external_id' => '1001', 'invoiced_at' => now(), 'started_at' => now()->subDay(), 'ended_at' => now()->subDay()->addHour()]);
     MockClient::global([
         GetUpdatedWorklogIdsRequest::class => MockResponse::make(['values' => [], 'until' => 1763500000000, 'lastPage' => true]),
@@ -134,4 +134,16 @@ it('keeps an invoiced entry when its worklog is deleted in Jira', function () {
 
     // Then
     $this->assertNotSoftDeleted($entry);
+});
+
+it('does not contact Jira while the worklog sync is disabled in the settings', function () {
+    // Given
+    Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    Entry::factory()->create(['external_source' => 'jira', 'external_id' => '1001']);
+
+    // When
+    $this->artisan('jira:sync-worklogs')->assertSuccessful();
+
+    // Then
+    expect(Entry::query()->count())->toBe(1);
 });

@@ -23,6 +23,12 @@ class SyncWorklogsCommand extends Command
             return self::SUCCESS;
         }
 
+        if (! ($integration->config['worklog_sync_enabled'] ?? false)) {
+            $this->info('Worklog sync is disabled in the Jira integration settings.');
+
+            return self::SUCCESS;
+        }
+
         $updatedSince = $integration->config['worklog_sync_updated_since'] ?? null;
         $deletedSince = $integration->config['worklog_sync_deleted_since'] ?? null;
 
