@@ -1,0 +1,25 @@
+{
+    "name": "timatic/tempo-integration",
+    "description": "Tempo Timesheets integration for Timatic",
+    "type": "library",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.4",
+        "saloonphp/saloon": "^4.0",
+        "timatic/jira-integration": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Timatic\\Tempo\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Timatic\\Tempo\\ServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
