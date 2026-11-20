@@ -15,6 +15,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\DatabaseManager;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Collection;
 
@@ -58,9 +59,9 @@ class RebuildUserDay implements ShouldBeUnique, ShouldQueue
         $activities = $activityProjector->project($events, $entries, $this->previousSequenceBookings($events));
         $suggestions = $suggestionProjector->project($activities, $dismissedSuggestions, $day);
 
-        $db->transaction(function () use ($activities, $suggestions, $day) {
+        $db->transaction(function () use ($activities, $suggestions, $day, $db) {
             $this->deleteProjectedState($day);
-            $this->saveProjectedState($activities, $suggestions);
+            $this->saveProjectedState($activities, $suggestions, $db);
         });
     }
 
@@ -96,7 +97,7 @@ class RebuildUserDay implements ShouldBeUnique, ShouldQueue
         EntrySuggestion::query()
             ->where('user_id', $this->userId)
             ->where('date', $day->toDateString())
-            ->whereDoesntHave('entry')
+            ->whereDoesntHave('entry', fn (Builder $query) => $query->withTrashed())
             ->whereNull('deleted_at')
             ->forceDelete();
 
@@ -111,17 +112,30 @@ class RebuildUserDay implements ShouldBeUnique, ShouldQueue
      * @param  Collection<int, Activity>  $activities
      * @param  Collection<int, EntrySuggestion>  $suggestions
      */
-    private function saveProjectedState(Collection $activities, Collection $suggestions): void
+    private function saveProjectedState(Collection $activities, Collection $suggestions, DatabaseManager $db): void
     {
         $activities->each(function (Activity $activity) {
             $activity->save();
             $activity->events()->sync($activity->events->pluck('id'));
         });
 
-        $suggestions->each(function (EntrySuggestion $suggestion) {
+        $suggestions->each(function (EntrySuggestion $suggestion) use ($db) {
             $suggestion->save();
             Activity::whereKey($suggestion->activities->pluck('id'))
                 ->update(['entry_suggestion_id' => $suggestion->id]);
+
+            // Kept on the suggestion so a booking still teaches its sequence after the events are pruned.
+            $db->table('entry_suggestion_sequences')->insert($suggestion->activities
+                ->flatMap(fn (Activity $activity) => $activity->events)
+                ->filter(fn (Event $event) => $event->external_id !== null)
+                ->map(fn (Event $event) => [
+                    'entry_suggestion_id' => $suggestion->id,
+                    'source_id' => $event->source_id,
+                    'external_id' => $event->external_id,
+                ])
+                ->unique()
+                ->values()
+                ->all());
         });
     }
 }
