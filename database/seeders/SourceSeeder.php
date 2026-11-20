@@ -14,6 +14,7 @@ class SourceSeeder extends Seeder
      */
     private array $sources = [
         'browser' => 'Browser',
+        'google_meet' => 'Google Meet',
     ];
 
     public function run(): void
