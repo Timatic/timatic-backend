@@ -9,7 +9,7 @@ use Timatic\Tempo\Enums\WorklogSyncStatus;
 /** One sync from Tempo to entries; travels from page to page in the job payload and is shown as progress. */
 readonly class WorklogSyncRun
 {
-    /** @param array<string, int> $unmatchedAuthorWorklogs skipped worklogs per Jira account id without a Timatic user */
+    /** @param array<int|string, int> $unmatchedAuthorWorklogs skipped worklogs per Jira account id without a Timatic user */
     public function __construct(
         public string $id,
         public int $integrationId,

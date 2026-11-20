@@ -36,6 +36,10 @@ final class WorklogSyncTracker
     public function close(WorklogSyncRun $run): void
     {
         Cache::forever("tempo.worklog_sync.last.{$run->integrationId}", $run);
-        Cache::forget("tempo.worklog_sync.active.{$run->integrationId}");
+
+        // A run that lost its claim must not release the run that took over
+        if ($this->active($run->integrationId)?->id === $run->id) {
+            Cache::forget("tempo.worklog_sync.active.{$run->integrationId}");
+        }
     }
 }

@@ -64,16 +64,17 @@ final class WorklogSync
         }
 
         $now = now()->getTimestampMs();
-        $updatedSince = $since?->getTimestampMs() ?? $tempo->config['worklog_sync_updated_since'] ?? $now;
+        $requestedSince = $since?->getTimestampMs();
+        $updatedSince = (int) ($requestedSince ?? $tempo->config['worklog_sync_updated_since'] ?? $now);
 
         $run = new WorklogSyncRun(
             id: (string) Str::uuid(),
             integrationId: $tempo->id,
             status: WorklogSyncStatus::Queued,
-            updatedSinceMilliseconds: (int) $updatedSince,
-            deletedSinceMilliseconds: (int) ($since?->getTimestampMs() ?? $tempo->config['worklog_sync_deleted_since'] ?? $now),
+            updatedSinceMilliseconds: $updatedSince,
+            deletedSinceMilliseconds: (int) ($requestedSince ?? $tempo->config['worklog_sync_deleted_since'] ?? $now),
             startedAtMilliseconds: $now,
-            latestUpdatedMilliseconds: (int) $updatedSince,
+            latestUpdatedMilliseconds: $updatedSince,
         );
 
         if (! $this->tracker->claim($run)) {
@@ -139,10 +140,10 @@ final class WorklogSync
             'worklog_synced_until' => $run->startedAtMilliseconds,
             'unmatched_authors' => collect($storedAuthors)
                 ->keyBy('account_id')
-                ->replace(collect($run->unmatchedAuthorWorklogs)->map(function (int $worklogs, string $accountId): array {
-                    $author = $this->jira->send(new GetUserByAccountIdRequest($accountId))->dto();
+                ->replace(collect($run->unmatchedAuthorWorklogs)->map(function (int $worklogs, int|string $accountId): array {
+                    $author = $this->jira->send(new GetUserByAccountIdRequest((string) $accountId))->dto();
 
-                    return ['account_id' => $accountId, 'name' => $author->displayName, 'email' => $author->emailAddress, 'worklogs' => $worklogs];
+                    return ['account_id' => (string) $accountId, 'name' => $author->displayName, 'email' => $author->emailAddress, 'worklogs' => $worklogs];
                 }))
                 ->values()
                 ->all(),
@@ -173,10 +174,9 @@ final class WorklogSync
             $user = $users->get($worklog->authorAccountId);
 
             if ($user === null) {
-                $run = $run->with(unmatchedAuthorWorklogs: [
-                    ...$run->unmatchedAuthorWorklogs,
-                    $worklog->authorAccountId => ($run->unmatchedAuthorWorklogs[$worklog->authorAccountId] ?? 0) + 1,
-                ]);
+                $unmatched = $run->unmatchedAuthorWorklogs;
+                $unmatched[$worklog->authorAccountId] = ($unmatched[$worklog->authorAccountId] ?? 0) + 1;
+                $run = $run->with(unmatchedAuthorWorklogs: $unmatched);
             }
 
             if ($issue === null || $mapping === null || $user === null) {

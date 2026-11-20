@@ -28,16 +28,16 @@ class SyncWorklogsCommand extends Command
                 continue;
             }
 
-            if ($since === null && ! isset($config['worklog_sync_updated_since'])) {
-                $this->warn("{$label}: no sync position stored yet, starting from now. Pass --since=YYYY-MM-DD to import older worklogs.");
-            }
-
             try {
                 $worklogSync->start($integration, $since);
             } catch (WorklogSyncNotStartedException $exception) {
                 $this->info("{$label}: {$exception->getMessage()}");
 
                 continue;
+            }
+
+            if ($since === null && ! isset($config['worklog_sync_updated_since'])) {
+                $this->warn("{$label}: no sync position stored yet, starting from now. Pass --since=YYYY-MM-DD to import older worklogs.");
             }
 
             $this->info("{$label}: worklog sync queued.");

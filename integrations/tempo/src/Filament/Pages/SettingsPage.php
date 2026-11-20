@@ -71,12 +71,20 @@ class SettingsPage extends Page
         $hasToken = filled($config['api_token'] ?? null);
         $timezone = config('timatic.preferred_timezone');
         $tracker = app(WorklogSyncTracker::class);
+        $worklogSync = app(WorklogSync::class);
         // Evaluated while rendering, so a sync started in this request already shows up
         $syncStatus = fn (): array => ['run' => $tracker->active($integration->id) ?? $tracker->last($integration->id), 'timezone' => $timezone];
         /** @var array<int, array{account_id: string, name: string, email: string, worklogs: int}> $storedAuthors */
         $storedAuthors = $config['unmatched_authors'] ?? [];
-        $unmatchedAuthors = collect($storedAuthors)
-            ->reject(fn (array $author): bool => User::query()->where('email', Cache::get('jira.email.'.$author['account_id']) ?? $author['email'])->exists());
+        $authorEmails = collect($storedAuthors)->mapWithKeys(fn (array $author): array => [$author['account_id'] => strtolower(Cache::get('jira.email.'.$author['account_id']) ?? $author['email'])]);
+        $userEmails = User::query()->whereIn('email', $authorEmails->filter()->values())->pluck('email')->map(fn (string $email): string => strtolower($email));
+        $unmatchedAuthors = collect($storedAuthors)->reject(fn (array $author): bool => $userEmails->contains($authorEmails->get($author['account_id'], '')));
+        $syncRange = isset($config['worklog_sync_from'], $config['worklog_synced_until'])
+            ? __('tempo::tempo.settings.sync_range', [
+                'from' => CarbonImmutable::createFromTimestampMs($config['worklog_sync_from'], $timezone)->format('d-m-Y'),
+                'until' => CarbonImmutable::createFromTimestampMs($config['worklog_synced_until'], $timezone)->format('d-m-Y H:i'),
+            ])
+            : __('tempo::tempo.settings.sync_range_empty');
 
         return $form->schema([
             Section::make(__('tempo::tempo.settings.section_connection'))->schema([
@@ -110,18 +118,13 @@ class SettingsPage extends Page
                     Toggle::make('sync_to_tempo')
                         ->label(__('tempo::tempo.settings.field_sync_to_tempo'))
                         ->helperText(__('tempo::tempo.settings.field_sync_to_tempo_helper')),
-                    Text::make(isset($config['worklog_sync_from'], $config['worklog_synced_until'])
-                        ? __('tempo::tempo.settings.sync_range', [
-                            'from' => CarbonImmutable::createFromTimestampMs($config['worklog_sync_from'], $timezone)->format('d-m-Y'),
-                            'until' => CarbonImmutable::createFromTimestampMs($config['worklog_synced_until'], $timezone)->format('d-m-Y H:i'),
-                        ])
-                        : __('tempo::tempo.settings.sync_range_empty')),
+                    Text::make($syncRange),
                     View::make('tempo::filament.pages.worklog-sync-status')->viewData($syncStatus),
                 ])
                 ->footerActions([
                     Action::make('sync_worklogs')
                         ->label(__('tempo::tempo.settings.action_sync'))
-                        ->disabled(! app(WorklogSync::class)->isReady($integration))
+                        ->disabled(! $worklogSync->isReady($integration))
                         ->modalDescription(__('tempo::tempo.settings.action_sync_description'))
                         ->modalSubmitAction(fn (Action $action): Action => $action
                             ->label(__('tempo::tempo.settings.action_sync_start'))
@@ -134,9 +137,9 @@ class SettingsPage extends Page
                                 ->maxDate(today($timezone)),
                             View::make('tempo::filament.pages.worklog-sync-status')->viewData($syncStatus),
                         ])
-                        ->action(function (array $data, Action $action) use ($integration, $timezone): void {
+                        ->action(function (array $data, Action $action) use ($integration, $timezone, $worklogSync): void {
                             try {
-                                app(WorklogSync::class)->start(
+                                $worklogSync->start(
                                     $integration,
                                     filled($data['since'] ?? null) ? CarbonImmutable::parse($data['since'], $timezone)->startOfDay() : null,
                                 );
