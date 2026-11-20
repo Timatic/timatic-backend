@@ -50,8 +50,7 @@ it('maps a page of installation repositories', function () {
 
     expect($page->totalCount)->toBe(2)
         ->and($page->repositories[0]->fullName)->toBe('acme/api')
-        ->and($page->repositories[0]->isArchived)->toBeFalse()
-        ->and($page->repositories[1]->isArchived)->toBeTrue();
+        ->and($page->repositories[1]->fullName)->toBe('acme/web');
 });
 
 it('maps repository issues and marks pull requests', function () {

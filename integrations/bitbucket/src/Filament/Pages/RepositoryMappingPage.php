@@ -22,6 +22,8 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
+use Livewire\Attributes\Url;
 use Saloon\Exceptions\Request\RequestException;
 use Timatic\Bitbucket\Connector;
 use Timatic\Bitbucket\DataTransferObjects\BitbucketRepository;
@@ -37,6 +39,10 @@ class RepositoryMappingPage extends Page implements HasTable
     protected static string $resource = IntegrationResource::class;
 
     protected string $view = 'bitbucket::filament.pages.bitbucket-repository-mapping-page';
+
+    /** @var ?string */
+    #[Url(as: 'search')]
+    public $tableSearch = '';
 
     public function getTitle(): string
     {
@@ -83,12 +89,12 @@ class RepositoryMappingPage extends Page implements HasTable
         }
 
         return $table
-            ->query(RepositoryMapping::query()->where('integration_id', $this->getRecord()->getKey()))
+            ->query(RepositoryMapping::query()->withIsIgnored()->where('integration_id', $this->getRecord()->getKey()))
             ->columns([
                 TextColumn::make('repository_slug')->label(__('bitbucket::bitbucket.repository_mapping.column_repository'))->searchable()->sortable(),
                 TextColumn::make('repository_name')
                     ->label(__('bitbucket::bitbucket.repository_mapping.column_name'))
-                    ->color(fn (RepositoryMapping $record) => $record->is_archived ? 'gray' : null)
+                    ->color(fn (RepositoryMapping $record) => $record->is_ignored ? 'gray' : null)
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('customer.name')->label(__('bitbucket::bitbucket.common.column_customer'))->placeholder(__('bitbucket::bitbucket.common.not_linked'))->sortable(),
@@ -102,61 +108,58 @@ class RepositoryMappingPage extends Page implements HasTable
                     ->label(__('bitbucket::bitbucket.repository_mapping.filter_unmapped'))
                     ->default()
                     ->query(fn (Builder $query) => $query->whereNull('customer_id')),
-                TernaryFilter::make('is_archived')
-                    ->label(__('bitbucket::bitbucket.repository_mapping.filter_archived'))
+                TernaryFilter::make('is_ignored')
+                    ->label(__('bitbucket::bitbucket.repository_mapping.filter_ignored'))
+                    ->queries(
+                        true: fn (Builder $query) => $query->scopes('ignored'),
+                        false: fn (Builder $query) => $query->scopes('active'),
+                    )
                     ->default(false),
             ])
-            ->actions([
-                Action::make('archive')
-                    ->label(__('bitbucket::bitbucket.repository_mapping.action_archive'))
-                    ->icon('heroicon-o-archive-box')
+            ->recordActions([
+                Action::make('assign')
+                    ->label(__('bitbucket::bitbucket.common.assign_action'))
+                    ->fillForm(fn (RepositoryMapping $record): array => [
+                        'customer_id' => $record->customer_id,
+                        'budget_id' => $record->budget_id,
+                    ])
+                    ->schema($this->assignmentSchema())
+                    ->action(fn (RepositoryMapping $record, array $data) => $this->assign(new Collection([$record]), $data)),
+                Action::make('ignore')
+                    ->label(__('bitbucket::bitbucket.repository_mapping.action_ignore'))
+                    ->icon('heroicon-o-eye-slash')
                     ->color('warning')
                     ->iconButton()
                     ->requiresConfirmation()
-                    ->visible(fn (RepositoryMapping $record) => ! $record->is_archived)
-                    ->action(fn (RepositoryMapping $record) => $record->update(['is_archived' => true])),
+                    ->modalDescription(__('bitbucket::bitbucket.repository_mapping.ignore_confirmation'))
+                    ->visible(fn (RepositoryMapping $record) => ! $record->is_ignored)
+                    ->action(fn (RepositoryMapping $record) => $record->ignore()),
                 Action::make('restore')
                     ->label(__('bitbucket::bitbucket.repository_mapping.action_restore'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->iconButton()
-                    ->visible(fn (RepositoryMapping $record) => $record->is_archived)
-                    ->action(fn (RepositoryMapping $record) => $record->update(['is_archived' => false])),
+                    ->visible(fn (RepositoryMapping $record) => (bool) $record->is_ignored)
+                    ->action(fn (RepositoryMapping $record) => $record->stopIgnoring()),
             ])
+            ->recordAction('assign')
             ->bulkActions([
                 BulkAction::make('assign')
                     ->label(__('bitbucket::bitbucket.common.assign_action'))
-                    ->form([
-                        Select::make('customer_id')
-                            ->label(__('bitbucket::bitbucket.common.customer_label'))
-                            ->options(Customer::orderBy('name')->pluck('name', 'id'))
-                            ->searchable()
-                            ->nullable()
-                            ->placeholder(__('bitbucket::bitbucket.common.no_customer'))
-                            ->live(),
-                        Select::make('budget_id')
-                            ->label(__('bitbucket::bitbucket.common.budget_label'))
-                            ->options(fn ($get) => Budget::query()
-                                ->when($get('customer_id'), fn ($q, $id) => $q->where('customer_id', $id))
-                                ->get()
-                                ->mapWithKeys(fn (Budget $budget) => [$budget->id => $budget->getTitle()])
-                            )
-                            ->searchable()
-                            ->nullable()
-                            ->placeholder(__('bitbucket::bitbucket.common.no_budget')),
-                    ])
-                    ->action(function (Collection $records, array $data): void {
-                        $records->each->update([
-                            'customer_id' => $data['customer_id'] ?: null,
-                            'budget_id' => $data['budget_id'] ?: null,
-                        ]);
-                    })
+                    ->schema($this->assignmentSchema())
+                    ->action(fn (Collection $records, array $data) => $this->assign($records, $data))
                     ->deselectRecordsAfterCompletion(),
-                BulkAction::make('archive')
-                    ->label(__('bitbucket::bitbucket.repository_mapping.action_archive'))
-                    ->icon('heroicon-o-archive-box')
+                BulkAction::make('ignore')
+                    ->label(__('bitbucket::bitbucket.repository_mapping.action_ignore'))
+                    ->icon('heroicon-o-eye-slash')
                     ->color('warning')
                     ->requiresConfirmation()
-                    ->action(fn (Collection $records) => $records->each->update(['is_archived' => true]))
+                    ->modalDescription(__('bitbucket::bitbucket.repository_mapping.ignore_confirmation'))
+                    ->action(function (Collection $records): void {
+                        /** @var RepositoryMapping $record */
+                        foreach ($records as $record) {
+                            $record->ignore();
+                        }
+                    })
                     ->deselectRecordsAfterCompletion(),
             ])
             ->heading(__('bitbucket::bitbucket.repository_mapping.table_heading'))
@@ -174,6 +177,56 @@ class RepositoryMappingPage extends Page implements HasTable
                     $this->resetTable();
                 }),
         ];
+    }
+
+    /** @return array<int, Select> */
+    private function assignmentSchema(): array
+    {
+        return [
+            Select::make('customer_id')
+                ->label(__('bitbucket::bitbucket.common.customer_label'))
+                ->options(Customer::orderBy('name')->pluck('name', 'id'))
+                ->searchable()
+                ->nullable()
+                ->placeholder(__('bitbucket::bitbucket.common.no_customer'))
+                ->live(),
+            Select::make('budget_id')
+                ->label(__('bitbucket::bitbucket.common.budget_label'))
+                ->options(fn ($get) => Budget::query()
+                    ->when($get('customer_id'), fn ($q, $id) => $q->where('customer_id', $id))
+                    ->get()
+                    ->mapWithKeys(fn (Budget $budget) => [$budget->id => $budget->getTitle()])
+                )
+                ->searchable()
+                ->nullable()
+                ->placeholder(__('bitbucket::bitbucket.common.no_budget')),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, covariant Model>  $mappings
+     * @param  array<string, mixed>  $data
+     */
+    private function assign(Collection $mappings, array $data): void
+    {
+        /** @var RepositoryMapping $mapping */
+        foreach ($mappings as $mapping) {
+            $mapping->update([
+                'customer_id' => $data['customer_id'] ?: null,
+                'budget_id' => $data['budget_id'] ?: null,
+            ]);
+
+            if ($mapping->customer_id !== null) {
+                $mapping->stopIgnoring();
+            }
+        }
+
+        if (filled($data['customer_id'])) {
+            Notification::make()
+                ->title(__('bitbucket::bitbucket.repository_mapping.assigned_title'))
+                ->success()
+                ->send();
+        }
     }
 
     private function hasCredentials(): bool
