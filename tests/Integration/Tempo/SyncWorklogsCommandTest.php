@@ -147,9 +147,9 @@ it('records a worklog on a mirrored issue against the original issue of the othe
     // Given
     $pionect = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
     $thesis = Integration::factory()->create(['type' => 'jira', 'config' => []]);
-    Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $pionect->id, 'sync_to_timatic' => true, 'mirrored_issues_enabled' => true, 'mirrored_issue_prefixes' => ['SILO'], 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
+    Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $pionect->id, 'sync_to_timatic' => true, 'mirrored_issues_enabled' => true, 'mirrored_issue_prefixes' => ['ABC'], 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
     $budget = Budget::factory()->has(BudgetVersion::factory()->state(['effective_from' => now()->subYear(), 'effective_to' => null]))->create();
-    ProjectMapping::query()->create(['integration_id' => $thesis->id, 'project_key' => 'SILO', 'project_name' => 'Silo', 'customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
+    ProjectMapping::query()->create(['integration_id' => $thesis->id, 'project_key' => 'ABC', 'project_name' => 'Abc', 'customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
     User::factory()->create(['email' => 'ann@example.com']);
     MockClient::global([
         GetChangedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
@@ -165,7 +165,7 @@ it('records a worklog on a mirrored issue against the original issue of the othe
         GetIssuesRequest::class => MockResponse::make(['issues' => [[
             'id' => '5001',
             'key' => 'PIO-7',
-            'fields' => ['summary' => 'SILO-42 Fix login', 'issuetype' => ['name' => 'Task'], 'created' => '2026-09-01T10:00:00.000+0000'],
+            'fields' => ['summary' => 'ABC-42 Fix login', 'issuetype' => ['name' => 'Task'], 'created' => '2026-09-01T10:00:00.000+0000'],
         ]]]),
         GetUserByAccountIdRequest::class => MockResponse::make(['accountId' => 'acc-1', 'emailAddress' => 'ann@example.com']),
     ]);
@@ -175,8 +175,8 @@ it('records a worklog on a mirrored issue against the original issue of the othe
 
     // Then
     $entry = Entry::query()->sole();
-    expect($entry->ticket_number)->toBe('SILO-42')
-        ->and($entry->ticket_id)->toBe('SILO-42')
+    expect($entry->ticket_number)->toBe('ABC-42')
+        ->and($entry->ticket_id)->toBe('ABC-42')
         ->and($entry->ticket_title)->toBe('Fix login')
         ->and($entry->customer_id)->toBe($budget->customer_id)
         ->and($entry->budget_id)->toBe($budget->id);

@@ -175,7 +175,7 @@ final class WorklogSync
     }
 
     /**
-     * Issues mirrored from another Jira instance start with the original issue key, e.g. "SILO-12 Fix login".
+     * Issues mirrored from another Jira instance start with the original issue key, e.g. "ABC-12 Fix login".
      * Time on such a copy counts for the original issue.
      */
     private function resolveMirroredIssue(JiraIssue $issue): JiraIssue

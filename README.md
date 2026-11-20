@@ -118,7 +118,7 @@ php artisan tempo:sync-worklogs [--since=2026-01-01]
 ```
 
 Issues mirrored from another Jira instance usually start with the original issue key in their
-title, e.g. "SILO-12 Fix login". Switch on "Record mirrored issues on the original issue" in the
+title, e.g. "ABC-12 Fix login". Switch on "Record mirrored issues on the original issue" in the
 Tempo integration settings and list the project keys of the originals to record such time on the
 original issue and its project mapping instead of the copy.
 

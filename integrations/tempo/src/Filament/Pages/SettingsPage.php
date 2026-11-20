@@ -91,7 +91,7 @@ class SettingsPage extends Page
             TagsInput::make('mirrored_issue_prefixes')
                 ->label(__('tempo::tempo.settings.field_mirrored_issue_prefixes'))
                 ->helperText(__('tempo::tempo.settings.field_mirrored_issue_prefixes_helper'))
-                ->placeholder('SILO')
+                ->placeholder('ABC')
                 ->nestedRecursiveRules(['regex:/^[A-Z][A-Z0-9_]*$/i'])
                 ->visible(fn (Get $get): bool => (bool) $get('mirrored_issues_enabled'))
                 ->dehydratedWhenHidden(),

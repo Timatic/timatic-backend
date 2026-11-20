@@ -16,7 +16,7 @@ return [
         'field_sync_to_tempo' => 'Timatic-entries synchroniseren naar Tempo',
         'field_sync_to_tempo_helper' => 'Entries op issues van een gekoppeld Jira-project worden in Tempo aangemaakt, bijgewerkt en verwijderd als worklogs van de gebruiker van de entry.',
         'field_mirrored_issues' => 'Gespiegelde issues op het originele issue boeken',
-        'field_mirrored_issues_helper' => 'Voor issues die uit een andere Jira-instantie zijn gekopieerd en waarvan de titel begint met de originele issue key, bijv. "SILO-12 Fix login", wordt de tijd op het originele issue en zijn projectkoppeling geboekt.',
+        'field_mirrored_issues_helper' => 'Voor issues die uit een andere Jira-instantie zijn gekopieerd en waarvan de titel begint met de originele issue key, bijv. "ABC-12 Fix login", wordt de tijd op het originele issue en zijn projectkoppeling geboekt.',
         'field_mirrored_issue_prefixes' => 'Project keys van de originele issues',
         'field_mirrored_issue_prefixes_helper' => 'Alleen titels die met een van deze project keys beginnen worden als gespiegeld issue behandeld.',
         'action_save' => 'Opslaan',

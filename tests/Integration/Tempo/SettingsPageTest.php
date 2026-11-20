@@ -18,7 +18,7 @@ it('stores the token, the linked Jira instance, both sync switches and the mirro
     // When
     Livewire::test(SettingsPage::class, ['record' => $tempo->id])
         ->assertSuccessful()
-        ->fillForm(['api_token' => 'secret-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'sync_to_tempo' => true, 'mirrored_issues_enabled' => true, 'mirrored_issue_prefixes' => ['silo']])
+        ->fillForm(['api_token' => 'secret-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'sync_to_tempo' => true, 'mirrored_issues_enabled' => true, 'mirrored_issue_prefixes' => ['abc']])
         ->callAction('save');
 
     // Then
@@ -28,7 +28,7 @@ it('stores the token, the linked Jira instance, both sync switches and the mirro
         'sync_to_timatic' => true,
         'sync_to_tempo' => true,
         'mirrored_issues_enabled' => true,
-        'mirrored_issue_prefixes' => ['SILO'],
+        'mirrored_issue_prefixes' => ['ABC'],
     ]);
 });
 
