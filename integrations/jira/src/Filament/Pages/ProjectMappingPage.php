@@ -188,6 +188,13 @@ class ProjectMappingPage extends Page implements HasTable
     {
         try {
             $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
+
+            if (! $this->hasCredentials()) {
+                $this->notifyConnectionExpired();
+
+                return;
+            }
+
             $response = (new Connector($integration->config ?? []))->send(new GetProjectsRequest);
 
             if (in_array($response->status(), [401, 403])) {
