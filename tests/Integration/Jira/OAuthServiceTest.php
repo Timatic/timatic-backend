@@ -35,7 +35,7 @@ it('stores the tokens and the only accessible jira site', function () {
     ]);
 });
 
-it('disconnects when jira refuses the refresh token', function () {
+it('disconnects when jira refuses the refresh token', function (int $status, string $error) {
     $integration = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => [
         'access_token' => 'an-access-token',
         'refresh_token' => 'a-revoked-refresh-token',
@@ -44,10 +44,14 @@ it('disconnects when jira refuses the refresh token', function () {
         'cloud_url' => 'https://acme.atlassian.net',
     ]]);
     MockClient::global([
-        RefreshTokenRequest::class => MockResponse::make(['error' => 'invalid_grant'], 400),
+        RefreshTokenRequest::class => MockResponse::make(['error' => $error], $status),
     ]);
 
     $integration = app(OAuthService::class)->refreshIfExpired($integration);
 
     expect($integration->config)->toBe([]);
-});
+})->with([
+    'unknown token' => [403, 'invalid_grant'],
+    'rotated-away token' => [403, 'unauthorized_client'],
+    'bitbucket-style bad request' => [400, 'invalid_grant'],
+]);
