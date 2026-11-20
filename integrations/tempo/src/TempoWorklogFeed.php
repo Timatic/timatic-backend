@@ -6,7 +6,6 @@ use Carbon\CarbonImmutable;
 use Timatic\Tempo\DataTransferObjects\DeletedWorklogs;
 use Timatic\Tempo\DataTransferObjects\TempoDeletedWorklogPage;
 use Timatic\Tempo\DataTransferObjects\TempoWorklogPage;
-use Timatic\Tempo\DataTransferObjects\WorklogChanges;
 use Timatic\Tempo\Requests\GetChangedWorklogsRequest;
 use Timatic\Tempo\Requests\GetDeletedWorklogsRequest;
 
@@ -18,22 +17,9 @@ final class TempoWorklogFeed
 {
     public function __construct(private readonly Connector $connector) {}
 
-    public function changedSince(int $sinceMilliseconds): WorklogChanges
+    public function changedPage(int $sinceMilliseconds, int $offset): TempoWorklogPage
     {
-        $since = CarbonImmutable::createFromTimestampMs($sinceMilliseconds);
-        $worklogs = collect();
-        $latest = $since;
-        $offset = 0;
-
-        do {
-            /** @var TempoWorklogPage $page */
-            $page = $this->connector->send(new GetChangedWorklogsRequest($since, $offset))->dto();
-            $worklogs = $worklogs->merge($page->worklogs);
-            $latest = $page->latestUpdatedAt?->greaterThan($latest) ? $page->latestUpdatedAt : $latest;
-            $offset += GetChangedWorklogsRequest::LIMIT;
-        } while ($page->hasNext);
-
-        return new WorklogChanges($worklogs->unique('id')->values(), $latest->getTimestampMs());
+        return $this->connector->send(new GetChangedWorklogsRequest(CarbonImmutable::createFromTimestampMs($sinceMilliseconds), $offset))->dto();
     }
 
     public function deletedSince(int $sinceMilliseconds): DeletedWorklogs

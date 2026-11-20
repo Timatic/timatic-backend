@@ -28,6 +28,7 @@ class GetUserByAccountIdRequest extends Request
         return new JiraUser(
             accountId: $response->json('accountId') ?? '',
             emailAddress: $response->json('emailAddress') ?? '',
+            displayName: $response->json('displayName') ?? '',
         );
     }
 }

@@ -117,6 +117,10 @@ worklogs:
 php artisan tempo:sync-worklogs [--since=2026-01-01]
 ```
 
+The command queues the sync, which runs page by page on the queue worker. "Sync now" in the
+Tempo integration settings queues the same sync, optionally from a chosen day, and shows its
+progress. The settings also show since which day and until when the worklogs are synced.
+
 Issues mirrored from another Jira instance usually start with the original issue key in their
 title, e.g. "ABC-12 Fix login". Switch on "Record mirrored issues on the original issue" in the
 Tempo integration settings and list the project keys of the originals to record such time on the

@@ -11,7 +11,8 @@ use Timatic\Tempo\DataTransferObjects\TempoWorklogPage;
 
 class GetChangedWorklogsRequest extends Request
 {
-    public const LIMIT = 1000;
+    // One page is one queued job, so it has to be done well within the default 60 second worker timeout
+    public const LIMIT = 200;
 
     protected Method $method = Method::GET;
 
