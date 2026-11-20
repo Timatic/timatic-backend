@@ -56,7 +56,7 @@ accepted.
 | Reading repositories and issues, everything running in a queue | installation access token (`ghs_*`, 1h, minted on demand and cached) |
 
 Because of that split this package does not use Saloon's `AuthorizationCodeGrant` trait (as
-`.claude/docs/integration-oauth.md` prescribes): the trait models a single user-token flow, while nearly every
+`docs/integration-oauth.md` prescribes): the trait models a single user-token flow, while nearly every
 request here authenticates as the app installation. `OAuthService` handles the user flow and
 `InstallationTokenService` mints installation tokens from an RS256 app JWT.
 

@@ -1,0 +1,25 @@
+# Activities
+
+Read this when you change how a day's events are turned into activities.
+
+## Goal
+
+An activity is one stretch of work on one customer, and on one ticket when known, that the day's events support, whatever their sources and event types. Reviewing a pull request in the browser, replying in a comment thread and committing a fix are one activity when they belong to one ticket and run on without a gap. The sources and event types of the stretch live on its events. Building activities answers one question per minute of the day: *which customer and ticket was the user most likely working on?* What must stay true: **one customer is never charged twice for a minute**, while two customers may be when the user was multitasking, and **the strongest evidence decides**. The result depends only on the set of events, not on the order they arrived in. Test: `shuffled input produces the same activities as chronological input`.
+
+## Rules
+
+Events are processed in ascending weight, then by start time. Each event either joins an existing activity or starts a new one.
+
+- **A booked entry settles its minutes for its customer.** An activity of that customer is cut around the entry and the time is never proposed again; one with nothing left is not created. Tests: `an entry period inside an activity splits it into two activities`, `an activity fully inside entry periods is not created`.
+- **Weight decides a minute two activities claim.** The stronger (lower-weight) evidence keeps it and the weaker activity is cut around it. Test: `a high-weight event inside a low-weight event splits the low-weight into two activities`.
+- **On equal weight the earlier start wins, and point events each keep a slice.** Three commits five minutes apart become three short activities, not one, so later chaining can still tell them apart. Tests: `on equal weight the earlier-starting group is dominant`, `fast sequential point events of equal weight each get their own time slice`.
+- **Same ticket within 15 minutes joins, across sources and event types.** The gap is the estimate of "still the same stretch of work". The kind of evidence never splits a stretch; a gap, work on another ticket in between or a booked entry in between does. Tests: `same-ticket events within the chain gap merge into one activity across sources`, `a commit, a pull request comment and an approval on one ticket become one activity in any input order`, `same-ticket events further apart than the chain gap become separate activities`, `another ticket worked on in the gap keeps two activities of the same ticket apart`, `an entry booked between two activities of the same ticket keeps them apart`.
+- **A ticketless event with a customer joins the nearest activity of that customer.** Work for one customer is easier to book as one larger suggestion than as fragments, and on which ticket it is recorded matters less than that it is recorded. An event with no neighbour yet is placed after every other event, so a following activity can still claim it. Tests: `a null-ticket event glues onto the preceding group of the same customer even with another event type`, `a null-ticket event without preceding group is claimed by a following group of the same customer`.
+- **A customerless event stands alone.** There is nothing to match it on, so it joins nothing and becomes its own activity. Test: `events without customer are never combined`.
+- **An event never attaches to another customer's activity**, even when stronger evidence of that other customer left it no time of its own. Losing the signal is better than mixing customers. Test: `a covered group of another customer stays unattached instead of mixing customers`.
+- **Every part of a split keeps the events that overlap it**, so a [suggestion](suggestions.md) can recognise parts of one event and merge them again.
+
+## Where in the code
+
+- `app/Services/ActivityProjector.php` (chain gap, overlap subtraction), `app/Models/Activity.php`
+- Tests: `tests/Unit/Services/ActivityProjectorTest.php`
