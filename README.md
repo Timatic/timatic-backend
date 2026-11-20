@@ -103,6 +103,30 @@ php artisan timatic:rebundle-suggestions [--user=1] [--from=2026-06-01] [--to=20
 Pause queue workers before running this against live data, so queued rebuilds of the
 same user-days cannot interleave with the rebundle.
 
+### Sync Tempo worklogs
+
+Tempo strips the author and description from the worklogs it mirrors into Jira, so worklogs are
+read from Tempo. Add a Tempo integration in the admin with a Tempo API token and the Jira instance
+Tempo runs on, then switch on "Sync Tempo worklogs to Timatic entries". Every fifteen minutes the
+worklogs changed or deleted since the previous run are copied to entries, with the customer and
+budget of the Jira project mapping. Entries that are invoiced or in a locked period are left
+untouched and logged. The first run starts from the current moment; pass a day to import older
+worklogs:
+
+```bash
+php artisan tempo:sync-worklogs [--since=2026-01-01]
+```
+
+Issues mirrored from another Jira instance usually start with the original issue key in their
+title, e.g. "SILO-12 Fix login". Switch on "Record mirrored issues on the original issue" in the
+Tempo integration settings and list the project keys of the originals to record such time on the
+original issue and its project mapping instead of the copy.
+
+With "Sync Timatic entries to Tempo" on, every entry saved or deleted on an issue of a project
+mapped in that Jira instance is created, updated or deleted in Tempo as a worklog of the
+entry's user. Worklog times are sent in the preferred timezone of Timatic, which has to match
+the timezone of the Tempo instance.
+
 ## License
 
 Copyright (c) 2025 Timatic.

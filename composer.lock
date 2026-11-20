@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5e6ed2e190d505bfab34a0e5e5facfef",
+    "content-hash": "a41002e81ba050da1472d89ad6d08a62",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -11255,6 +11255,37 @@
                 }
             },
             "description": "Rework integration for Timatic",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "timatic/tempo-integration",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "integrations/tempo",
+                "reference": "c13add2275b588a974f948b602459bb750c2f8a5"
+            },
+            "require": {
+                "php": "^8.4",
+                "saloonphp/saloon": "^4.0",
+                "timatic/jira-integration": "*"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Timatic\\Tempo\\ServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Timatic\\Tempo\\": "src/"
+                }
+            },
+            "description": "Tempo Timesheets integration for Timatic",
             "transport-options": {
                 "relative": true
             }

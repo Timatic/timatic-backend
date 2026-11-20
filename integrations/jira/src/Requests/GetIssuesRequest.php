@@ -40,6 +40,7 @@ class GetIssuesRequest extends Request
                 summary: $fields['summary'] ?? '',
                 createdAt: CarbonImmutable::parse($fields['created']),
                 resolvedAt: isset($fields['resolutiondate']) ? CarbonImmutable::parse($fields['resolutiondate']) : null,
+                id: isset($issue['id']) ? (string) $issue['id'] : null,
             );
         }, $response->json('issues') ?? []);
     }
