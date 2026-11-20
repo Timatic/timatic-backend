@@ -79,7 +79,6 @@ class ActivityProjector
             $match = $this->findChainableActivity($event,
                 fn (Activity $a) => $a->customer_id === $customerId
                     && $a->ticket_number === $event->ticket_number
-                    && $a->event_type_id === $event->event_type_id
             );
 
             if ($match) {
@@ -110,6 +109,10 @@ class ActivityProjector
         $newActivity = $this->activityFromEvent($event);
         $newActivityPartsWithoutOverlap = $this->reduceOverlap($newActivity);
         $this->activities->push(...$newActivityPartsWithoutOverlap);
+
+        foreach ($newActivityPartsWithoutOverlap as $part) {
+            $this->mergeNeighbours($part);
+        }
 
         // Fully covered, the event has no time of its own left, but it still underlines the work of
         // the same customer that covers it.
@@ -208,11 +211,9 @@ class ActivityProjector
         $activity->description = $event->description;
         $activity->customer_id = $this->customerId($event);
         $activity->is_internal = $this->isInternal($event);
-        $activity->event_type_id = $event->event_type_id;
         $activity->started_at = Carbon::instance($event->effectiveStart());
         $activity->ended_at = $event->ended_at;
         $activity->setRelation('events', collect([$event]));
-        $activity->setRelation('eventType', $event->eventType);
 
         return $activity;
     }
@@ -229,6 +230,51 @@ class ActivityProjector
         if ($event->ended_at->isAfter($activity->ended_at)) {
             $activity->ended_at = $event->ended_at;
         }
+
+        $this->mergeNeighbours($activity);
+    }
+
+    /**
+     * Events are projected by weight before time, so a widened activity can come to lie next to
+     * an earlier projected activity of the same work item; they are one piece of work.
+     */
+    private function mergeNeighbours(Activity $activity): void
+    {
+        while ($neighbour = $this->activities->first(fn (Activity $other) => $this->isMergeable($activity, $other))) {
+            [$kept, $absorbed] = $this->activities->search($activity, true) < $this->activities->search($neighbour, true)
+                ? [$activity, $neighbour]
+                : [$neighbour, $activity];
+
+            $kept->setRelation('events', $kept->events->concat($absorbed->events)->unique(null, true)->values());
+            $kept->started_at = $kept->started_at->min($absorbed->started_at);
+            $kept->ended_at = $kept->ended_at->max($absorbed->ended_at);
+            $this->activities = $this->activities->reject(fn (Activity $other) => $other === $absorbed)->values();
+            $activity = $kept;
+        }
+    }
+
+    private function isMergeable(Activity $activity, Activity $other): bool
+    {
+        if ($other === $activity
+            || $activity->customer_id === null
+            || $other->customer_id !== $activity->customer_id
+            || $other->ticket_number !== $activity->ticket_number) {
+            return false;
+        }
+
+        $gapStart = $activity->ended_at->min($other->ended_at);
+        $gapEnd = $activity->started_at->max($other->started_at);
+
+        if ($gapStart->copy()->addMinutes(self::CHAIN_GAP_MINUTES)->lte($gapEnd)) {
+            return false;
+        }
+
+        $unionStart = $activity->started_at->min($other->started_at);
+        $unionEnd = $activity->ended_at->max($other->ended_at);
+
+        return ! $this->entries->contains(fn (Entry $entry) => $entry->started_at->lt($unionEnd) && $entry->ended_at->gt($unionStart))
+            && ($gapEnd->lte($gapStart) || ! $this->activities->contains(fn (Activity $claim) => $claim !== $activity && $claim !== $other
+                && $claim->started_at->lt($gapEnd) && $claim->ended_at->gt($gapStart)));
     }
 
     /**
