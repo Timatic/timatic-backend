@@ -158,8 +158,8 @@ class OAuthService
 
         $response = new OAuthConnector()->send(new RefreshTokenRequest($config['refresh_token'] ?? ''));
 
-        // Atlassian answers an unusable refresh token with 403 (invalid_grant or unauthorized_client), Bitbucket-style with 400
-        if (in_array($response->status(), [400, 403], true)) {
+        // Atlassian answers an unusable refresh token with 403, as invalid_grant or unauthorized_client
+        if ($response->status() === 403) {
             $this->disconnect($integration);
 
             return $integration->refresh();
