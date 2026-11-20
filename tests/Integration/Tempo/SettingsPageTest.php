@@ -56,7 +56,7 @@ it('keeps the stored token when the field is left empty', function () {
         ->and($tempo->config['sync_to_tempo'])->toBeTrue();
 });
 
-it('queues a worklog sync from the chosen day', function () {
+it('queues a worklog sync from the chosen day and keeps showing its progress', function () {
     // Given
     Queue::fake();
     $this->loginUser(permissions: ['integrations.read']);
@@ -65,10 +65,14 @@ it('queues a worklog sync from the chosen day', function () {
     $tempo = Integration::create(['title' => 'Tempo', 'type' => 'tempo', 'config' => ['api_token' => 'secret-token', 'jira_integration_id' => $jira->id]]);
 
     // When
-    Livewire::test(SettingsPage::class, ['record' => $tempo->id])
+    $page = Livewire::test(SettingsPage::class, ['record' => $tempo->id])
         ->callAction(TestAction::make('sync_worklogs')->schemaComponent('worklog_sync'), ['since' => '2026-06-01']);
 
     // Then
+    // While its dialog is open Filament only re-renders the dialog, which keeps polling the progress
+    expect($page->effects['partials']['action-modals.0'])
+        ->toContain('Sync staat in de wachtrij, wacht op de queue-worker…')
+        ->toContain('wire:poll.2s');
     Queue::assertPushed(SyncWorklogsJob::class, fn (SyncWorklogsJob $job) => $job->run->integrationId === $tempo->id
         && $job->run->updatedSinceMilliseconds === CarbonImmutable::parse('2026-05-31T22:00:00Z')->getTimestampMs());
 });

@@ -39,6 +39,7 @@ return [
         'unmatched_authors_description' => 'Worklogs of these Tempo authors are skipped, because no Timatic user has their Jira email address. Create the user or correct the email address and sync again from the first missing day.',
         'unmatched_author' => ':name (:email): :count worklogs skipped',
         'unmatched_author_hidden_email' => 'email address hidden in Jira',
+        'notification_sync_not_started' => 'The sync could not start: a sync is already running or the connection is incomplete.',
         'action_save' => 'Save',
         'notification_saved' => 'Settings saved.',
     ],

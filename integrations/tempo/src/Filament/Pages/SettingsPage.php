@@ -143,8 +143,8 @@ class SettingsPage extends Page
                                     $integration,
                                     filled($data['since'] ?? null) ? CarbonImmutable::parse($data['since'], $timezone)->startOfDay() : null,
                                 );
-                            } catch (WorklogSyncNotStartedException $exception) {
-                                Notification::make()->title($exception->getMessage())->danger()->send();
+                            } catch (WorklogSyncNotStartedException) {
+                                Notification::make()->title(__('tempo::tempo.settings.notification_sync_not_started'))->danger()->send();
                             }
 
                             // Keeps the modal open, where the progress of the queued sync is shown

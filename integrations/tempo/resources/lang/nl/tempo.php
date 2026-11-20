@@ -39,6 +39,7 @@ return [
         'unmatched_authors_description' => 'Worklogs van deze Tempo-auteurs worden overgeslagen, omdat geen Timatic-gebruiker hun Jira-e-mailadres heeft. Maak de gebruiker aan of corrigeer het e-mailadres en synchroniseer opnieuw vanaf de eerste ontbrekende dag.',
         'unmatched_author' => ':name (:email): :count worklogs overgeslagen',
         'unmatched_author_hidden_email' => 'e-mailadres verborgen in Jira',
+        'notification_sync_not_started' => 'De sync kon niet starten: er loopt al een sync of de verbinding is niet compleet.',
         'action_save' => 'Opslaan',
         'notification_saved' => 'Instellingen opgeslagen.',
     ],
