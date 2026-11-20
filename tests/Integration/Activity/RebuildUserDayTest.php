@@ -4,6 +4,7 @@ use App\Events\EventCreated;
 use App\Jobs\RebuildUserDay;
 use App\Models\Activity;
 use App\Models\Budget;
+use App\Models\Customer;
 use App\Models\Entry;
 use App\Models\EntrySuggestion;
 use App\Models\Event;
@@ -99,6 +100,7 @@ test('a dismissed suggestion suppresses its group but the activity is still save
 test('an entry blocks its period and entry-backed suggestions survive the rebuild', function () {
     Illuminate\Support\Facades\Event::fake([EventCreated::class]);
     $user = User::factory()->create();
+    $customer = Customer::factory()->create();
     $acceptedSuggestion = EntrySuggestion::factory()->create([
         'user_id' => $user->id,
         'date' => '2026-07-16',
@@ -106,12 +108,13 @@ test('an entry blocks its period and entry-backed suggestions survive the rebuil
     Entry::factory()->create([
         'user_id' => $user->id,
         'entry_suggestion_id' => $acceptedSuggestion->id,
+        'customer_id' => $customer->id,
         'started_at' => Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam'),
         'ended_at' => Carbon::parse('2026-07-16 11:00', 'Europe/Amsterdam'),
     ]);
     Event::factory()->create([
         'user_id' => $user->id,
-        'customer_id' => 'customerX',
+        'customer_id' => $customer->id,
         'ticket_number' => 'TIC-1',
         'event_type_id' => EventType::factory()->create(['weight' => 1])->id,
         'started_at' => Carbon::parse('2026-07-16 09:30', 'Europe/Amsterdam'),
@@ -124,6 +127,43 @@ test('an entry blocks its period and entry-backed suggestions survive the rebuil
     expect($activity->started_at->toDateTimeString())->toBe('2026-07-16 09:30:00')
         ->and($activity->ended_at->toDateTimeString())->toBe('2026-07-16 10:00:00')
         ->and(EntrySuggestion::query()->whereKey($acceptedSuggestion->id)->exists())->toBeTrue();
+});
+
+test('a booked entry only shortens activities of its own customer on the rebuild', function () {
+    Illuminate\Support\Facades\Event::fake([EventCreated::class]);
+    $user = User::factory()->create();
+    [$bookedCustomer, $otherCustomer] = Customer::factory()->count(2)->create();
+    Entry::factory()->create([
+        'user_id' => $user->id,
+        'customer_id' => $bookedCustomer->id,
+        'ticket_number' => 'TIC-1',
+        'started_at' => Carbon::parse('2026-07-16 10:00', 'Europe/Amsterdam'),
+        'ended_at' => Carbon::parse('2026-07-16 11:00', 'Europe/Amsterdam'),
+    ]);
+    $eventTypeId = EventType::factory()->create(['weight' => 1])->id;
+    Event::factory()->create([
+        'user_id' => $user->id,
+        'customer_id' => $bookedCustomer->id,
+        'ticket_number' => 'TIC-2',
+        'event_type_id' => $eventTypeId,
+        'started_at' => Carbon::parse('2026-07-16 09:30', 'Europe/Amsterdam'),
+        'ended_at' => Carbon::parse('2026-07-16 10:30', 'Europe/Amsterdam'),
+    ]);
+    Event::factory()->create([
+        'user_id' => $user->id,
+        'customer_id' => $otherCustomer->id,
+        'ticket_number' => 'TIC-3',
+        'event_type_id' => $eventTypeId,
+        'started_at' => Carbon::parse('2026-07-16 09:30', 'Europe/Amsterdam'),
+        'ended_at' => Carbon::parse('2026-07-16 10:30', 'Europe/Amsterdam'),
+    ]);
+
+    RebuildUserDay::dispatchSync($user->id, '2026-07-16');
+
+    $periods = Activity::query()->orderBy('ticket_number')->get()
+        ->map(fn (Activity $activity) => $activity->ticket_number.' '.$activity->started_at->format('H:i').'-'.$activity->ended_at->format('H:i'))
+        ->all();
+    expect($periods)->toBe(['TIC-2 09:30-10:00', 'TIC-3 09:30-10:30']);
 });
 
 test('the unique id combines user and date', function () {
