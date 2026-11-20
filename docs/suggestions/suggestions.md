@@ -4,7 +4,7 @@ Read this when you change how activities become suggestions, how a suggestion fi
 
 ## Goal
 
-A suggestion is a proposed entry for one user on one day: one customer, and a ticket, budget and internal flag that are either known or still unknown. Activities of the same customer chain into one suggestion when nothing contradicts, so an engineer sees "2h on TIC-1 for X" instead of five fragments. What must stay true: **a suggestion never combines contradicting facts**, and **a dismissed suggestion stays dismissed** across rebuilds.
+A suggestion is a proposed entry for one user on one day: one customer, and a ticket, budget and internal flag that are either known or still unknown. Activities of the same customer chain into one suggestion when nothing contradicts, so a user sees "2h on TIC-1 for X" instead of five fragments. What must stay true: **a suggestion never combines contradicting facts**, and **the user's decision on a suggestion survives every rebuild**: an accepted suggestion is frozen with its entry, a dismissed one stays dismissed.
 
 ## Rules
 
@@ -22,8 +22,7 @@ A suggestion is a proposed entry for one user on one day: one customer, and a ti
 ### Dismissing and accepting
 
 - **Dismissing suppresses the key, not the time.** The dismissed suggestion's customer, budget, ticket and internal flag form a key; every later rebuild of that user-day projects no suggestion with that key, while the activities are still built and saved, so the time stays visible. A suggestion with a different ticket is a different key. Tests: `no suggestion is projected when a dismissed suggestion matches the group key`, `a dismissed suggestion with a different ticket does not suppress the group`, `a dismissed suggestion suppresses its group but the activity is still saved`.
-- **Accepting makes the suggestion final.** The entry points at it, a rebuild leaves it alone, and the entry claims its minutes from every later projection. Test: `an entry blocks its period and entry-backed suggestions survive the rebuild`.
-- **Unknown is unknown.** A suggestion with no budget and no internal flag is not a paid-per-hour proposal; the engineer decides the settlement when accepting. See [entries](../entries/overview.md).
+- **A suggestion proposes a settlement only when it knows one.** With no budget and no internal flag it proposes neither; the user picks budget, internal or paid per hour when accepting. See [entries](../entries/overview.md).
 
 ## Where in the code
 

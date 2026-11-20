@@ -4,17 +4,18 @@ Read this when you add a source or event type, change what an integration sends,
 
 ## Goal
 
-An event is one observed signal that a user did work: a commit, an issue transition, a pull request comment, a browser tab in focus, a calendar meeting, a prompt in Claude Code. Sources differ in what they know, so **an event may leave anything but its user, source, type and end unknown**, and the pipeline fills gaps later rather than refusing events.
+An event is one observed fact about a user's work: a commit, an issue transition, a pull request comment, a browser tab in focus, a prompt in Claude Code. It carries an end timestamp, or a start timestamp when it marks the beginning of something, such as opening a file or answering a call. Sources differ in what else they know, so **an event may leave anything but its user, source, type and timestamp unknown**, and the pipeline fills the gaps later rather than refusing events.
 
 ## Rules
 
 - **An unknown customer is accepted, not rejected.** A customer external id the backend cannot resolve leaves the customer unknown and the event is stored; a source should never lose a signal over a mapping gap. Test: `stores an event and ignores a non existing customer`.
-- **Unknown is unknown.** A missing budget or internal flag means the source did not know; it never means paid per hour, which exists only on a saved [entry](../entries/overview.md).
-- **An event without a start is 15 minutes ending at its end.** A commit says nothing about when the work began; 15 minutes is the estimate the whole pipeline uses.
-- **An event spans at most a day and ends in the past.** A longer signal is not work on one thing. Tests: `refuses an event that spans more than a day`, `refuses an event that ends in the future`.
-- **The event type's weight ranks evidence**: the lower, the stronger the claim that the user worked on exactly this at exactly that time. [Activities](activities.md) are built in ascending weight, so a strong event keeps its minutes and a weak one only fills what is left. Representative weights (the seeders of the core app and each integration package are the source of truth): branch created 10, Claude Code prompt 20, pull request comment 40, pull request opened 50, pull request merged 70, calendar meeting 75, Jira issue done 93, Jira worklog 95, browser focus 100.
-- **Source plus external id identifies a sequence.** Occurrences of a recurring meeting share one external id, which lets a suggestion learn from the booking of an earlier occurrence. See [suggestions](suggestions.md).
-- **Tracked domains are applied by the browser extension, not by the backend.** The backend stores, per customer, the hosts and paths that belong to it (optionally with a budget, optionally private to one user); the extension reads them and sends focus events with the customer already set. Issue #80 plans to move this mapping into the extension's integration.
+- **An event can be explicitly for a budget or explicitly internal, never explicitly paid per hour.** A missing budget or internal flag means the source did not know; paid per hour is a settlement that exists only on a saved [entry](../entries/overview.md).
+- **The end timestamp is the fact, the duration is a guess.** An event without a start gets an estimated duration before its end timestamp, today a flat 15 minutes. A better estimate per source or event type can replace that guess later without touching the stored events.
+- **Events are facts, not plans.** Timatic records what someone did, never what someone intends to do, so an event ends in the past. A calendar item only shows intent and can be cancelled during the meeting, which is why it is weak evidence on its own. Test: `refuses an event that ends in the future`.
+- **An event spans at most a day.** A longer signal is not work on one thing. Test: `refuses an event that spans more than a day`.
+- **The event type's weight says how certain the evidence is.** Some events prove what the user was doing with more certainty than others: a keystroke or a commit is certain, being in a meeting is not, the user may have been answering mail. The lower the weight, the stronger the claim. [Activities](activities.md) are built in ascending weight, so certain evidence keeps its minutes and uncertain evidence only fills what is left. The seeders of the core app and of each integration package hold the weights.
+- **A recurring event is suggested the way the user booked it last time.** Occurrences of a recurring meeting share a source and external id, the sequence. Once the user books one occurrence on a customer and budget, every other occurrence is proposed with that customer and budget, as if the user had created a mapping. See [suggestions](suggestions.md).
+- **Tracked domains are proposals from admins to users, applied by the browser extension.** An admin records per customer the hosts and paths that belong to it, optionally with a budget, and users can add their own. The extension reads them and sends focus events with the customer already set, so the backend never guesses a customer from a URL.
 
 ## Where in the code
 

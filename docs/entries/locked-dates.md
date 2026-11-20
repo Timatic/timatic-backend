@@ -4,7 +4,7 @@ Read this when you change how far back a user may create or edit entries, or whe
 
 ## Goal
 
-Hours are invoiced per month. Once finance has closed a month, no entry in it may move, and even inside the open month an engineer may only touch recent days, so forgotten hours get booked promptly instead of months later. The **locked date** is the single moment before which the current user may not create or change entries; every entry check compares against it.
+Hours are invoiced per month. Once finance has closed a month, no entry in it may move, and even inside the open month a user may only touch recent days, so forgotten hours get booked promptly instead of months later. The **locked date** is the single moment before which the current user may not create or change entries; every entry check compares against it.
 
 ## Rules
 

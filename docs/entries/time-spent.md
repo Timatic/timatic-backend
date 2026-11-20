@@ -4,7 +4,7 @@ Read this when you change the totals per week or month that the dashboards show,
 
 ## Goal
 
-Managers need, per unit of time (week, month), how many minutes were internal and how many were billable, and per budget how many minutes remained after each unit. The totals are computed from entries on request, so **they are always consistent with the entries** and need no bookkeeping of their own.
+The team dashboard shows a chart of the time a team spent per week or month, split into internal and billable minutes, and per budget how many minutes remained after each unit. The endpoint exists for that chart. The totals come from a database view over entries that carries the settlement split, so a week or a team can be queried directly and **the totals are always consistent with the entries**.
 
 ## Rules
 

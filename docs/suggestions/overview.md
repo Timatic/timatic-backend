@@ -1,18 +1,28 @@
 # Suggestions
 
-Read this when you touch anything between an integration observing work and an engineer booking an entry for it.
+Read this when you touch anything between an integration observing work and a user booking an entry for it.
 
 ## Goal
 
-Engineers forget to book hours. Timatic therefore collects signals of work from the tools engineers already use and turns them into proposed entries, so a day can be booked by accepting suggestions instead of reconstructing it from memory. What must stay true:
+People forget to book hours. Timatic therefore collects signals of work from the tools people already use and turns them into proposed entries, so a day can be booked by accepting suggestions instead of reconstructing it from memory. What must stay true:
 
-- **A suggestion only ever proposes time nothing else claims.** Booked entries and stronger evidence always win over weaker evidence for the same minutes.
+- **One customer is never charged twice for a minute.** A booked entry settles its minutes for its customer, and between activities of one customer the strongest evidence decides. Two customers may both be charged when the user was multitasking.
 - **A day can always be rebuilt from its events.** Activities and open suggestions are a projection of the day's events, never hand-edited state; a user's decisions (accepting, dismissing) are the only state that survives a rebuild.
 
 ```
-Source ─▶ Event ─▶ Activity ─▶ Suggestion ─▶ Entry
-          one signal   time on one       proposed entry      the engineer's
-          of work      customer/ticket   for one user-day    accepted booking
+Source       where signals come from: an integration, the extension, a calendar
+  │
+  ▼
+Event        one fact about work: a commit, a focused tab, a meeting
+  │
+  ▼
+Activity     one stretch of work on one customer and ticket
+  │
+  ▼
+Suggestion   a proposed entry for one user-day
+  │
+  ▼
+Entry        the booking the user accepted
 ```
 
 | step | page |
@@ -24,9 +34,9 @@ Source ─▶ Event ─▶ Activity ─▶ Suggestion ─▶ Entry
 
 ## One day, end to end
 
-A commit at 10:10 and another at 11:00 on ticket TIC-1 of customer X, and a two-hour calendar meeting from 10:00 to 12:00 for customer Y.
+A commit on ticket TIC-1 of customer X from 09:00 to 09:30, a calendar meeting of customer X without a ticket from 09:35 to 09:50, and another commit on TIC-1 at 11:00.
 
-1. **Events.** Three events for the user on that day. Commits are strong evidence (low weight), a calendar meeting is weak evidence (high weight): the engineer may have left early or coded through it.
-2. **Activities.** The commits are processed first and claim 10:10–10:25 and 11:00–11:15 on TIC-1. The meeting is processed next and only gets what is left: 10:00–10:10, 10:25–11:00 and 11:15–12:00, as three activities for customer Y that all point at the same meeting event. Test: `a meeting spanning two commits is split into three activities around the commits`.
-3. **Suggestions.** Per customer, activities chain when their ticket, budget and internal flag agree or are unknown. The two commit activities become one suggestion for X on TIC-1. The three meeting parts share one event, so they merge into one suggestion for Y, with 1h35 of minutes spent. Tests: `activities sharing customer, budget, ticket and is_internal bundle into one suggestion`, `customerless parts of one split event bundle into one suggestion`.
-4. **Entry.** The engineer accepts the X suggestion, which creates an entry linked to it. The Y suggestion gets dismissed; its key (customer Y, TIC-2, no budget, not internal) suppresses it on every later rebuild of that day.
+1. **Events.** Three events for the user on that day. The second commit has no start, so it gets the estimated duration of 15 minutes.
+2. **Activities.** The first commit starts an activity on TIC-1. The meeting has the same customer, no ticket and follows within the 15-minute gap, so it joins that activity, which now runs 09:00–09:50. The second commit is more than 15 minutes away and starts a second activity, 10:45–11:00. Tests: `a null-ticket event glues onto the preceding group of the same customer even with another event type`, `same-ticket events further apart than the chain gap become separate activities`.
+3. **Suggestions.** Both activities are customer X on TIC-1 and neither contradicts the other on budget or internal flag, so they chain into one suggestion of 65 minutes. Test: `activities sharing customer, budget, ticket and is_internal bundle into one suggestion`.
+4. **Entry.** The user accepts, which creates an entry linked to the suggestion. Had they dismissed it, its key (customer X, TIC-1, no budget, not internal) would suppress it on every later rebuild of that day.

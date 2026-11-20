@@ -1,13 +1,13 @@
 ## Timatic API
 
-Timatic registers the work of engineers: who worked, for which customer, on which ticket, from when to when, and on what account. The hours feed invoicing and consume customer budgets.
+Timatic registers the work of anyone working at a computer: who worked, for which customer, on which ticket, from when to when, and on what account. The hours feed invoicing and consume customer budgets.
 
-Everything users do day to day goes through the JSON:API, consumed by the frontend and the browser extension. The admin panel is for setup only: integrations, suggestion sources, roles. A user should rarely need it.
+Every day-to-day interaction is available in the frontend, and its data comes from this JSON:API. The other API users are integrations and the browser extension. The admin panel is for first-time setup only.
 
 ## Concepts
 
 ```
-Customer ─▶ Budget ─▶ Version ─▶ Period ─▶ Entry
+Customer ─▶ Budget ─▶ BudgetVersion ─▶ Period ─▶ Entry
 Source ─▶ Event ─▶ Activity ─▶ Suggestion ─▶ Entry
 ```
 
@@ -23,9 +23,9 @@ erDiagram
     ACTIVITY }|--o| ENTRY_SUGGESTION : "chains into"
 ```
 
-**Budgets** are pots of hours a customer bought. A budget's price and hours live in versions valid from a date, so a change never rewrites the past. Periods are the renewal windows and are derived on demand from the budget's start, end and renewal frequency. An entry consumes its minutes spent from the period it starts in; an entry without a budget is internal or paid per hour.
+**Budgets** are allocated time: hours a customer bought, or hours set aside for an internal project. A budget's price and hours live in versions valid from a date, so a change never rewrites the past. Periods are the renewal windows and are derived on demand from the budget's start, end and renewal frequency. An entry consumes its minutes spent from the period it starts in; an entry without a budget is internal or paid per hour.
 
-**Suggestions** exist because engineers forget to book hours. Integrations send events (commits, issue transitions, meetings, browser focus) and every event rebuilds the user's day: events become activities, the strongest evidence claiming each minute first, and activities of one customer chain into suggestions the engineer accepts or dismisses. Accepting creates the entry.
+**Suggestions** exist because people forget to book hours. Integrations send events (commits, issue transitions, meetings, browser focus) and every event rebuilds the user's day: events become activities, the strongest evidence claiming each minute first, and activities of one customer chain into suggestions the user accepts or dismisses. Accepting creates the entry.
 
 The full rules, each pinned by a test, live in [`docs/`](./docs/README.md): start with the [glossary](./docs/GLOSSARY.md), then [budgets](./docs/budgets/overview.md), [entries](./docs/entries/overview.md) and [suggestions](./docs/suggestions/overview.md).
 
@@ -94,7 +94,7 @@ composer docs:api
 ### Rebundle entry suggestions
 
 Rebuilds the activities and open suggestions of every user-day in the range from its
-events, using the current rules (see [the suggestion lifecycle](./docs/suggestions/lifecycle.md)):
+events, using the current rules. Meant for testing rule changes locally (see [the suggestion lifecycle](./docs/suggestions/lifecycle.md)):
 
 ```bash
 php artisan timatic:rebundle-suggestions [--user=1] [--from=2026-06-01] [--to=2026-06-30]

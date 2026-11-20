@@ -14,7 +14,7 @@ An entry is the one record that money follows: it says who worked, for which cus
 | none | true | internal work, outside any customer budget, never invoiced |
 | none | false | **paid per hour** at the customer's rate |
 
-- **Paid per hour exists on a saved entry only.** On an event, activity or suggestion a missing budget or internal flag means *unknown*; the engineer decides the settlement when accepting. See [suggestions](../suggestions/suggestions.md).
+- **Paid per hour exists on a saved entry only.** On an event, activity or suggestion a missing budget or internal flag means the source did not know; the user decides the settlement when accepting. See [suggestions](../suggestions/suggestions.md).
 - **Internal and budget are exclusive**: making an entry internal drops its budget. Test: `unsets the budget id when entry gets edited to internal`.
 - **A rate is snapshotted only on entries without a budget.** An entry on a budget takes the rate of the version active at its date, so a later version change reprices it; a paid-per-hour entry keeps the customer's rate at the time it was saved. Tests: `returns hourly rate with budget`, `returns hourly rate without budget`.
 

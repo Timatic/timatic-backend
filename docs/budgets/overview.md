@@ -4,7 +4,7 @@ Read this when you touch anything that creates, changes, archives or reads a bud
 
 ## Goal
 
-A customer buys a pot of hours. Engineers book entries on that pot, and the business needs to know at any moment, and for any past month, how much was bought, used, overrun and left. Two things must stay true:
+A budget is allocated time: hours a customer bought, or hours set aside for an internal project. Users book entries on it, and the business needs to know at any moment, and for any past month, how much was bought, used, overrun and left. Two things must stay true:
 
 - **History never changes.** A price or hours change applies from a date forward; every earlier month still reports what was true then. That is why the mutable fields live in [versions](versions.md).
 - **Nothing about a period is stored.** [Periods](periods.md) are derived from the budget's start, end, renewal frequency and archive date, so they can never disagree with those fields.

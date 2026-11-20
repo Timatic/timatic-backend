@@ -4,7 +4,7 @@ Read this when you change the per-day completeness indicator that tells a user h
 
 ## Goal
 
-An engineer should see at a glance whether a day is fully booked. Daily progress is the booked time of one user on one day as a percentage of an 8-hour working day, so a day under 100 percent invites the user to look at that day's [suggestions](../suggestions/overview.md).
+Daily progress tells a user whether the working hours of a day are recorded. It is the booked clock time of one user on one day as a percentage of an 8-hour working day. Overlapping entries count once, because the question is how much of the working day still needs an entry, not how many hours were charged. A day under 100 percent invites the user to look at that day's [suggestions](../suggestions/overview.md).
 
 ## Rules
 
