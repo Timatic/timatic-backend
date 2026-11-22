@@ -34,10 +34,12 @@ class ActivityOverlap
     }
 
     /**
+     * Time the activity already covered stays its own.
+     *
      * @param  Collection<int, Activity>  $activities
      * @return array<int, Activity>
      */
-    public function reduceOverlap(Activity $activity, Collection $activities): array
+    public function reduceOverlap(Activity $activity, Collection $activities, ?CarbonInterface $coveredFrom = null, ?CarbonInterface $coveredUntil = null): array
     {
         $claimed = new PeriodCollection(
             ...$this->entries
@@ -45,10 +47,14 @@ class ActivityOverlap
                 ->map(fn (Entry $entry) => $this->period($entry->started_at, $entry->ended_at))
                 ->all(),
             ...$activities
-                ->filter(fn (Activity $other) => ! $this->isOtherCustomer($activity->customer_id, $other->customer_id))
+                ->filter(fn (Activity $other) => $other !== $activity && ! $this->isOtherCustomer($activity->customer_id, $other->customer_id))
                 ->map(fn (Activity $other) => $this->period($other->started_at, $other->ended_at))
                 ->all(),
         );
+
+        if ($coveredFrom !== null && $coveredUntil !== null) {
+            $claimed = $claimed->subtract($this->period($coveredFrom, $coveredUntil));
+        }
 
         $activityPeriod = $this->period($activity->started_at, $activity->ended_at);
         $segments = PeriodCollection::make($activityPeriod)->subtract($claimed);
@@ -72,7 +78,7 @@ class ActivityOverlap
 
             $events = $activity->events->filter(
                 fn (Event $event) => $event->effectiveStart()->lt($segment->end()) && $event->ended_at->gt($segment->start())
-            );
+            )->values();
             $partialActivity->setRelation('events', $events);
             $parts[] = $partialActivity;
         }

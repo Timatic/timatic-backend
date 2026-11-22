@@ -7,6 +7,7 @@ use App\Models\Event;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Support\Collection;
+use LogicException;
 
 /**
  * Chains events and activities of one piece of work that lie within a short gap of each other.
@@ -59,6 +60,8 @@ class ActivityChainer
      */
     public function appendEventToActivity(Activity $activity, Event $event, Collection $activities): void
     {
+        $coveredFrom = $activity->started_at->copy();
+        $coveredUntil = $activity->ended_at->copy();
         $activity->events->push($event);
         $effectiveStart = $event->effectiveStart();
 
@@ -70,12 +73,27 @@ class ActivityChainer
             $activity->ended_at = $event->ended_at;
         }
 
-        $this->mergeNeighbours($activity, $activities);
+        $parts = $this->overlap->reduceOverlap($activity, $activities, $coveredFrom, $coveredUntil);
+        $position = $activities->search($activity, true);
+
+        if ($position === false) {
+            throw new LogicException('An event can only be appended to a projected activity.');
+        }
+
+        $activities->splice($position, 1, $parts);
+
+        foreach ($parts as $part) {
+            $this->mergeNeighbours($part, $activities);
+        }
     }
 
     /**
      * Events are projected by weight before time, so a widened activity can come to lie next to
      * an earlier projected activity of the same work item; they are one piece of work.
+     *
+     * ponytail: every merge rescans all activities and the gap check scans them again, O(n²) per
+     * call and O(n³) per day; fine for a day's events, index activities by customer and time if a
+     * user-day ever holds thousands.
      *
      * @param  Collection<int, Activity>  $activities
      */

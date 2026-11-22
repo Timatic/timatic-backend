@@ -1059,11 +1059,15 @@ test('merging the parts of a split event lists each event once', function () {
 
     $activities = (new ActivityProjector)->project(collect([$otherTicket, $work, $long]), collect());
 
-    expect($activities)->toHaveCount(2)
-        ->and($activities[1]->events->all())->toBe([$work, $long]);
+    $periods = $activities
+        ->map(fn ($activity) => $activity->ticket_number.' '.$activity->started_at->format('H:i').'-'.$activity->ended_at->format('H:i'))
+        ->all();
+    expect($periods)->toBe(['TIC-2 10:00-10:30', 'TIC-1 09:00-10:00', 'TIC-1 10:30-12:00'])
+        ->and($activities[1]->events->all())->toBe([$work, $long])
+        ->and($activities[2]->events->all())->toBe([$work, $long]);
 });
 
-test('a booked entry within the span keeps overlapping activities of the same ticket apart', function () {
+test('a long event widening an activity across a booked entry splits it around the entry', function () {
     $work = new Event([
         'user_id' => 1,
         'customer_id' => 'customerX',
@@ -1090,9 +1094,11 @@ test('a booked entry within the span keeps overlapping activities of the same ti
     $activities = (new ActivityProjector)->project(collect([$work, $long]), collect([$entry]));
 
     expect($activities)->toHaveCount(2)
-        ->and($activities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 09:55'))
+        ->and($activities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 09:00'))
         ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
-        ->and($activities[0]->events->all())->toBe([$work])
+        ->and($activities[0]->events->all())->toBe([$work, $long])
+        ->and($activities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 10:30'))
+        ->and($activities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 12:00'))
         ->and($activities[1]->events->all())->toBe([$work, $long]);
 });
 
@@ -1357,4 +1363,39 @@ test('a booked entry for another customer in the gap does not keep two activitie
         ->map(fn ($activity) => $activity->ticket_number.' '.$activity->started_at->format('H:i').'-'.$activity->ended_at->format('H:i'))
         ->all();
     expect($periods)->toBe(['TIC-1 08:45-09:40']);
+});
+
+test('an event chained across a booked entry splits the activity around the entry', function () {
+    $commit = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'commit_created',
+        'started_at' => Carbon::parse('2026-07-16 09:00'),
+        'ended_at' => Carbon::parse('2026-07-16 09:30'),
+    ]);
+    $commit->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 10]));
+    $review = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'pr_commented',
+        'started_at' => Carbon::parse('2026-07-16 09:38'),
+        'ended_at' => Carbon::parse('2026-07-16 10:00'),
+    ]);
+    $review->setRelation('eventType', new EventType(['id' => 'pr_commented', 'weight' => 40]));
+    $entry = new Entry([
+        'started_at' => Carbon::parse('2026-07-16 09:35'),
+        'ended_at' => Carbon::parse('2026-07-16 09:40'),
+    ]);
+
+    $activities = (new ActivityProjector)->project(collect([$commit, $review]), collect([$entry]));
+
+    expect($activities)->toHaveCount(2)
+        ->and($activities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 09:00'))
+        ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 09:35'))
+        ->and($activities[0]->events->all())->toBe([$commit])
+        ->and($activities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 09:40'))
+        ->and($activities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
+        ->and($activities[1]->events->all())->toBe([$review]);
 });
