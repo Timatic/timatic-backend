@@ -7,14 +7,8 @@ use App\Models\Activity;
 use App\Models\Entry;
 use App\Models\Event;
 use Carbon\Carbon;
-use Carbon\CarbonInterface;
 use Closure;
-use DateTimeImmutable;
 use Illuminate\Support\Collection;
-use Spatie\Period\Boundaries;
-use Spatie\Period\Period;
-use Spatie\Period\PeriodCollection;
-use Spatie\Period\Precision;
 
 class ActivityProjector
 {
@@ -23,8 +17,7 @@ class ActivityProjector
     /** @var Collection<int, Activity> */
     private Collection $activities;
 
-    /** @var Collection<int, Entry> */
-    private Collection $entries;
+    private ActivityOverlap $overlap;
 
     private EventAttribution $attribution;
 
@@ -41,7 +34,7 @@ class ActivityProjector
      */
     public function project(Collection $events, Collection $entries, Collection $previousSequenceBookings = new Collection): Collection
     {
-        $this->entries = $entries;
+        $this->overlap = new ActivityOverlap($entries);
         $this->attribution = new EventAttribution($previousSequenceBookings);
 
         $sorted = $events->sort(function (Event $a, Event $b) {
@@ -106,7 +99,7 @@ class ActivityProjector
     private function createActivity(Event $event): void
     {
         $newActivity = $this->activityFromEvent($event);
-        $newActivityPartsWithoutOverlap = $this->reduceOverlap($newActivity);
+        $newActivityPartsWithoutOverlap = $this->overlap->reduceOverlap($newActivity, $this->activities);
         $this->activities->push(...$newActivityPartsWithoutOverlap);
 
         foreach ($newActivityPartsWithoutOverlap as $part) {
@@ -127,55 +120,6 @@ class ActivityProjector
     }
 
     /**
-     * Work for another known customer may run alongside (multitasking); within one customer the
-     * stronger evidence claims the time.
-     *
-     * @return array<int, Activity>
-     */
-    private function reduceOverlap(Activity $activity): array
-    {
-        $claimed = new PeriodCollection(
-            ...$this->entries
-                ->filter(fn (Entry $entry) => ! $this->isOtherCustomer($activity->customer_id, $entry->customer_id))
-                ->map(fn (Entry $entry) => $this->period($entry->started_at, $entry->ended_at))
-                ->all(),
-            ...$this->activities
-                ->filter(fn (Activity $other) => ! $this->isOtherCustomer($activity->customer_id, $other->customer_id))
-                ->map(fn (Activity $other) => $this->period($other->started_at, $other->ended_at))
-                ->all(),
-        );
-
-        $activityPeriod = $this->period($activity->started_at, $activity->ended_at);
-        $segments = PeriodCollection::make($activityPeriod)->subtract($claimed);
-
-        if ($segments->isEmpty()) {
-            return [];
-        }
-
-        if ($segments->count() === 1) {
-            $activity->started_at = Carbon::instance($segments[0]->start());
-            $activity->ended_at = Carbon::instance($segments[0]->end());
-
-            return [$activity];
-        }
-
-        $parts = [];
-        foreach ($segments as $segment) {
-            $partialActivity = $activity->replicate(except: ['started_at', 'ended_at']);
-            $partialActivity->started_at = Carbon::instance($segment->start());
-            $partialActivity->ended_at = Carbon::instance($segment->end());
-
-            $events = $activity->events->filter(
-                fn (Event $event) => $event->effectiveStart()->lt($segment->end()) && $event->ended_at->gt($segment->start())
-            );
-            $partialActivity->setRelation('events', $events);
-            $parts[] = $partialActivity;
-        }
-
-        return $parts;
-    }
-
-    /**
      * Work for another customer runs alongside and does not interrupt the chain.
      *
      * @param  Closure(Activity): bool  $matches
@@ -186,7 +130,7 @@ class ActivityProjector
         $eventEnd = $event->ended_at->copy();
         $eventCustomerId = $this->attribution->customerId($event);
         $ownWork = $this->activities
-            ->reject(fn (Activity $a) => $this->isOtherCustomer($eventCustomerId, $a->customer_id));
+            ->reject(fn (Activity $a) => $this->overlap->isOtherCustomer($eventCustomerId, $a->customer_id));
 
         $precedingActivity = $ownWork
             ->filter(fn (Activity $a) => $a->ended_at->isBefore($eventEnd)
@@ -282,31 +226,6 @@ class ActivityProjector
             return false;
         }
 
-        $unionStart = $activity->started_at->min($other->started_at);
-        $unionEnd = $activity->ended_at->max($other->ended_at);
-
-        return ! $this->entries->contains(fn (Entry $entry) => ! $this->isOtherCustomer($activity->customer_id, $entry->customer_id)
-            && $entry->started_at->lt($unionEnd) && $entry->ended_at->gt($unionStart))
-            && ($gapEnd->lte($gapStart) || ! $this->activities->contains(fn (Activity $claim) => $claim !== $activity && $claim !== $other
-                && ! $this->isOtherCustomer($activity->customer_id, $claim->customer_id)
-                && $claim->started_at->lt($gapEnd) && $claim->ended_at->gt($gapStart)));
-    }
-
-    /**
-     * An unknown customer is not another customer: it may be the same work.
-     */
-    private function isOtherCustomer(int|string|null $customerId, int|string|null $otherCustomerId): bool
-    {
-        return $customerId !== null && $otherCustomerId !== null && (string) $customerId !== (string) $otherCustomerId;
-    }
-
-    private function period(CarbonInterface $start, CarbonInterface $end): Period
-    {
-        return new Period(
-            DateTimeImmutable::createFromInterface($start),
-            DateTimeImmutable::createFromInterface($end),
-            Precision::SECOND(),
-            Boundaries::EXCLUDE_END(),
-        );
+        return ! $this->overlap->isClaimedBetween($activity, $other, $this->activities);
     }
 }
