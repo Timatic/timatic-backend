@@ -21,5 +21,5 @@ Events are processed in ascending weight, then by start time. Each event either 
 
 ## Where in the code
 
-- `app/Services/ActivityProjector.php` (chain gap, overlap subtraction), `app/Models/Activity.php`
+- `app/Services/ActivityProjector.php` (order of events), `app/Services/ActivityOverlap.php` (overlap subtraction), `app/Services/ActivityChainer.php` (chain gap, merging), `app/Services/EventAttribution.php` (customer and budget of an event), `app/Models/Activity.php`
 - Tests: `tests/Unit/Services/ActivityProjectorTest.php`
