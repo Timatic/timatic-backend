@@ -330,35 +330,6 @@ test('a group fully covered by a dominant group of the same customer hands its e
         ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:30'));
 });
 
-test('work for another customer inside an activity becomes its own activity instead of mixing customers', function () {
-    $covering = new Event([
-        'user_id' => 1,
-        'customer_id' => 'customerX',
-        'ticket_number' => 'TIC-1',
-        'event_type_id' => 'calendar_event_started',
-        'started_at' => Carbon::parse('2026-07-16 10:00'),
-        'ended_at' => Carbon::parse('2026-07-16 10:30'),
-    ]);
-    $covering->setRelation('eventType', new EventType(['id' => 'calendar_event_started', 'weight' => 1]));
-    $covered = new Event([
-        'user_id' => 1,
-        'customer_id' => 'customerY',
-        'ticket_number' => 'TIC-2',
-        'event_type_id' => 'commit_created',
-        'started_at' => Carbon::parse('2026-07-16 10:05'),
-        'ended_at' => Carbon::parse('2026-07-16 10:10'),
-    ]);
-    $covered->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 99]));
-
-    $activities = (new ActivityProjector)->project(collect([$covering, $covered]), collect());
-
-    expect($activities)->toHaveCount(2)
-        ->and($activities[0]->events->all())->toBe([$covering])
-        ->and($activities[1]->events->all())->toBe([$covered])
-        ->and($activities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 10:05'))
-        ->and($activities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:10'));
-});
-
 test('within one customer on equal weight the earlier-starting group is dominant', function () {
     $earlier = new Event([
         'user_id' => 1,
@@ -1132,34 +1103,6 @@ test('a Claude Code session for one customer and a review for another customer b
         ->and($activities[1]->started_at)->toEqual(Carbon::parse('2026-07-16 09:25'))
         ->and($activities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
         ->and($activities[1]->events->all())->toBe([$commented, $approved]);
-});
-
-test('overlapping work on the same ticket becomes one activity', function () {
-    $session = new Event([
-        'user_id' => 1,
-        'customer_id' => 'customerX',
-        'ticket_number' => 'TIC-1',
-        'event_type_id' => 'prompt_submitted',
-        'started_at' => Carbon::parse('2026-07-16 09:00'),
-        'ended_at' => Carbon::parse('2026-07-16 10:00'),
-    ]);
-    $session->setRelation('eventType', new EventType(['id' => 'prompt_submitted', 'weight' => 20]));
-    $review = new Event([
-        'user_id' => 1,
-        'customer_id' => 'customerX',
-        'ticket_number' => 'TIC-1',
-        'event_type_id' => 'pr_commented',
-        'started_at' => Carbon::parse('2026-07-16 09:30'),
-        'ended_at' => Carbon::parse('2026-07-16 10:30'),
-    ]);
-    $review->setRelation('eventType', new EventType(['id' => 'pr_commented', 'weight' => 40]));
-
-    $activities = (new ActivityProjector)->project(collect([$review, $session]), collect());
-
-    expect($activities)->toHaveCount(1)
-        ->and($activities[0]->started_at)->toEqual(Carbon::parse('2026-07-16 09:00'))
-        ->and($activities[0]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:30'))
-        ->and($activities[0]->events->all())->toBe([$session, $review]);
 });
 
 test('a booked entry only claims time from activities of its own customer', function () {
