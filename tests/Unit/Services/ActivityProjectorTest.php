@@ -1481,3 +1481,50 @@ test('shuffled overlapping work produces the same activities as chronological in
             'customerY|TIC-2|10:45|12:00|1',
         ]);
 });
+
+test('a fully covered event is kept as evidence on the covering activity of its own ticket', function () {
+    $strongType = new EventType(['id' => 'branch_created', 'weight' => 1]);
+    $otherTicket = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'branch_created',
+        'started_at' => Carbon::parse('2026-07-16 09:20'),
+        'ended_at' => Carbon::parse('2026-07-16 09:40'),
+    ]);
+    $otherTicket->setRelation('eventType', $strongType);
+    $thirdTicket = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-3',
+        'event_type_id' => 'branch_created',
+        'started_at' => Carbon::parse('2026-07-16 09:40'),
+        'ended_at' => Carbon::parse('2026-07-16 10:00'),
+    ]);
+    $thirdTicket->setRelation('eventType', $strongType);
+    $ownTicket = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-2',
+        'event_type_id' => 'commit_created',
+        'started_at' => Carbon::parse('2026-07-16 09:00'),
+        'ended_at' => Carbon::parse('2026-07-16 09:20'),
+    ]);
+    $ownTicket->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 2]));
+    $covered = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-2',
+        'event_type_id' => 'pr_commented',
+        'started_at' => Carbon::parse('2026-07-16 09:10'),
+        'ended_at' => Carbon::parse('2026-07-16 09:45'),
+    ]);
+    $covered->setRelation('eventType', new EventType(['id' => 'pr_commented', 'weight' => 50]));
+
+    $activities = (new ActivityProjector)->project(collect([$otherTicket, $thirdTicket, $ownTicket, $covered]), collect());
+
+    expect($activities)->toHaveCount(3)
+        ->and($activities[0]->events->all())->toBe([$otherTicket])
+        ->and($activities[2]->ticket_number)->toBe('TIC-2')
+        ->and($activities[2]->events->all())->toBe([$ownTicket, $covered]);
+});
