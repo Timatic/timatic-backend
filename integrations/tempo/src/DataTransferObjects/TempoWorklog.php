@@ -11,6 +11,7 @@ readonly class TempoWorklog
         public string $issueId,
         public string $authorAccountId,
         public CarbonImmutable $startedAt,
+        public CarbonImmutable $updatedAt,
         public int $timeSpentSeconds,
         public string $description,
     ) {}

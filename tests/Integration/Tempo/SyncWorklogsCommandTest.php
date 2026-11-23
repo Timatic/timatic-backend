@@ -126,6 +126,27 @@ it('removes the entry of a worklog that was deleted in Tempo', function () {
     expect($tempo->refresh()->config['worklog_sync_deleted_since'])->toBe(1795006800000);
 });
 
+it('removes the entries of worklogs deleted in Tempo across several pages', function () {
+    // Given
+    $jira = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
+    $first = Entry::factory()->create(['external_id' => '70002', 'started_at' => now()->subDay(), 'ended_at' => now()->subDay()->addHour()]);
+    $second = Entry::factory()->create(['external_id' => '70003', 'started_at' => now()->subDay(), 'ended_at' => now()->subDay()->addHour()]);
+    MockClient::global([
+        GetChangedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 0], 'results' => []]),
+        GetDeletedWorklogsRequest::class => fn (PendingRequest $request) => $request->query()->get('lastEvaluatedKey') === 'key-1'
+            ? MockResponse::make(['metadata' => ['count' => 1], 'results' => [['deletedAt' => '2026-11-18T14:00:00.000000', 'tempoWorklogId' => '70003']]])
+            : MockResponse::make(['metadata' => ['count' => 1, 'next' => 'https://api.tempo.io/papertrail/1/events/deleted/types/worklog?lastEvaluatedKey=key-1', 'lastEvaluatedKey' => 'key-1'], 'results' => [['deletedAt' => '2026-11-18T13:00:00.000000', 'tempoWorklogId' => '70002']]]),
+    ]);
+
+    // When
+    $this->artisan('tempo:sync-worklogs')->assertSuccessful();
+
+    // Then
+    $this->assertSoftDeleted($first);
+    $this->assertSoftDeleted($second);
+});
+
 it('keeps an invoiced entry when its worklog is deleted in Tempo', function () {
     // Given
     $jira = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);

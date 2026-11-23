@@ -18,7 +18,7 @@ readonly class WorklogSyncRun
         public int $deletedSinceMilliseconds,
         public int $startedAtMilliseconds,
         public int $latestUpdatedMilliseconds,
-        public int $offset = 0,
+        public int $page = 1,
         public int $processed = 0,
         public int $created = 0,
         public int $updated = 0,

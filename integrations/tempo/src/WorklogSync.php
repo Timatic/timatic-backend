@@ -14,18 +14,21 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Saloon\Http\Response;
 use Timatic\Jira\Connector as JiraConnector;
 use Timatic\Jira\DataTransferObjects\JiraIssue;
 use Timatic\Jira\Models\ProjectMapping;
 use Timatic\Jira\OAuthService;
 use Timatic\Jira\Requests\GetIssuesRequest;
 use Timatic\Jira\Requests\GetUserByAccountIdRequest;
+use Timatic\Tempo\DataTransferObjects\TempoDeletedWorklog;
 use Timatic\Tempo\DataTransferObjects\TempoWorklog;
 use Timatic\Tempo\DataTransferObjects\WorklogSyncRun;
 use Timatic\Tempo\Enums\WorklogSyncStatus;
 use Timatic\Tempo\Exceptions\WorklogSyncNotStartedException;
 use Timatic\Tempo\Jobs\SyncWorklogsJob;
 use Timatic\Tempo\Requests\GetChangedWorklogsRequest;
+use Timatic\Tempo\Requests\GetDeletedWorklogsRequest;
 
 // @arch-ignore app-boundary: turns worklogs into entries with the enricher and lock rules of the core
 final class WorklogSync
@@ -101,29 +104,42 @@ final class WorklogSync
             ? ($tempo->config['mirrored_issue_prefixes'] ?? [])
             : [];
 
-        $feed = new TempoWorklogFeed(new Connector($tempo->config['api_token']));
-        $page = $feed->changedPage($run->updatedSinceMilliseconds, $run->offset);
+        // Tempo keeps the real author and description that it strips from its Jira copies
+        $connector = new Connector($tempo->config['api_token']);
+        $pages = (new GetChangedWorklogsRequest(CarbonImmutable::createFromTimestampMs($run->updatedSinceMilliseconds)))
+            ->paginate($connector)
+            ->setStartPage($run->page);
+        $pages->rewind();
+        /** @var Response $response */
+        $response = $pages->current();
+        /** @var Collection<int, TempoWorklog> $worklogs */
+        $worklogs = $response->dto();
         $run = $run->with(
             status: WorklogSyncStatus::Running,
-            latestUpdatedMilliseconds: max($run->latestUpdatedMilliseconds, $page->latestUpdatedAt?->getTimestampMs() ?? 0),
+            latestUpdatedMilliseconds: max($run->latestUpdatedMilliseconds, $worklogs->max(fn (TempoWorklog $worklog) => $worklog->updatedAt->getTimestampMs()) ?? 0),
         );
 
         // Lets the outbound subscriber tell an imported change from one made in Timatic
         Context::add('entry_sync_source', true);
 
         try {
-            $run = $this->syncUpdated($page->worklogs, $run);
+            $run = $this->syncUpdated($worklogs, $run);
 
-            if ($page->hasNext) {
+            // Each page runs in its own job; valid() tells whether Tempo has a page after the current one
+            if ($pages->valid()) {
                 // ponytail: a worklog deleted in Tempo mid-run shifts the next page by one and skips a worklog; sync again from the same date if a backfill misses one
-                $run = $run->with(offset: $run->offset + GetChangedWorklogsRequest::LIMIT);
+                $run = $run->with(page: $run->page + 1);
                 $this->tracker->update($run);
 
                 return $run;
             }
 
-            $deleted = $feed->deletedSince($run->deletedSinceMilliseconds);
-            $run = $this->syncDeleted($deleted->worklogIds, $run);
+            /** @var Collection<int, TempoDeletedWorklog> $deleted */
+            $deleted = (new GetDeletedWorklogsRequest(CarbonImmutable::createFromTimestampMs($run->deletedSinceMilliseconds)))
+                ->paginate($connector)
+                ->collect()
+                ->collect();
+            $run = $this->syncDeleted($deleted->pluck('id')->unique()->values(), $run);
         } finally {
             Context::forget('entry_sync_source');
         }
@@ -135,7 +151,7 @@ final class WorklogSync
         $tempo->update(['config' => array_merge($config, [
             // Worklogs changed while the run was busy may have been paged past, so never move beyond its start
             'worklog_sync_updated_since' => min($run->latestUpdatedMilliseconds, $run->startedAtMilliseconds),
-            'worklog_sync_deleted_since' => $deleted->nextSinceMilliseconds,
+            'worklog_sync_deleted_since' => max($run->deletedSinceMilliseconds, $deleted->max(fn (TempoDeletedWorklog $worklog) => $worklog->deletedAt->getTimestampMs()) ?? 0),
             'worklog_sync_from' => min($config['worklog_sync_from'] ?? PHP_INT_MAX, $run->updatedSinceMilliseconds),
             'worklog_synced_until' => $run->startedAtMilliseconds,
             'unmatched_authors' => collect($storedAuthors)
