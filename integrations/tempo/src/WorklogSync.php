@@ -2,6 +2,8 @@
 
 namespace Timatic\Tempo;
 
+use App\DataTransferObjects\Ticket;
+use App\Integrations\Tickets\TicketProviderRegistry;
 use App\Models\Entry;
 use App\Models\Integration;
 use App\Services\ClosedMonthDateService;
@@ -13,7 +15,6 @@ use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Saloon\Http\Response;
-use Timatic\Jira\DataTransferObjects\JiraIssue;
 use Timatic\Jira\JiraDirectory;
 use Timatic\Jira\Models\ProjectMapping;
 use Timatic\Tempo\DataTransferObjects\TempoDeletedWorklog;
@@ -151,7 +152,12 @@ final class WorklogSync
     /** @param Collection<int, TempoWorklog> $worklogs */
     private function syncUpdated(Collection $worklogs, WorklogSyncRun $run): WorklogSyncRun
     {
-        $issues = $this->jiraDirectory->issuesByIds($this->jira, $worklogs->pluck('issueId'))->map(fn (JiraIssue $issue) => $this->resolveMirroredIssue($issue));
+        $tickets = app(TicketProviderRegistry::class)->makeProvider($this->jira->type, [...$this->jira->config, 'integration_id' => $this->jira->id]);
+        // Tempo only knows the numeric issue id, which Jira accepts wherever it accepts an issue key
+        $issues = $worklogs->pluck('issueId')->unique()
+            ->mapWithKeys(fn (string $issueId): array => [$issueId => $tickets->fetchTicketByKey($issueId)])
+            ->filter()
+            ->map(fn (Ticket $ticket) => $this->resolveMirroredIssue($ticket));
         $users = $this->jiraDirectory->timaticUsers($this->jira, $worklogs->pluck('authorAccountId'));
 
         foreach ($worklogs as $worklog) {
@@ -167,7 +173,7 @@ final class WorklogSync
             $user = $users->get($worklog->authorAccountId);
 
             if ($issue === null || $mapping === null || $user === null) {
-                Log::warning("Tempo worklog {$worklog->id} skipped: no issue, budget mapping or Timatic user", ['issue' => $issue?->key, 'author' => $worklog->authorAccountId]);
+                Log::warning("Tempo worklog {$worklog->id} skipped: no issue, budget mapping or Timatic user", ['issue' => $issue?->number, 'author' => $worklog->authorAccountId]);
                 $run = $run->with(skipped: $run->skipped + 1);
 
                 continue;
@@ -191,10 +197,10 @@ final class WorklogSync
             $isNew = $entry === null;
             $entry ??= new Entry(['external_id' => $worklog->id]);
             $entry->fill([
-                'ticket_id' => $issue->key,
-                'ticket_number' => $issue->key,
-                'ticket_title' => $issue->summary,
-                'ticket_type' => $issue->issueType,
+                'ticket_id' => $issue->number,
+                'ticket_number' => $issue->number,
+                'ticket_title' => $issue->title,
+                'ticket_type' => $issue->type,
                 'customer_id' => $mapping->customer_id,
                 'budget_id' => $mapping->budget_id,
                 'user_id' => $user->id,
@@ -240,10 +246,10 @@ final class WorklogSync
     }
 
     /** The mapping of the issue's project, preferring the linked Jira instance when the key exists in several instances */
-    private function findBudgetMapping(JiraIssue $issue): ?ProjectMapping
+    private function findBudgetMapping(Ticket $issue): ?ProjectMapping
     {
         return ProjectMapping::active()
-            ->where('project_key', strtoupper(explode('-', $issue->key)[0]))
+            ->where('project_key', strtoupper(explode('-', $issue->number)[0]))
             ->whereNotNull('customer_id')
             ->whereNotNull('budget_id')
             ->orderByRaw('integration_id = ? desc', [$this->jira->id])
@@ -254,7 +260,7 @@ final class WorklogSync
      * Issues mirrored from another Jira instance start with the original issue key, e.g. "ABC-12 Fix login".
      * Time on such a copy counts for the original issue.
      */
-    private function resolveMirroredIssue(JiraIssue $issue): JiraIssue
+    private function resolveMirroredIssue(Ticket $issue): Ticket
     {
         if ($this->mirroredIssuePrefixes === []) {
             return $issue;
@@ -262,19 +268,21 @@ final class WorklogSync
 
         $prefixes = implode('|', array_map(fn (string $prefix) => preg_quote($prefix, '/'), $this->mirroredIssuePrefixes));
 
-        if (preg_match('/^((?:'.$prefixes.')-\d+)\b[\s:\-]*(.*)$/i', $issue->summary, $matches) !== 1) {
+        if (preg_match('/^((?:'.$prefixes.')-\d+)\b[\s:\-]*(.*)$/i', $issue->title, $matches) !== 1) {
             return $issue;
         }
 
+        $key = strtoupper($matches[1]);
         $title = trim($matches[2]);
 
-        return new JiraIssue(
-            key: strtoupper($matches[1]),
-            issueType: $issue->issueType,
-            summary: $title !== '' ? $title : $issue->summary,
-            createdAt: $issue->createdAt,
-            resolvedAt: $issue->resolvedAt,
-            id: $issue->id,
+        return new Ticket(
+            type: $issue->type,
+            id: $key,
+            number: $key,
+            title: $title !== '' ? $title : $issue->title,
+            created_at: $issue->created_at,
+            closed_at: $issue->closed_at,
+            url: $issue->url,
         );
     }
 

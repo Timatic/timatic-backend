@@ -31,22 +31,6 @@ final class JiraDirectory
         return filled($jira?->config['access_token'] ?? null) && filled($jira->config['cloud_id'] ?? null);
     }
 
-    /**
-     * @param  Collection<int, string>  $issueIds
-     * @return Collection<string, JiraIssue> keyed by issue id
-     */
-    public function issuesByIds(Integration $jira, Collection $issueIds): Collection
-    {
-        return $issueIds->unique()->chunk(50)
-            ->flatMap(function (Collection $chunk) use ($jira): array {
-                /** @var array<int, JiraIssue> $issues */
-                $issues = $this->connector($jira)->send(new GetIssuesRequest('id in ('.$chunk->implode(', ').')'))->dto();
-
-                return $issues;
-            })
-            ->keyBy(fn (JiraIssue $issue) => (string) $issue->id);
-    }
-
     public function findIssueId(Integration $jira, string $issueKey): ?int
     {
         return Cache::rememberForever('jira.issue_id.'.strtoupper($issueKey), function () use ($jira, $issueKey): ?int {
