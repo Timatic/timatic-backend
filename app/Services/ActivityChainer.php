@@ -7,6 +7,7 @@ use App\Models\Event;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Support\Collection;
+use LogicException;
 
 /**
  * Chains events and activities of one piece of work that lie within a short gap of each other.
@@ -19,7 +20,8 @@ class ActivityChainer
     public function __construct(private readonly ActivityOverlap $overlap) {}
 
     /**
-     * Work for another customer runs alongside and does not interrupt the chain.
+     * The nearest activity of the event's own customer decides; work for another customer runs
+     * alongside and does not interrupt the chain.
      *
      * @param  Collection<int, Activity>  $activities
      * @param  Closure(Activity): bool  $matches
@@ -35,6 +37,7 @@ class ActivityChainer
             ->filter(fn (Activity $a) => $a->ended_at->isBefore($eventEnd)
                 && $a->ended_at->copy()->addMinutes(self::CHAIN_GAP_MINUTES)->isAfter($eventStart)
             )
+            ->sortBy(fn (Activity $a) => $a->ended_at->getTimestamp())
             ->last();
 
         if ($precedingActivity && $matches($precedingActivity)) {
@@ -45,6 +48,7 @@ class ActivityChainer
             ->filter(fn (Activity $a) => $a->started_at->isAfter($eventStart)
                 && $a->started_at->copy()->subMinutes(self::CHAIN_GAP_MINUTES)->isBefore($eventEnd)
             )
+            ->sortBy(fn (Activity $a) => $a->started_at->getTimestamp())
             ->first();
 
         if ($followingActivity && $matches($followingActivity)) {
@@ -59,6 +63,8 @@ class ActivityChainer
      */
     public function appendEventToActivity(Activity $activity, Event $event, Collection $activities): void
     {
+        $coveredFrom = $activity->started_at->copy();
+        $coveredUntil = $activity->ended_at->copy();
         $activity->events->push($event);
         $effectiveStart = $event->effectiveStart();
 
@@ -70,17 +76,37 @@ class ActivityChainer
             $activity->ended_at = $event->ended_at;
         }
 
-        $this->mergeNeighbours($activity, $activities);
+        $parts = $this->overlap->reduceOverlap($activity, $activities, $coveredFrom, $coveredUntil);
+        $position = $activities->search($activity, true);
+
+        if ($position === false) {
+            throw new LogicException('An event can only be appended to a projected activity.');
+        }
+
+        $activities->splice($position, 1, $parts);
+
+        foreach ($parts as $part) {
+            $this->mergeNeighbours($part, $activities);
+        }
     }
 
     /**
      * Events are projected by weight before time, so a widened activity can come to lie next to
      * an earlier projected activity of the same work item; they are one piece of work.
      *
+     * ponytail: every merge rescans all activities and the gap check scans them again, O(n²) per
+     * call and O(n³) per day; fine for a day's events, index activities by customer and time if a
+     * user-day ever holds thousands.
+     *
      * @param  Collection<int, Activity>  $activities
      */
     public function mergeNeighbours(Activity $activity, Collection $activities): void
     {
+        // An earlier part of the same activity may already have absorbed this one.
+        if (! $activities->contains(fn (Activity $other) => $other === $activity)) {
+            return;
+        }
+
         while ($neighbour = $activities->first(fn (Activity $other) => $this->isMergeable($activity, $other, $activities))) {
             [$kept, $absorbed] = $activities->search($activity, true) < $activities->search($neighbour, true)
                 ? [$activity, $neighbour]
