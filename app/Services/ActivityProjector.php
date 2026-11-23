@@ -186,10 +186,10 @@ class ActivityProjector
         $eventStart = $event->effectiveStart();
         $eventEnd = $event->ended_at->copy();
         $eventCustomerId = $this->customerId($event);
-        $ownWork = $this->activities
+        $customerActivities = $this->activities
             ->reject(fn (Activity $a) => $this->isOtherCustomer($eventCustomerId, $a->customer_id));
 
-        $precedingActivity = $ownWork
+        $precedingActivity = $customerActivities
             ->filter(fn (Activity $a) => $a->ended_at->isBefore($eventEnd)
                 && $a->ended_at->copy()->addMinutes(self::CHAIN_GAP_MINUTES)->isAfter($eventStart)
             )
@@ -199,7 +199,7 @@ class ActivityProjector
             return $precedingActivity;
         }
 
-        $followingActivity = $ownWork
+        $followingActivity = $customerActivities
             ->filter(fn (Activity $a) => $a->started_at->isAfter($eventStart)
                 && $a->started_at->copy()->subMinutes(self::CHAIN_GAP_MINUTES)->isBefore($eventEnd)
             )
