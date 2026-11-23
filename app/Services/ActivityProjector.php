@@ -293,12 +293,9 @@ class ActivityProjector
                 && $claim->started_at->lt($gapEnd) && $claim->ended_at->gt($gapStart)));
     }
 
-    /**
-     * An unknown customer is not another customer: it may be the same work.
-     */
     private function isOtherCustomer(int|string|null $customerId, int|string|null $otherCustomerId): bool
     {
-        return $customerId !== null && $otherCustomerId !== null && (string) $customerId !== (string) $otherCustomerId;
+        return (string) $customerId !== (string) $otherCustomerId;
     }
 
     /**

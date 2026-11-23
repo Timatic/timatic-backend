@@ -433,7 +433,7 @@ test('an activity partially overlapping an entry period is trimmed to the unbook
         'ended_at' => Carbon::parse('2026-07-16 12:00'),
     ]);
     $event->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 1]));
-    $entry = new Entry(['started_at' => Carbon::parse('2026-07-16 09:00'), 'ended_at' => Carbon::parse('2026-07-16 10:00')]);
+    $entry = new Entry(['customer_id' => 'customerX', 'started_at' => Carbon::parse('2026-07-16 09:00'), 'ended_at' => Carbon::parse('2026-07-16 10:00')]);
 
     $activities = (new ActivityProjector)->project(collect([$event]), collect([$entry]));
 
@@ -462,7 +462,7 @@ test('an entry period inside an activity splits it into two activities', functio
         'ended_at' => Carbon::parse('2026-07-16 12:00'),
     ]);
     $noon->setRelation('eventType', $eventType);
-    $entry = new Entry(['started_at' => Carbon::parse('2026-07-16 09:45'), 'ended_at' => Carbon::parse('2026-07-16 10:15')]);
+    $entry = new Entry(['customer_id' => 'customerX', 'started_at' => Carbon::parse('2026-07-16 09:45'), 'ended_at' => Carbon::parse('2026-07-16 10:15')]);
 
     $activities = (new ActivityProjector)->project(collect([$morning, $noon]), collect([$entry]));
 
@@ -483,7 +483,7 @@ test('an activity fully inside entry periods is not created', function () {
         'ended_at' => Carbon::parse('2026-07-16 10:30'),
     ]);
     $event->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 1]));
-    $entry = new Entry(['started_at' => Carbon::parse('2026-07-16 09:00'), 'ended_at' => Carbon::parse('2026-07-16 11:00')]);
+    $entry = new Entry(['customer_id' => 'customerX', 'started_at' => Carbon::parse('2026-07-16 09:00'), 'ended_at' => Carbon::parse('2026-07-16 11:00')]);
 
     $activities = (new ActivityProjector)->project(collect([$event]), collect([$entry]));
 
@@ -849,6 +849,7 @@ test('an entry booked between two activities of the same ticket keeps them apart
     ]);
     $commented->setRelation('eventType', new EventType(['id' => 'pr_commented', 'weight' => 40]));
     $entry = new Entry([
+        'customer_id' => 'customerX',
         'started_at' => Carbon::parse('2026-07-16 09:20'),
         'ended_at' => Carbon::parse('2026-07-16 09:25'),
     ]);
@@ -1054,6 +1055,7 @@ test('a booked entry within the span keeps overlapping activities of the same ti
     ]);
     $long->setRelation('eventType', new EventType(['id' => 'browser_focus', 'weight' => 100]));
     $entry = new Entry([
+        'customer_id' => 'customerX',
         'started_at' => Carbon::parse('2026-07-16 10:00'),
         'ended_at' => Carbon::parse('2026-07-16 10:30'),
     ]);
