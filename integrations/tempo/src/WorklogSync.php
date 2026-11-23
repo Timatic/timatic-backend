@@ -10,17 +10,13 @@ use App\Services\EntryEnricher;
 use App\Services\EntryLockedDateService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Saloon\Http\Response;
-use Timatic\Jira\Connector as JiraConnector;
 use Timatic\Jira\DataTransferObjects\JiraIssue;
+use Timatic\Jira\JiraDirectory;
 use Timatic\Jira\Models\ProjectMapping;
-use Timatic\Jira\OAuthService;
-use Timatic\Jira\Requests\GetIssuesRequest;
-use Timatic\Jira\Requests\GetUserByAccountIdRequest;
 use Timatic\Tempo\DataTransferObjects\TempoDeletedWorklog;
 use Timatic\Tempo\DataTransferObjects\TempoWorklog;
 use Timatic\Tempo\DataTransferObjects\WorklogSyncRun;
@@ -33,26 +29,21 @@ use Timatic\Tempo\Requests\GetDeletedWorklogsRequest;
 // @arch-ignore app-boundary: turns worklogs into entries with the enricher and lock rules of the core
 final class WorklogSync
 {
-    private JiraConnector $jira;
-
-    private int $jiraIntegrationId;
+    private Integration $jira;
 
     /** @var array<int, string> */
     private array $mirroredIssuePrefixes = [];
 
     public function __construct(
-        private readonly OAuthService $oauthService,
+        private readonly JiraDirectory $jiraDirectory,
         private readonly EntryEnricher $entryEnricher,
         private readonly WorklogSyncTracker $tracker,
     ) {}
 
     public function isReady(Integration $tempo): bool
     {
-        $jira = Integration::find((int) ($tempo->config['jira_integration_id'] ?? 0));
-
         return filled($tempo->config['api_token'] ?? null)
-            && filled($jira?->config['access_token'] ?? null)
-            && filled($jira->config['cloud_id'] ?? null);
+            && $this->jiraDirectory->isConnected(Integration::find((int) ($tempo->config['jira_integration_id'] ?? 0)));
     }
 
     /**
@@ -97,9 +88,7 @@ final class WorklogSync
     public function syncPage(WorklogSyncRun $run): WorklogSyncRun
     {
         $tempo = Integration::findOrFail($run->integrationId);
-        $jira = $this->oauthService->refreshIfExpired(Integration::findOrFail((int) $tempo->config['jira_integration_id']));
-        $this->jira = new JiraConnector($jira->config);
-        $this->jiraIntegrationId = $jira->id;
+        $this->jira = Integration::findOrFail((int) $tempo->config['jira_integration_id']);
         $this->mirroredIssuePrefixes = ($tempo->config['mirrored_issues_enabled'] ?? false)
             ? ($tempo->config['mirrored_issue_prefixes'] ?? [])
             : [];
@@ -157,7 +146,7 @@ final class WorklogSync
             'unmatched_authors' => collect($storedAuthors)
                 ->keyBy('account_id')
                 ->replace(collect($run->unmatchedAuthorWorklogs)->map(function (int $worklogs, int|string $accountId): array {
-                    $author = $this->jira->send(new GetUserByAccountIdRequest((string) $accountId))->dto();
+                    $author = $this->jiraDirectory->user($this->jira, (string) $accountId);
 
                     return ['account_id' => (string) $accountId, 'name' => $author->displayName, 'email' => $author->emailAddress, 'worklogs' => $worklogs];
                 }))
@@ -174,7 +163,7 @@ final class WorklogSync
     /** @param Collection<int, TempoWorklog> $worklogs */
     private function syncUpdated(Collection $worklogs, WorklogSyncRun $run): WorklogSyncRun
     {
-        $issues = $this->fetchIssues($worklogs->pluck('issueId')->unique())->map(fn (JiraIssue $issue) => $this->resolveMirroredIssue($issue));
+        $issues = $this->jiraDirectory->issuesByIds($this->jira, $worklogs->pluck('issueId'))->map(fn (JiraIssue $issue) => $this->resolveMirroredIssue($issue));
         $users = $this->fetchUsers($worklogs->pluck('authorAccountId')->unique());
 
         foreach ($worklogs as $worklog) {
@@ -275,7 +264,7 @@ final class WorklogSync
             ->where('project_key', strtoupper(explode('-', $issue->key)[0]))
             ->whereNotNull('customer_id')
             ->whereNotNull('budget_id')
-            ->orderByRaw('integration_id = ? desc', [$this->jiraIntegrationId])
+            ->orderByRaw('integration_id = ? desc', [$this->jira->id])
             ->first();
     }
 
@@ -317,37 +306,12 @@ final class WorklogSync
     }
 
     /**
-     * @param  Collection<int, string>  $issueIds
-     * @return Collection<string, JiraIssue> keyed by issue id
-     */
-    private function fetchIssues(Collection $issueIds): Collection
-    {
-        return $issueIds->chunk(50)
-            ->flatMap(function (Collection $chunk): array {
-                /** @var array<int, JiraIssue> $issues */
-                $issues = $this->jira->send(new GetIssuesRequest('id in ('.$chunk->implode(', ').')'))->dto();
-
-                return $issues;
-            })
-            ->keyBy(fn (JiraIssue $issue) => (string) $issue->id);
-    }
-
-    /**
      * @param  Collection<int, string>  $accountIds
      * @return Collection<string, User> keyed by Jira account id
      */
     private function fetchUsers(Collection $accountIds): Collection
     {
-        $emails = $accountIds->mapWithKeys(function (string $accountId): array {
-            $email = Cache::get('jira.email.'.$accountId) ?? $this->jira->send(new GetUserByAccountIdRequest($accountId))->dto()->emailAddress;
-
-            if ($email !== '') {
-                Cache::forever('jira.email.'.$accountId, $email);
-                Cache::forever('jira.account_id.'.strtolower($email), $accountId);
-            }
-
-            return [$accountId => strtolower($email)];
-        })->filter();
+        $emails = $accountIds->mapWithKeys(fn (string $accountId): array => [$accountId => $this->jiraDirectory->email($this->jira, $accountId)])->filter();
 
         $users = User::query()->whereIn('email', $emails->values())->get()->keyBy(fn (User $user) => strtolower($user->email));
 
