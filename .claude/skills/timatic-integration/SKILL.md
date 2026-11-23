@@ -101,6 +101,7 @@ For OAuth 2.0 implementation details (OAuthService pattern, controllers, routes)
 - **OAuth 2.0**: add `Saloon\Traits\OAuth2\AuthorizationCodeGrant` trait + implement `defaultOauthConfig()`; auth applied via `$connector->authenticate($authenticator)` before sending requests
 - **Simple auth**: implement `defaultAuth()` returning the appropriate Saloon authenticator (`TokenAuthenticator` for Bearer, `HeaderAuthenticator` for custom schemes like `Token`, `BasicAuthenticator` for basic auth)
 - Base URL: provider API root (use provider-specific identifier, e.g. `cloud_id`, from `integration.config`)
+- Paginated endpoints: use a paginator from `saloonphp/pagination-plugin`, never a hand-written loop or page DTO. Put it on the connector (`HasPagination`, see `integrations/rework/`) when the whole API paginates one way, on the request (`HasRequestPagination` + `Paginatable`, see `integrations/tempo/`) when endpoints paginate differently
 
 ### 7. Filament pages
 
