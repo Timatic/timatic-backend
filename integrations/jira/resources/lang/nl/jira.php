@@ -53,6 +53,19 @@ return [
         'filter_unmapped' => 'Alleen niet gekoppeld',
     ],
 
+    'user_mapping' => [
+        'page_title' => ':title (Jira) — Gebruikers koppelen',
+        'nav_label' => 'Gebruikers koppelen',
+        'table_heading' => 'Jira-gebruikers',
+        'column_name' => 'Naam',
+        'column_email' => 'E-mailadres',
+        'column_user' => 'Timatic-gebruiker',
+        'email_hidden' => 'Verborgen in Jira',
+        'action_link' => 'Koppelen aan Timatic-gebruiker',
+        'empty_heading' => 'Geen gebruikers gevonden',
+        'empty_description' => 'Klik op "Vernieuwen" om de gebruikers uit Jira op te halen. Gebruikers met hetzelfde e-mailadres worden automatisch gekoppeld.',
+    ],
+
     'consent' => [
         'subtitle' => 'Jira integratie',
         'connected' => 'Jira succesvol verbonden.',

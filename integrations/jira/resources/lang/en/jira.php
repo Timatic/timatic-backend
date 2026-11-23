@@ -51,6 +51,19 @@ return [
         'filter_unmapped' => 'Unmapped only',
     ],
 
+    'user_mapping' => [
+        'page_title' => ':title (Jira) — User mapping',
+        'nav_label' => 'User mapping',
+        'table_heading' => 'Jira users',
+        'column_name' => 'Name',
+        'column_email' => 'E-mail',
+        'column_user' => 'Timatic user',
+        'email_hidden' => 'Hidden in Jira',
+        'action_link' => 'Link to Timatic user',
+        'empty_heading' => 'No users found',
+        'empty_description' => 'Click "Refresh" to load the users from Jira. Users with the same e-mail address are linked automatically.',
+    ],
+
     'consent' => [
         'subtitle' => 'Jira integration',
         'connected' => 'Jira connected successfully.',

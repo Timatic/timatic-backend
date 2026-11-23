@@ -9,6 +9,7 @@ use App\Models\Integration;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Timatic\Jira\Filament\Pages\ProjectMappingPage;
 use Timatic\Jira\Filament\Pages\SettingsPage;
+use Timatic\Jira\Filament\Pages\UserMappingPage;
 
 class ServiceProvider extends BaseServiceProvider
 {
@@ -20,6 +21,7 @@ class ServiceProvider extends BaseServiceProvider
             $types->register('jira', [
                 'jira.projects' => ProjectMappingPage::class,
                 'jira.settings' => SettingsPage::class,
+                'jira.users' => UserMappingPage::class,
             ])->requiresConfig(['jira.client_id', 'jira.client_secret'])->landingPage(function (Integration $integration): string {
                 $config = $integration->config ?? [];
 

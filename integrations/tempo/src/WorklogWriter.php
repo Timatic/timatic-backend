@@ -27,7 +27,7 @@ final class WorklogWriter
         foreach ($this->integrationsFor($entry) as $tempo) {
             $jira = Integration::find((int) ($tempo->config['jira_integration_id'] ?? 0));
             $issueId = $this->jiraDirectory->isConnected($jira) ? $this->jiraDirectory->findIssueId($jira, $entry->ticket_number) : null;
-            $accountId = $jira !== null && $issueId !== null && $entry->user !== null ? $this->jiraDirectory->findAccountId($jira, $entry->user->email) : null;
+            $accountId = $jira !== null && $issueId !== null && $entry->user !== null ? $this->jiraDirectory->findAccountId($jira, $entry->user) : null;
 
             if ($issueId === null || $accountId === null) {
                 Log::warning("Entry {$entry->id} not pushed to Tempo: Jira issue or account of the user not found", ['ticket' => $entry->ticket_number, 'user' => $entry->user?->email]);

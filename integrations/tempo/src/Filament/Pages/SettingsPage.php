@@ -4,7 +4,6 @@ namespace Timatic\Tempo\Filament\Pages;
 
 use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Models\Integration;
-use App\Models\User;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -19,11 +18,9 @@ use Filament\Resources\Pages\Page;
 use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
-use Filament\Schemas\Components\UnorderedList;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\Cache;
 use Timatic\Tempo\Exceptions\WorklogSyncNotStartedException;
 use Timatic\Tempo\WorklogSync;
 use Timatic\Tempo\WorklogSyncTracker;
@@ -68,23 +65,10 @@ class SettingsPage extends Page
         $integration = $this->getIntegration();
         $config = $integration->config ?? [];
         $jiraIntegrations = Integration::query()->where('type', 'jira')->pluck('title', 'id');
-        $hasToken = filled($config['api_token'] ?? null);
         $timezone = config('timatic.preferred_timezone');
         $tracker = app(WorklogSyncTracker::class);
-        $worklogSync = app(WorklogSync::class);
         // Evaluated while rendering, so a sync started in this request already shows up
         $syncStatus = fn (): array => ['run' => $tracker->active($integration->id) ?? $tracker->last($integration->id), 'timezone' => $timezone];
-        /** @var array<int, array{account_id: string, name: string, email: string, worklogs: int}> $storedAuthors */
-        $storedAuthors = $config['unmatched_authors'] ?? [];
-        $authorEmails = collect($storedAuthors)->mapWithKeys(fn (array $author): array => [$author['account_id'] => strtolower(Cache::get('jira.email.'.$author['account_id']) ?? $author['email'])]);
-        $userEmails = User::query()->whereIn('email', $authorEmails->filter()->values())->pluck('email')->map(fn (string $email): string => strtolower($email));
-        $unmatchedAuthors = collect($storedAuthors)->reject(fn (array $author): bool => $userEmails->contains($authorEmails->get($author['account_id'], '')));
-        $syncRange = isset($config['worklog_sync_from'], $config['worklog_synced_until'])
-            ? __('tempo::tempo.settings.sync_range', [
-                'from' => CarbonImmutable::createFromTimestampMs($config['worklog_sync_from'], $timezone)->format('d-m-Y'),
-                'until' => CarbonImmutable::createFromTimestampMs($config['worklog_synced_until'], $timezone)->format('d-m-Y H:i'),
-            ])
-            : __('tempo::tempo.settings.sync_range_empty');
 
         return $form->schema([
             Section::make(__('tempo::tempo.settings.section_connection'))->schema([
@@ -98,11 +82,11 @@ class SettingsPage extends Page
                     ->visible($jiraIntegrations->isEmpty()),
                 TextInput::make('api_token')
                     ->label(__('tempo::tempo.settings.field_api_token'))
-                    ->helperText(__($hasToken ? 'tempo::tempo.settings.field_api_token_helper_stored' : 'tempo::tempo.settings.field_api_token_helper'))
+                    ->helperText(__(filled($config['api_token'] ?? null) ? 'tempo::tempo.settings.field_api_token_helper_stored' : 'tempo::tempo.settings.field_api_token_helper'))
                     ->password()
                     ->revealable()
                     ->autocomplete('off')
-                    ->required(! $hasToken),
+                    ->required(blank($config['api_token'] ?? null)),
                 Select::make('jira_integration_id')
                     ->label(__('tempo::tempo.settings.field_jira_integration'))
                     ->helperText(__('tempo::tempo.settings.field_jira_integration_helper'))
@@ -118,13 +102,18 @@ class SettingsPage extends Page
                     Toggle::make('sync_to_tempo')
                         ->label(__('tempo::tempo.settings.field_sync_to_tempo'))
                         ->helperText(__('tempo::tempo.settings.field_sync_to_tempo_helper')),
-                    Text::make($syncRange),
+                    Text::make(isset($config['worklog_sync_from'], $config['worklog_synced_until'])
+                        ? __('tempo::tempo.settings.sync_range', [
+                            'from' => CarbonImmutable::createFromTimestampMs($config['worklog_sync_from'], $timezone)->format('d-m-Y'),
+                            'until' => CarbonImmutable::createFromTimestampMs($config['worklog_synced_until'], $timezone)->format('d-m-Y H:i'),
+                        ])
+                        : __('tempo::tempo.settings.sync_range_empty')),
                     View::make('tempo::filament.pages.worklog-sync-status')->viewData($syncStatus),
                 ])
                 ->footerActions([
                     Action::make('sync_worklogs')
                         ->label(__('tempo::tempo.settings.action_sync'))
-                        ->disabled(! $worklogSync->isReady($integration))
+                        ->disabled(! app(WorklogSync::class)->isReady($integration))
                         ->modalDescription(__('tempo::tempo.settings.action_sync_description'))
                         ->modalSubmitAction(fn (Action $action): Action => $action
                             ->label(__('tempo::tempo.settings.action_sync_start'))
@@ -137,9 +126,9 @@ class SettingsPage extends Page
                                 ->maxDate(today($timezone)),
                             View::make('tempo::filament.pages.worklog-sync-status')->viewData($syncStatus),
                         ])
-                        ->action(function (array $data, Action $action) use ($integration, $timezone, $worklogSync): void {
+                        ->action(function (array $data, Action $action) use ($integration, $timezone): void {
                             try {
-                                $worklogSync->start(
+                                app(WorklogSync::class)->start(
                                     $integration,
                                     filled($data['since'] ?? null) ? CarbonImmutable::parse($data['since'], $timezone)->startOfDay() : null,
                                 );
@@ -151,16 +140,6 @@ class SettingsPage extends Page
                             $action->halt();
                         }),
                 ]),
-            Section::make(__('tempo::tempo.settings.section_unmatched_authors'))
-                ->description(__('tempo::tempo.settings.unmatched_authors_description'))
-                ->schema([
-                    UnorderedList::make($unmatchedAuthors->map(fn (array $author): Text => Text::make(__('tempo::tempo.settings.unmatched_author', [
-                        'name' => filled($author['name']) ? $author['name'] : $author['account_id'],
-                        'email' => filled($author['email']) ? $author['email'] : __('tempo::tempo.settings.unmatched_author_hidden_email'),
-                        'count' => $author['worklogs'],
-                    ])))->values()->all()),
-                ])
-                ->visible($unmatchedAuthors->isNotEmpty()),
             Section::make(__('tempo::tempo.settings.section_mirrored_issues'))->schema([
                 Toggle::make('mirrored_issues_enabled')
                     ->label(__('tempo::tempo.settings.field_mirrored_issues'))

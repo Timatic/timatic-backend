@@ -4,7 +4,6 @@ namespace Timatic\Tempo;
 
 use App\Models\Entry;
 use App\Models\Integration;
-use App\Models\User;
 use App\Services\ClosedMonthDateService;
 use App\Services\EntryEnricher;
 use App\Services\EntryLockedDateService;
@@ -135,23 +134,12 @@ final class WorklogSync
 
         // Read again: the settings may have been saved while the run was busy
         $config = $tempo->refresh()->config ?? [];
-        /** @var array<int, array{account_id: string, name: string, email: string, worklogs: int}> $storedAuthors */
-        $storedAuthors = $config['unmatched_authors'] ?? [];
         $tempo->update(['config' => array_merge($config, [
             // Worklogs changed while the run was busy may have been paged past, so never move beyond its start
             'worklog_sync_updated_since' => min($run->latestUpdatedMilliseconds, $run->startedAtMilliseconds),
             'worklog_sync_deleted_since' => max($run->deletedSinceMilliseconds, $deleted->max(fn (TempoDeletedWorklog $worklog) => $worklog->deletedAt->getTimestampMs()) ?? 0),
             'worklog_sync_from' => min($config['worklog_sync_from'] ?? PHP_INT_MAX, $run->updatedSinceMilliseconds),
             'worklog_synced_until' => $run->startedAtMilliseconds,
-            'unmatched_authors' => collect($storedAuthors)
-                ->keyBy('account_id')
-                ->replace(collect($run->unmatchedAuthorWorklogs)->map(function (int $worklogs, int|string $accountId): array {
-                    $author = $this->jiraDirectory->user($this->jira, (string) $accountId);
-
-                    return ['account_id' => (string) $accountId, 'name' => $author->displayName, 'email' => $author->emailAddress, 'worklogs' => $worklogs];
-                }))
-                ->values()
-                ->all(),
         ])]);
 
         $run = $run->with(status: WorklogSyncStatus::Finished);
@@ -164,7 +152,7 @@ final class WorklogSync
     private function syncUpdated(Collection $worklogs, WorklogSyncRun $run): WorklogSyncRun
     {
         $issues = $this->jiraDirectory->issuesByIds($this->jira, $worklogs->pluck('issueId'))->map(fn (JiraIssue $issue) => $this->resolveMirroredIssue($issue));
-        $users = $this->fetchUsers($worklogs->pluck('authorAccountId')->unique());
+        $users = $this->jiraDirectory->timaticUsers($this->jira, $worklogs->pluck('authorAccountId'));
 
         foreach ($worklogs as $worklog) {
             $run = $run->with(
@@ -177,12 +165,6 @@ final class WorklogSync
             $issue = $issues->get($worklog->issueId);
             $mapping = $issue === null ? null : $this->findBudgetMapping($issue);
             $user = $users->get($worklog->authorAccountId);
-
-            if ($user === null) {
-                $unmatched = $run->unmatchedAuthorWorklogs;
-                $unmatched[$worklog->authorAccountId] = ($unmatched[$worklog->authorAccountId] ?? 0) + 1;
-                $run = $run->with(unmatchedAuthorWorklogs: $unmatched);
-            }
 
             if ($issue === null || $mapping === null || $user === null) {
                 Log::warning("Tempo worklog {$worklog->id} skipped: no issue, budget mapping or Timatic user", ['issue' => $issue?->key, 'author' => $worklog->authorAccountId]);
@@ -303,18 +285,5 @@ final class WorklogSync
         }
 
         return (new EntryLockedDateService($entry->user, new ClosedMonthDateService($entry->user)))->get()->isAfter($entry->started_at);
-    }
-
-    /**
-     * @param  Collection<int, string>  $accountIds
-     * @return Collection<string, User> keyed by Jira account id
-     */
-    private function fetchUsers(Collection $accountIds): Collection
-    {
-        $emails = $accountIds->mapWithKeys(fn (string $accountId): array => [$accountId => $this->jiraDirectory->email($this->jira, $accountId)])->filter();
-
-        $users = User::query()->whereIn('email', $emails->values())->get()->keyBy(fn (User $user) => strtolower($user->email));
-
-        return $emails->map(fn (string $email) => $users->get($email))->filter();
     }
 }

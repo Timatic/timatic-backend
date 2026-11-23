@@ -120,18 +120,3 @@ it('shows how far a running worklog sync is', function () {
     $page->assertSee('Bezig: 400 worklogs verwerkt, dagen 01-06-2026 t/m 14-08-2026 gesynchroniseerd.')
         ->assertSeeHtml('value="48" max="100"');
 });
-
-it('lists the Tempo authors whose worklogs are skipped because they have no Timatic user', function () {
-    // Given
-    $this->loginUser(permissions: ['integrations.read']);
-    Filament::setCurrentPanel('admin');
-    $tempo = Integration::create(['title' => 'Tempo', 'type' => 'tempo', 'config' => ['unmatched_authors' => [
-        ['account_id' => 'acc-9', 'name' => 'Bob Jones', 'email' => 'bob@example.com', 'worklogs' => 7],
-    ]]]);
-
-    // When
-    $page = Livewire::test(SettingsPage::class, ['record' => $tempo->id]);
-
-    // Then
-    $page->assertSee('Bob Jones (bob@example.com): 7 worklogs overgeslagen');
-});

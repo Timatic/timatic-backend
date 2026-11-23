@@ -72,6 +72,9 @@ class SettingsPage extends Page
             NavigationItem::make(__('jira::jira.project_mapping.nav_label'))
                 ->url(ProjectMappingPage::getUrl(['record' => $record]))
                 ->isActiveWhen(fn () => request()->url() === ProjectMappingPage::getUrl(['record' => $record])),
+            NavigationItem::make(__('jira::jira.user_mapping.nav_label'))
+                ->url(UserMappingPage::getUrl(['record' => $record]))
+                ->isActiveWhen(fn () => request()->url() === UserMappingPage::getUrl(['record' => $record])),
         ];
     }
 
