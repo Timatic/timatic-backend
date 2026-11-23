@@ -102,6 +102,11 @@ class ActivityChainer
      */
     public function mergeNeighbours(Activity $activity, Collection $activities): void
     {
+        // An earlier part of the same activity may already have absorbed this one.
+        if (! $activities->contains(fn (Activity $other) => $other === $activity)) {
+            return;
+        }
+
         while ($neighbour = $activities->first(fn (Activity $other) => $this->isMergeable($activity, $other, $activities))) {
             [$kept, $absorbed] = $activities->search($activity, true) < $activities->search($neighbour, true)
                 ? [$activity, $neighbour]

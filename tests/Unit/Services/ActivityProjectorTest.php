@@ -1528,3 +1528,49 @@ test('a fully covered event is kept as evidence on the covering activity of its 
         ->and($activities[2]->ticket_number)->toBe('TIC-2')
         ->and($activities[2]->events->all())->toBe([$ownTicket, $covered]);
 });
+
+test('a long event chained over two activities of its ticket joins them into one activity', function () {
+    $otherTicket = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-9',
+        'event_type_id' => 'commit_created',
+        'started_at' => Carbon::parse('2026-07-16 08:00'),
+        'ended_at' => Carbon::parse('2026-07-16 08:10'),
+    ]);
+    $otherTicket->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 10]));
+    $firstCommit = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'commit_created',
+        'started_at' => Carbon::parse('2026-07-16 09:15'),
+        'ended_at' => Carbon::parse('2026-07-16 09:30'),
+    ]);
+    $firstCommit->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 10]));
+    $secondCommit = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'commit_created',
+        'started_at' => Carbon::parse('2026-07-16 09:55'),
+        'ended_at' => Carbon::parse('2026-07-16 10:10'),
+    ]);
+    $secondCommit->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 10]));
+    $review = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'pr_commented',
+        'started_at' => Carbon::parse('2026-07-16 09:00'),
+        'ended_at' => Carbon::parse('2026-07-16 10:30'),
+    ]);
+    $review->setRelation('eventType', new EventType(['id' => 'pr_commented', 'weight' => 40]));
+
+    $activities = (new ActivityProjector)->project(collect([$otherTicket, $firstCommit, $secondCommit, $review]), collect());
+
+    $periods = $activities
+        ->map(fn ($activity) => $activity->ticket_number.' '.$activity->started_at->format('H:i').'-'.$activity->ended_at->format('H:i'))
+        ->all();
+    expect($periods)->toBe(['TIC-9 08:00-08:10', 'TIC-1 09:00-10:30']);
+});
