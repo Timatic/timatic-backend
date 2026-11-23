@@ -77,10 +77,12 @@ final class JiraDirectory
 
         return $accountIds->unique()
             ->mapWithKeys(function (string $accountId) use ($jira, $mappings): array {
-                /** @var UserMapping $mapping */
-                $mapping = $mappings->get($accountId) ?? $this->remember($jira, $this->connector($jira)->send(new GetUserByAccountIdRequest($accountId))->dto());
+                $existing = $mappings->get($accountId);
+                $mapping = $existing !== null
+                    ? $this->linkByEmail($existing)
+                    : $this->remember($jira, $this->connector($jira)->send(new GetUserByAccountIdRequest($accountId))->dto());
 
-                return [$accountId => $this->linkByEmail($mapping)->user];
+                return [$accountId => $mapping->user];
             })
             ->filter();
     }

@@ -90,7 +90,7 @@ class UserMappingPage extends Page implements HasTable
                     ->schema([
                         Select::make('user_id')
                             ->label(__('jira::jira.user_mapping.column_user'))
-                            ->options(fn (): array => User::query()->orderBy('given_name')->get()->mapWithKeys(fn (User $user): array => [$user->id => $user->full_name])->all())
+                            ->options(fn (): array => User::query()->orderBy('given_name')->get()->pluck('full_name', 'id')->all())
                             ->searchable()
                             ->nullable(),
                     ])
