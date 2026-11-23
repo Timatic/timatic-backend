@@ -1399,3 +1399,85 @@ test('an event chained across a booked entry splits the activity around the entr
         ->and($activities[1]->ended_at)->toEqual(Carbon::parse('2026-07-16 10:00'))
         ->and($activities[1]->events->all())->toBe([$review]);
 });
+
+test('a ticketless meeting chained onto one ticket does not double count another ticket of its customer', function () {
+    $otherTicket = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-2',
+        'event_type_id' => 'branch_created',
+        'started_at' => Carbon::parse('2026-07-16 09:30'),
+        'ended_at' => Carbon::parse('2026-07-16 11:00'),
+    ]);
+    $otherTicket->setRelation('eventType', new EventType(['id' => 'branch_created', 'weight' => 10]));
+    $commit = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'ticket_number' => 'TIC-1',
+        'event_type_id' => 'commit_created',
+        'started_at' => Carbon::parse('2026-07-16 08:50'),
+        'ended_at' => Carbon::parse('2026-07-16 09:00'),
+    ]);
+    $commit->setRelation('eventType', new EventType(['id' => 'commit_created', 'weight' => 20]));
+    $meeting = new Event([
+        'user_id' => 1,
+        'customer_id' => 'customerX',
+        'event_type_id' => 'calendar_event_started',
+        'started_at' => Carbon::parse('2026-07-16 09:00'),
+        'ended_at' => Carbon::parse('2026-07-16 12:00'),
+    ]);
+    $meeting->setRelation('eventType', new EventType(['id' => 'calendar_event_started', 'weight' => 75]));
+
+    $activities = (new ActivityProjector)->project(collect([$otherTicket, $commit, $meeting]), collect());
+
+    $periods = $activities
+        ->map(fn ($activity) => $activity->ticket_number.' '.$activity->started_at->format('H:i').'-'.$activity->ended_at->format('H:i'))
+        ->all();
+    expect($periods)->toBe(['TIC-2 09:00-12:00', 'TIC-1 08:50-09:00']);
+});
+
+test('shuffled overlapping work produces the same activities as chronological input', function () {
+    $makeEvents = function () {
+        $events = [];
+        foreach ([
+            ['09:00', '11:00', 'customerX', 'TIC-1', 20],
+            [null, '09:40', 'customerY', 'TIC-2', 40],
+            [null, '10:00', 'customerY', 'TIC-2', 50],
+            ['09:50', '10:20', 'customerX', 'TIC-1', 40],
+            ['08:30', '12:00', 'customerY', null, 100],
+            ['13:00', '13:30', 'customerX', 'TIC-3', 30],
+            ['13:00', '13:20', 'customerX', 'TIC-4', 30],
+            ['13:00', '13:20', 'customerX', 'TIC-5', 30],
+        ] as $id => [$start, $end, $customer, $ticket, $weight]) {
+            $event = new Event([
+                'user_id' => 1,
+                'customer_id' => $customer,
+                'ticket_number' => $ticket,
+                'started_at' => $start === null ? null : Carbon::parse("2026-07-16 $start"),
+                'ended_at' => Carbon::parse("2026-07-16 $end"),
+            ]);
+            $event->id = $id + 1;
+            $event->setRelation('eventType', new EventType(['weight' => $weight]));
+            $events[] = $event;
+        }
+
+        return $events;
+    };
+    $entries = collect([new Entry(['started_at' => Carbon::parse('2026-07-16 10:30'), 'ended_at' => Carbon::parse('2026-07-16 10:45')])]);
+
+    $chronological = (new ActivityProjector)->project(collect($makeEvents()), $entries);
+    $shuffled = (new ActivityProjector)->project(collect(array_reverse($makeEvents())), $entries);
+
+    $signature = fn ($activities) => $activities
+        ->map(fn ($activity) => $activity->customer_id.'|'.$activity->ticket_number.'|'.$activity->started_at->format('H:i').'|'.$activity->ended_at->format('H:i').'|'.$activity->events->count())
+        ->sort()->values()->all();
+    expect($signature($shuffled))->toBe($signature($chronological))
+        ->and($signature($chronological))->toBe([
+            'customerX|TIC-1|09:00|10:30|2',
+            'customerX|TIC-1|10:45|11:00|1',
+            'customerX|TIC-3|13:20|13:30|1',
+            'customerX|TIC-4|13:00|13:20|2',
+            'customerY|TIC-2|08:30|10:30|3',
+            'customerY|TIC-2|10:45|12:00|1',
+        ]);
+});

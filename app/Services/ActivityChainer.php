@@ -20,7 +20,8 @@ class ActivityChainer
     public function __construct(private readonly ActivityOverlap $overlap) {}
 
     /**
-     * Work for another customer runs alongside and does not interrupt the chain.
+     * The nearest activity of the event's own customer decides; work for another customer runs
+     * alongside and does not interrupt the chain.
      *
      * @param  Collection<int, Activity>  $activities
      * @param  Closure(Activity): bool  $matches
@@ -36,6 +37,7 @@ class ActivityChainer
             ->filter(fn (Activity $a) => $a->ended_at->isBefore($eventEnd)
                 && $a->ended_at->copy()->addMinutes(self::CHAIN_GAP_MINUTES)->isAfter($eventStart)
             )
+            ->sortBy(fn (Activity $a) => $a->ended_at->getTimestamp())
             ->last();
 
         if ($precedingActivity && $matches($precedingActivity)) {
@@ -46,6 +48,7 @@ class ActivityChainer
             ->filter(fn (Activity $a) => $a->started_at->isAfter($eventStart)
                 && $a->started_at->copy()->subMinutes(self::CHAIN_GAP_MINUTES)->isBefore($eventEnd)
             )
+            ->sortBy(fn (Activity $a) => $a->started_at->getTimestamp())
             ->first();
 
         if ($followingActivity && $matches($followingActivity)) {
