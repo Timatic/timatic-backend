@@ -30,7 +30,7 @@ One definition per term. Pages in `docs/` use these words and nothing else for t
 
 - **Source**: where events come from (an integration such as Jira or GitHub, the browser extension, a calendar).
 - **Event**: one observed signal that work happened: a commit, an issue transition, a browser focus, a calendar meeting. Has an end or a start, an optional customer, budget and ticket, and an event type.
-- **Event type**: the kind of event, with a **weight**. Lower weight is stronger evidence of work; higher weight only fills time nothing stronger claimed.
+- **Event type**: the kind of event, with a **weight**. Lower weight is stronger evidence of work; higher weight only fills time nothing stronger claimed for that customer.
 - **Sequence**: the recurring thing an event is an occurrence of, identified by source plus external id (a recurring calendar meeting is the typical case).
 - **Activity**: one stretch of work on one customer (and ticket, when known) that one or more events of the same day support, from any source and of any event type. Projected from the day's events; never edited by hand.
 - **Suggestion**: a proposed entry for one user and one day, made of one or more activities that chain together. Accepting it creates an entry; dismissing it soft-deletes it.

@@ -128,13 +128,22 @@ class ActivityProjector
     }
 
     /**
+     * Work for another known customer may run alongside (multitasking); within one customer the
+     * stronger evidence claims the time.
+     *
      * @return array<int, Activity>
      */
     private function reduceOverlap(Activity $activity): array
     {
         $claimed = new PeriodCollection(
-            ...$this->entries->map(fn (Entry $entry) => $this->period($entry->started_at, $entry->ended_at))->all(),
-            ...$this->activities->map(fn (Activity $activity) => $this->period($activity->started_at, $activity->ended_at))->all(),
+            ...$this->entries
+                ->filter(fn (Entry $entry) => ! $this->isOtherCustomer($activity->customer_id, $entry->customer_id))
+                ->map(fn (Entry $entry) => $this->period($entry->started_at, $entry->ended_at))
+                ->all(),
+            ...$this->activities
+                ->filter(fn (Activity $other) => ! $this->isOtherCustomer($activity->customer_id, $other->customer_id))
+                ->map(fn (Activity $other) => $this->period($other->started_at, $other->ended_at))
+                ->all(),
         );
 
         $activityPeriod = $this->period($activity->started_at, $activity->ended_at);
@@ -168,14 +177,19 @@ class ActivityProjector
     }
 
     /**
+     * Work for another customer runs alongside and does not interrupt the chain.
+     *
      * @param  Closure(Activity): bool  $matches
      */
     private function findChainableActivity(Event $event, Closure $matches): ?Activity
     {
         $eventStart = $event->effectiveStart();
         $eventEnd = $event->ended_at->copy();
+        $eventCustomerId = $this->customerId($event);
+        $customerActivities = $this->activities
+            ->reject(fn (Activity $a) => $this->isOtherCustomer($eventCustomerId, $a->customer_id));
 
-        $precedingActivity = $this->activities
+        $precedingActivity = $customerActivities
             ->filter(fn (Activity $a) => $a->ended_at->isBefore($eventEnd)
                 && $a->ended_at->copy()->addMinutes(self::CHAIN_GAP_MINUTES)->isAfter($eventStart)
             )
@@ -185,7 +199,7 @@ class ActivityProjector
             return $precedingActivity;
         }
 
-        $followingActivity = $this->activities
+        $followingActivity = $customerActivities
             ->filter(fn (Activity $a) => $a->started_at->isAfter($eventStart)
                 && $a->started_at->copy()->subMinutes(self::CHAIN_GAP_MINUTES)->isBefore($eventEnd)
             )
@@ -272,9 +286,16 @@ class ActivityProjector
         $unionStart = $activity->started_at->min($other->started_at);
         $unionEnd = $activity->ended_at->max($other->ended_at);
 
-        return ! $this->entries->contains(fn (Entry $entry) => $entry->started_at->lt($unionEnd) && $entry->ended_at->gt($unionStart))
+        return ! $this->entries->contains(fn (Entry $entry) => ! $this->isOtherCustomer($activity->customer_id, $entry->customer_id)
+            && $entry->started_at->lt($unionEnd) && $entry->ended_at->gt($unionStart))
             && ($gapEnd->lte($gapStart) || ! $this->activities->contains(fn (Activity $claim) => $claim !== $activity && $claim !== $other
+                && ! $this->isOtherCustomer($activity->customer_id, $claim->customer_id)
                 && $claim->started_at->lt($gapEnd) && $claim->ended_at->gt($gapStart)));
+    }
+
+    private function isOtherCustomer(int|string|null $customerId, int|string|null $otherCustomerId): bool
+    {
+        return (string) $customerId !== (string) $otherCustomerId;
     }
 
     /**
