@@ -16,11 +16,11 @@ class SyncWorklogsCommand extends Command
     public function handle(): int
     {
         foreach (Integration::query()->where('type', 'tempo')->get() as $integration) {
-            $label = $integration->display_title;
-
             if (! ($integration->config['sync_to_timatic'] ?? false)) {
                 continue;
             }
+
+            $label = $integration->display_title;
 
             if (! WorklogImporter::isReady($integration)) {
                 $this->info("{$label}: Tempo token or connected Jira instance missing, nothing to sync.");
