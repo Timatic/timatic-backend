@@ -90,7 +90,7 @@ class SyncWorklogsJob implements ShouldQueue
         );
 
         // The active run is the lock against a second run over the same pages
-        if (! Cache::add(self::activeRunKey($tempo->id), $run, self::ACTIVE_SECONDS)) {
+        if (! self::claim($run)) {
             throw WorklogSyncNotStartedException::alreadyRunning();
         }
 
@@ -107,7 +107,7 @@ class SyncWorklogsJob implements ShouldQueue
         $run = $this->run;
 
         // The claim of this run expired while it waited in the queue and another run took its place
-        if (Cache::get(self::activeRunKey($run->integrationId))?->id !== $run->id && ! Cache::add(self::activeRunKey($run->integrationId), $run, self::ACTIVE_SECONDS)) {
+        if (! self::isActive($run) && ! self::claim($run)) {
             return;
         }
 
@@ -180,10 +180,20 @@ class SyncWorklogsJob implements ShouldQueue
         return "tempo.worklog_sync.active.{$integrationId}";
     }
 
+    private static function claim(WorklogSyncRun $run): bool
+    {
+        return Cache::add(self::activeRunKey($run->integrationId), $run, self::ACTIVE_SECONDS);
+    }
+
+    private static function isActive(WorklogSyncRun $run): bool
+    {
+        return Cache::get(self::activeRunKey($run->integrationId))?->id === $run->id;
+    }
+
     // A run that lost its claim must not release the run that took over
     private function release(WorklogSyncRun $run): void
     {
-        if (Cache::get(self::activeRunKey($run->integrationId))?->id === $run->id) {
+        if (self::isActive($run)) {
             Cache::forget(self::activeRunKey($run->integrationId));
         }
     }
