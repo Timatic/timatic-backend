@@ -80,8 +80,8 @@ final class WorklogSync
      * Copies one page of changed Tempo worklogs to entries; after the last page the entries of deleted worklogs are removed
      * and the sync position is stored. Issues, authors and the project mapping are resolved through the Jira instance Tempo runs on.
      * Entries that are invoiced or in a locked period are left untouched and logged.
+     * Returns the run of the next page, or null when the sync is done.
      */
-    /** Syncs the page of the run and returns the run of the next page, or null when the sync is done. */
     public function syncPage(WorklogSyncRun $run): ?WorklogSyncRun
     {
         $tempo = Integration::findOrFail($run->integrationId);
@@ -169,7 +169,6 @@ final class WorklogSync
             $entry = Entry::withTrashed()->firstWhere('external_id', $worklog->id);
 
             if ($entry?->trashed()) {
-
                 continue;
             }
 
