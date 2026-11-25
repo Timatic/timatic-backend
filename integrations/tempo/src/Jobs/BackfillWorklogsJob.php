@@ -12,7 +12,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Bus;
 use Timatic\Tempo\Connector;
 use Timatic\Tempo\DataTransferObjects\TempoWorklog;
 use Timatic\Tempo\Requests\GetWorklogsRequest;
@@ -28,22 +27,6 @@ class BackfillWorklogsJob implements ShouldQueue
         public readonly CarbonImmutable $from,
         public readonly CarbonImmutable $to,
     ) {}
-
-    /** Queues one job per month of the days $from through $until as a batch, whose id is stored to show its progress, and returns how many were queued. */
-    public static function dispatchMonths(Integration $tempo, CarbonImmutable $from, CarbonImmutable $until): int
-    {
-        $jobs = [];
-
-        for ($start = $from; $start->lte($until); $start = $start->addMonthNoOverflow()->startOfMonth()) {
-            $jobs[] = new self($tempo->id, $start, $start->endOfMonth()->startOfDay()->min($until));
-        }
-
-        // A failed month must not cancel the months after it
-        $batch = Bus::batch($jobs)->name("Tempo worklog import {$tempo->id}")->allowFailures()->dispatch();
-        $tempo->update(['config' => array_merge($tempo->refresh()->config ?? [], ['worklog_backfill_batch_id' => $batch->id])]);
-
-        return count($jobs);
-    }
 
     public function handle(WorklogImporter $importer): void
     {

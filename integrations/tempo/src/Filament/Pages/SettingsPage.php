@@ -126,13 +126,19 @@ class SettingsPage extends Page
                                 ->required(),
                         ])
                         ->action(function (array $data) use ($integration, $timezone): void {
-                            $months = BackfillWorklogsJob::dispatchMonths(
-                                $integration,
-                                CarbonImmutable::parse($data['from'], $timezone)->startOfDay(),
-                                CarbonImmutable::parse($data['until'], $timezone)->startOfDay(),
-                            );
+                            $until = CarbonImmutable::parse($data['until'], $timezone)->startOfDay();
+                            $jobs = [];
 
-                            Notification::make()->title(trans_choice('tempo::tempo.settings.notification_import_queued', $months))->success()->send();
+                            for ($start = CarbonImmutable::parse($data['from'], $timezone)->startOfDay(); $start->lte($until); $start = $start->addMonthNoOverflow()->startOfMonth()) {
+                                $jobs[] = new BackfillWorklogsJob($integration->id, $start, $start->endOfMonth()->startOfDay()->min($until));
+                            }
+
+                            // A failed month must not cancel the months after it
+                            $batch = Bus::batch($jobs)->name("Tempo worklog import {$integration->id}")->allowFailures()->dispatch();
+                            // The batch id is stored to show how many months are still queued
+                            $integration->update(['config' => array_merge($integration->refresh()->config ?? [], ['worklog_backfill_batch_id' => $batch->id])]);
+
+                            Notification::make()->title(trans_choice('tempo::tempo.settings.notification_import_queued', count($jobs)))->success()->send();
                         }),
                 ]),
             Section::make(__('tempo::tempo.settings.section_mirrored_issues'))->schema([
