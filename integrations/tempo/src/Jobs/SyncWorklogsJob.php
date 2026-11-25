@@ -10,7 +10,6 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Throwable;
 use Timatic\Tempo\DataTransferObjects\WorklogSyncRun;
-use Timatic\Tempo\Enums\WorklogSyncStatus;
 use Timatic\Tempo\WorklogSync;
 use Timatic\Tempo\WorklogSyncTracker;
 
@@ -32,15 +31,15 @@ class SyncWorklogsJob implements ShouldQueue
             return;
         }
 
-        $run = $worklogSync->syncPage($this->run);
+        $nextPage = $worklogSync->syncPage($this->run);
 
-        if ($run->status === WorklogSyncStatus::Running) {
-            self::dispatch($run);
+        if ($nextPage !== null) {
+            self::dispatch($nextPage);
         }
     }
 
     public function failed(?Throwable $exception): void
     {
-        app(WorklogSyncTracker::class)->close($this->run->with(status: WorklogSyncStatus::Failed, failure: $exception?->getMessage()));
+        app(WorklogSyncTracker::class)->close($this->run);
     }
 }

@@ -68,7 +68,7 @@ class SettingsPage extends Page
         $timezone = config('timatic.preferred_timezone');
         $tracker = app(WorklogSyncTracker::class);
         // Evaluated while rendering, so a sync started in this request already shows up
-        $syncStatus = fn (): array => ['run' => $tracker->active($integration->id) ?? $tracker->last($integration->id), 'timezone' => $timezone];
+        $syncStatus = fn (): array => ['isRunning' => $tracker->active($integration->id) !== null];
 
         return $form->schema([
             Section::make(__('tempo::tempo.settings.section_connection'))->schema([

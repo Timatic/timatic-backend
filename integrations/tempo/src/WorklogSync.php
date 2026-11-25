@@ -20,7 +20,6 @@ use Timatic\Jira\Models\ProjectMapping;
 use Timatic\Tempo\DataTransferObjects\TempoDeletedWorklog;
 use Timatic\Tempo\DataTransferObjects\TempoWorklog;
 use Timatic\Tempo\DataTransferObjects\WorklogSyncRun;
-use Timatic\Tempo\Enums\WorklogSyncStatus;
 use Timatic\Tempo\Exceptions\WorklogSyncNotStartedException;
 use Timatic\Tempo\Jobs\SyncWorklogsJob;
 use Timatic\Tempo\Requests\GetChangedWorklogsRequest;
@@ -51,7 +50,7 @@ final class WorklogSync
      *
      * @throws WorklogSyncNotStartedException
      */
-    public function start(Integration $tempo, ?CarbonImmutable $since = null): WorklogSyncRun
+    public function start(Integration $tempo, ?CarbonImmutable $since = null): void
     {
         if (! $this->isReady($tempo)) {
             throw WorklogSyncNotStartedException::notConnected();
@@ -64,7 +63,6 @@ final class WorklogSync
         $run = new WorklogSyncRun(
             id: (string) Str::uuid(),
             integrationId: $tempo->id,
-            status: WorklogSyncStatus::Queued,
             updatedSinceMilliseconds: $updatedSince,
             deletedSinceMilliseconds: (int) ($requestedSince ?? $tempo->config['worklog_sync_deleted_since'] ?? $now),
             startedAtMilliseconds: $now,
@@ -76,8 +74,6 @@ final class WorklogSync
         }
 
         SyncWorklogsJob::dispatch($run);
-
-        return $run;
     }
 
     /**
@@ -85,7 +81,8 @@ final class WorklogSync
      * and the sync position is stored. Issues, authors and the project mapping are resolved through the Jira instance Tempo runs on.
      * Entries that are invoiced or in a locked period are left untouched and logged.
      */
-    public function syncPage(WorklogSyncRun $run): WorklogSyncRun
+    /** Syncs the page of the run and returns the run of the next page, or null when the sync is done. */
+    public function syncPage(WorklogSyncRun $run): ?WorklogSyncRun
     {
         $tempo = Integration::findOrFail($run->integrationId);
         $this->jira = Integration::findOrFail((int) $tempo->config['jira_integration_id']);
@@ -104,7 +101,6 @@ final class WorklogSync
         /** @var Collection<int, TempoWorklog> $worklogs */
         $worklogs = $response->dto();
         $run = $run->with(
-            status: WorklogSyncStatus::Running,
             latestUpdatedMilliseconds: max($run->latestUpdatedMilliseconds, $worklogs->max(fn (TempoWorklog $worklog) => $worklog->updatedAt->getTimestampMs()) ?? 0),
         );
 
@@ -112,7 +108,7 @@ final class WorklogSync
         Context::add('entry_sync_source', true);
 
         try {
-            $run = $this->syncUpdated($worklogs, $run);
+            $this->syncUpdated($worklogs);
 
             // Each page runs in its own job; valid() tells whether Tempo has a page after the current one
             if ($pages->valid()) {
@@ -128,7 +124,7 @@ final class WorklogSync
                 ->paginate($connector)
                 ->collect()
                 ->collect();
-            $run = $this->syncDeleted($deleted->pluck('id')->unique()->values(), $run);
+            $this->syncDeleted($deleted->pluck('id')->unique()->values());
         } finally {
             Context::forget('entry_sync_source');
         }
@@ -143,14 +139,13 @@ final class WorklogSync
             'worklog_synced_until' => $run->startedAtMilliseconds,
         ])]);
 
-        $run = $run->with(status: WorklogSyncStatus::Finished);
         $this->tracker->close($run);
 
-        return $run;
+        return null;
     }
 
     /** @param Collection<int, TempoWorklog> $worklogs */
-    private function syncUpdated(Collection $worklogs, WorklogSyncRun $run): WorklogSyncRun
+    private function syncUpdated(Collection $worklogs): void
     {
         $tickets = app(TicketProviderRegistry::class)->makeProvider($this->jira->type, [...$this->jira->config, 'integration_id' => $this->jira->id]);
         // Tempo only knows the numeric issue id, which Jira accepts wherever it accepts an issue key
@@ -161,20 +156,12 @@ final class WorklogSync
         $users = $this->jiraDirectory->timaticUsers($this->jira, $worklogs->pluck('authorAccountId'));
 
         foreach ($worklogs as $worklog) {
-            $run = $run->with(
-                processed: $run->processed + 1,
-                firstWorklogStartedAtMilliseconds: $run->firstWorklogStartedAtMilliseconds ?? $worklog->startedAt->getTimestampMs(),
-                currentWorklogStartedAtMilliseconds: $worklog->startedAt->getTimestampMs(),
-            );
-            $this->tracker->update($run);
-
             $issue = $issues->get($worklog->issueId);
             $mapping = $issue === null ? null : $this->findBudgetMapping($issue);
             $user = $users->get($worklog->authorAccountId);
 
             if ($issue === null || $mapping === null || $user === null) {
                 Log::warning("Tempo worklog {$worklog->id} skipped: no issue, budget mapping or Timatic user", ['issue' => $issue?->number, 'author' => $worklog->authorAccountId]);
-                $run = $run->with(skipped: $run->skipped + 1);
 
                 continue;
             }
@@ -182,19 +169,16 @@ final class WorklogSync
             $entry = Entry::withTrashed()->firstWhere('external_id', $worklog->id);
 
             if ($entry?->trashed()) {
-                $run = $run->with(skipped: $run->skipped + 1);
 
                 continue;
             }
 
             if ($entry !== null && $this->isLocked($entry)) {
                 Log::warning("Tempo worklog {$worklog->id} changed but entry {$entry->id} is locked or invoiced");
-                $run = $run->with(skipped: $run->skipped + 1);
 
                 continue;
             }
 
-            $isNew = $entry === null;
             $entry ??= new Entry(['external_id' => $worklog->id]);
             $entry->fill([
                 'ticket_id' => $issue->number,
@@ -220,29 +204,21 @@ final class WorklogSync
 
             $entry->save();
             $this->entryEnricher->enrich($entry, isPartialUpdate: false, hasOvertime: false, hasCustomerOvertime: false, overtimeStartedAt: null, overtimeEndedAt: null);
-
-            $run = $isNew ? $run->with(created: $run->created + 1) : $run->with(updated: $run->updated + 1);
         }
-
-        return $run;
     }
 
     /** @param Collection<int, string> $worklogIds */
-    private function syncDeleted(Collection $worklogIds, WorklogSyncRun $run): WorklogSyncRun
+    private function syncDeleted(Collection $worklogIds): void
     {
         foreach (Entry::query()->whereIn('external_id', $worklogIds)->get() as $entry) {
             if ($this->isLocked($entry)) {
                 Log::warning("Tempo worklog {$entry->external_id} deleted but entry {$entry->id} is locked or invoiced");
-                $run = $run->with(skipped: $run->skipped + 1);
 
                 continue;
             }
 
             $entry->delete();
-            $run = $run->with(deleted: $run->deleted + 1);
         }
-
-        return $run;
     }
 
     /** The mapping of the issue's project, preferring the linked Jira instance when the key exists in several instances */
