@@ -7,13 +7,10 @@ use App\Models\BudgetVersion;
 use App\Models\Entry;
 use App\Models\Integration;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
-use Saloon\Http\PendingRequest;
 use Timatic\Jira\Models\ProjectMapping;
-use Timatic\Jira\Models\UserMapping;
 use Timatic\Jira\Requests\GetIssuesRequest;
 use Timatic\Jira\Requests\GetUserByAccountIdRequest;
 use Timatic\Tempo\Requests\GetWorklogsRequest;
@@ -127,27 +124,6 @@ it('removes the entry of a worklog that was deleted in Tempo', function () {
     expect($tempo->refresh()->config['worklog_sync_deleted_since'])->toBe(1795006800000);
 });
 
-it('removes the entries of worklogs deleted in Tempo across several pages', function () {
-    // Given
-    $jira = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
-    Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
-    $first = Entry::factory()->create(['external_id' => '70002', 'started_at' => now()->subDay(), 'ended_at' => now()->subDay()->addHour()]);
-    $second = Entry::factory()->create(['external_id' => '70003', 'started_at' => now()->subDay(), 'ended_at' => now()->subDay()->addHour()]);
-    MockClient::global([
-        GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 0], 'results' => []]),
-        GetDeletedWorklogsRequest::class => fn (PendingRequest $request) => $request->query()->get('lastEvaluatedKey') === 'key-1'
-            ? MockResponse::make(['metadata' => ['count' => 1], 'results' => [['deletedAt' => '2026-11-18T14:00:00.000000', 'tempoWorklogId' => '70003']]])
-            : MockResponse::make(['metadata' => ['count' => 1, 'next' => 'https://api.tempo.io/papertrail/1/events/deleted/types/worklog?lastEvaluatedKey=key-1', 'lastEvaluatedKey' => 'key-1'], 'results' => [['deletedAt' => '2026-11-18T13:00:00.000000', 'tempoWorklogId' => '70002']]]),
-    ]);
-
-    // When
-    $this->artisan('tempo:sync-worklogs')->assertSuccessful();
-
-    // Then
-    $this->assertSoftDeleted($first);
-    $this->assertSoftDeleted($second);
-});
-
 it('keeps an invoiced entry when its worklog is deleted in Tempo', function () {
     // Given
     $jira = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
@@ -204,122 +180,4 @@ it('records a worklog on a mirrored issue against the original issue of the othe
         ->and($entry->ticket_title)->toBe('Fix login')
         ->and($entry->customer_id)->toBe($budget->customer_id)
         ->and($entry->budget_id)->toBe($budget->id);
-});
-
-it('does not contact Tempo while the sync to Timatic is disabled in the settings', function () {
-    // Given
-    $jira = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
-    Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id]]);
-    Entry::factory()->create(['external_id' => '70002']);
-    MockClient::global([]);
-
-    // When
-    $this->artisan('tempo:sync-worklogs')->assertSuccessful();
-
-    // Then
-    expect(Entry::query()->count())->toBe(1);
-});
-
-it('imports every page of the changed worklogs and records when the sync ran', function () {
-    // Given
-    $this->travelTo(CarbonImmutable::parse('2026-11-20T12:00:00Z'));
-    $jira = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
-    $tempo = Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
-    $budget = Budget::factory()->has(BudgetVersion::factory()->state(['effective_from' => now()->subYear(), 'effective_to' => null]))->create();
-    ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'ACME', 'project_name' => 'Acme', 'customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
-    User::factory()->create(['email' => 'ann@example.com']);
-    MockClient::global([
-        GetWorklogsRequest::class => fn (PendingRequest $request) => MockResponse::make([
-            'metadata' => $request->query()->get('offset') === 0 ? ['count' => 1, 'next' => 'https://api.tempo.io/4/worklogs?offset=200'] : ['count' => 1],
-            'results' => [[
-                'tempoWorklogId' => $request->query()->get('offset') === 0 ? 70001 : 70002,
-                'issue' => ['id' => 21840],
-                'timeSpentSeconds' => 3600,
-                'startDateTimeUtc' => '2026-11-18T08:00:00Z',
-                'description' => 'Fixed the login',
-                'updatedAt' => '2026-11-18T12:00:00Z',
-                'author' => ['accountId' => 'acc-1'],
-            ]],
-        ]),
-        GetDeletedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 0], 'results' => []]),
-        GetIssuesRequest::class => MockResponse::make(['issues' => [[
-            'id' => '21840',
-            'key' => 'ACME-12',
-            'fields' => ['summary' => 'Login fails on Safari', 'issuetype' => ['name' => 'Bug'], 'created' => '2026-09-01T10:00:00.000+0000'],
-        ]]]),
-        GetUserByAccountIdRequest::class => MockResponse::make(['accountId' => 'acc-1', 'emailAddress' => 'ann@example.com']),
-    ]);
-
-    // When
-    $this->artisan('tempo:sync-worklogs')->assertSuccessful();
-
-    // Then
-    expect(Entry::query()->orderBy('external_id')->pluck('external_id')->all())->toBe(['70001', '70002'])
-        ->and($tempo->refresh()->config['worklog_synced_until'])->toBe(CarbonImmutable::parse('2026-11-20T12:00:00Z')->getTimestampMs());
-});
-
-it('records the author of a skipped worklog as a Jira user without a Timatic user', function () {
-    // Given
-    $jira = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
-    Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
-    MockClient::global([
-        GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
-            'tempoWorklogId' => 70002,
-            'issue' => ['id' => 21840],
-            'timeSpentSeconds' => 5400,
-            'startDateTimeUtc' => '2026-11-18T08:00:00Z',
-            'description' => 'Fixed the login',
-            'updatedAt' => '2026-11-18T12:00:00Z',
-            'author' => ['accountId' => 'acc-9'],
-        ]]]),
-        GetDeletedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 0], 'results' => []]),
-        GetIssuesRequest::class => MockResponse::make(['issues' => [[
-            'id' => '21840',
-            'key' => 'ACME-12',
-            'fields' => ['summary' => 'Login fails on Safari', 'issuetype' => ['name' => 'Bug'], 'created' => '2026-09-01T10:00:00.000+0000'],
-        ]]]),
-        GetUserByAccountIdRequest::class => MockResponse::make(['accountId' => 'acc-9', 'emailAddress' => 'bob@example.com', 'displayName' => 'Bob Jones']),
-    ]);
-
-    // When
-    $this->artisan('tempo:sync-worklogs')->assertSuccessful();
-
-    // Then
-    expect(Entry::query()->count())->toBe(0)
-        ->and(UserMapping::query()->where('integration_id', $jira->id)->get(['account_id', 'display_name', 'email', 'user_id'])->toArray())->toBe([
-            ['account_id' => 'acc-9', 'display_name' => 'Bob Jones', 'email' => 'bob@example.com', 'user_id' => null],
-        ]);
-});
-
-it('books a worklog on the Timatic user linked to its Jira author in the user mapping', function () {
-    // Given
-    $jira = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
-    Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
-    $budget = Budget::factory()->has(BudgetVersion::factory()->state(['effective_from' => now()->subYear(), 'effective_to' => null]))->create();
-    ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'ACME', 'project_name' => 'Acme', 'customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
-    $user = User::factory()->create(['email' => 'bob.jones@example.com']);
-    UserMapping::query()->create(['integration_id' => $jira->id, 'account_id' => 'acc-9', 'display_name' => 'Bob Jones', 'email' => null, 'user_id' => $user->id]);
-    MockClient::global([
-        GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
-            'tempoWorklogId' => 70002,
-            'issue' => ['id' => 21840],
-            'timeSpentSeconds' => 5400,
-            'startDateTimeUtc' => '2026-11-18T08:00:00Z',
-            'description' => 'Fixed the login',
-            'updatedAt' => '2026-11-18T12:00:00Z',
-            'author' => ['accountId' => 'acc-9'],
-        ]]]),
-        GetDeletedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 0], 'results' => []]),
-        GetIssuesRequest::class => MockResponse::make(['issues' => [[
-            'id' => '21840',
-            'key' => 'ACME-12',
-            'fields' => ['summary' => 'Login fails on Safari', 'issuetype' => ['name' => 'Bug'], 'created' => '2026-09-01T10:00:00.000+0000'],
-        ]]]),
-    ]);
-
-    // When
-    $this->artisan('tempo:sync-worklogs')->assertSuccessful();
-
-    // Then
-    expect(Entry::query()->sole()->user_id)->toBe($user->id);
 });

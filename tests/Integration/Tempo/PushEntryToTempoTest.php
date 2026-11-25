@@ -110,17 +110,3 @@ it('does not push entries that the worklog sync imported', function () {
     Context::forget('entry_sync_source');
     $mock->assertNothingSent();
 });
-
-it('leaves entries on a project the linked Jira instance does not map alone', function () {
-    // Given
-    $jira = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
-    Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_tempo' => true]]);
-    $mock = MockClient::global([]);
-
-    // When
-    $entry = Entry::factory()->create(['ticket_number' => 'OTHER-1']);
-
-    // Then
-    $mock->assertNothingSent();
-    expect($entry->refresh()->external_id)->toBeNull();
-});

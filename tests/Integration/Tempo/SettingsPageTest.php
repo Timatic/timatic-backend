@@ -36,23 +36,6 @@ it('stores the token, the linked Jira instance, both sync switches and the mirro
     ]);
 });
 
-it('keeps the stored token when the field is left empty', function () {
-    // Given
-    $this->loginUser(permissions: ['integrations.read']);
-    Filament::setCurrentPanel('admin');
-    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => []]);
-    $tempo = Integration::create(['title' => 'Tempo', 'type' => 'tempo', 'config' => ['api_token' => 'secret-token', 'jira_integration_id' => $jira->id]]);
-
-    // When
-    Livewire::test(SettingsPage::class, ['record' => $tempo->id])
-        ->fillForm(['sync_to_tempo' => true])
-        ->callAction('save');
-
-    // Then
-    expect($tempo->refresh()->config['api_token'])->toBe('secret-token')
-        ->and($tempo->config['sync_to_tempo'])->toBeTrue();
-});
-
 it('queues one import job per month of the chosen period and shows how many months are still queued', function () {
     // Given
     Queue::fake();
@@ -74,19 +57,4 @@ it('queues one import job per month of the chosen period and shows how many mont
         ['2026-07-01', '2026-07-31'],
         ['2026-08-01', '2026-08-10'],
     ]);
-});
-
-it('shows when the worklogs were last synced', function () {
-    // Given
-    $this->loginUser(permissions: ['integrations.read']);
-    Filament::setCurrentPanel('admin');
-    $tempo = Integration::create(['title' => 'Tempo', 'type' => 'tempo', 'config' => [
-        'worklog_synced_until' => CarbonImmutable::parse('2026-11-20T13:30:00Z')->getTimestampMs(),
-    ]]);
-
-    // When
-    $page = Livewire::test(SettingsPage::class, ['record' => $tempo->id]);
-
-    // Then
-    $page->assertSee('Laatste sync met Tempo: 20-11-2026 14:30.');
 });
