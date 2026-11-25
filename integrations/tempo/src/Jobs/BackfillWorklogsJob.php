@@ -31,9 +31,13 @@ class BackfillWorklogsJob implements ShouldQueue
     public function handle(WorklogImporter $importer): void
     {
         $tempo = Integration::findOrFail($this->tempoId);
+        $connector = new Connector($tempo->config['api_token']);
 
         /** @var Collection<int, TempoWorklog> $worklogs */
-        $worklogs = GetWorklogsRequest::between($this->from, $this->to)->paginate(new Connector($tempo->config['api_token']))->collect()->collect();
+        $worklogs = GetWorklogsRequest::between($this->from, $this->to)
+            ->paginate($connector)
+            ->collect()
+            ->collect();
         $importer->import($tempo, $worklogs);
     }
 }

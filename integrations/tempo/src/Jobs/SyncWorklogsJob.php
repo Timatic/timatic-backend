@@ -41,12 +41,20 @@ class SyncWorklogsJob implements ShouldQueue
         $deletedSince = (int) ($tempo->config['worklog_sync_deleted_since'] ?? $startedAt);
         $connector = new Connector($tempo->config['api_token']);
 
+        $updatedFrom = CarbonImmutable::createFromTimestampMs($updatedSince);
         /** @var Collection<int, TempoWorklog> $worklogs */
-        $worklogs = GetWorklogsRequest::changedSince(CarbonImmutable::createFromTimestampMs($updatedSince))->paginate($connector)->collect()->collect();
+        $worklogs = GetWorklogsRequest::changedSince($updatedFrom)
+            ->paginate($connector)
+            ->collect()
+            ->collect();
         $importer->import($tempo, $worklogs);
 
+        $deletedFrom = CarbonImmutable::createFromTimestampMs($deletedSince);
         /** @var Collection<int, TempoDeletedWorklog> $deleted */
-        $deleted = (new GetDeletedWorklogsRequest(CarbonImmutable::createFromTimestampMs($deletedSince)))->paginate($connector)->collect()->collect();
+        $deleted = (new GetDeletedWorklogsRequest($deletedFrom))
+            ->paginate($connector)
+            ->collect()
+            ->collect();
         $importer->remove($deleted->pluck('id'));
 
         $lastUpdatedAt = $worklogs->max(fn (TempoWorklog $worklog) => $worklog->updatedAt->getTimestampMs()) ?? $updatedSince;
