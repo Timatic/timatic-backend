@@ -20,16 +20,13 @@ class SyncWorklogsCommand extends Command
                 continue;
             }
 
-            $label = $integration->display_title;
-
             if (! WorklogImporter::isReady($integration)) {
-                $this->info("{$label}: Tempo token or connected Jira instance missing, nothing to sync.");
+                $this->info("{$integration->display_title}: Tempo token or connected Jira instance missing, nothing to sync.");
 
                 continue;
             }
 
             SyncWorklogsJob::dispatch($integration->id);
-            $this->info("{$label}: worklog sync queued.");
         }
 
         return self::SUCCESS;
