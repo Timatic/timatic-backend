@@ -126,10 +126,11 @@ class SettingsPage extends Page
                                 ->required(),
                         ])
                         ->action(function (array $data) use ($integration, $timezone): void {
+                            $from = CarbonImmutable::parse($data['from'], $timezone)->startOfDay();
                             $until = CarbonImmutable::parse($data['until'], $timezone)->startOfDay();
                             $jobs = [];
 
-                            for ($start = CarbonImmutable::parse($data['from'], $timezone)->startOfDay(); $start->lte($until); $start = $start->addMonthNoOverflow()->startOfMonth()) {
+                            for ($start = $from; $start->lte($until); $start = $start->addMonthNoOverflow()->startOfMonth()) {
                                 $jobs[] = new BackfillWorklogsJob($integration->id, $start, $start->endOfMonth()->startOfDay()->min($until));
                             }
 
