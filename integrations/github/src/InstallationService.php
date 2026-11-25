@@ -4,7 +4,10 @@ namespace Timatic\GitHub;
 
 use App\Models\Integration;
 use Timatic\GitHub\DataTransferObjects\GitHubInstallation;
+use Timatic\GitHub\DataTransferObjects\GitHubRepository;
+use Timatic\GitHub\DataTransferObjects\GitHubRepositoryPage;
 use Timatic\GitHub\Exceptions\GitHubException;
+use Timatic\GitHub\Requests\GetInstallationRepositoriesRequest;
 use Timatic\GitHub\Requests\GetUserInstallationsRequest;
 
 /**
@@ -63,5 +66,32 @@ class InstallationService
         }
 
         return $installations;
+    }
+
+    /**
+     * @return array<int, GitHubRepository>
+     *
+     * @throws GitHubException
+     */
+    public function repositories(int $installationId): array
+    {
+        $connector = Connector::forInstallation($installationId);
+        $repositories = [];
+        $page = 1;
+
+        do {
+            $response = $connector->send(new GetInstallationRepositoriesRequest($page));
+
+            if ($response->failed()) {
+                throw new GitHubException('Fetching installation repositories failed with status '.$response->status().'.');
+            }
+
+            /** @var GitHubRepositoryPage $repositoryPage */
+            $repositoryPage = $response->dto();
+            $repositories = [...$repositories, ...$repositoryPage->repositories];
+            $page++;
+        } while ($repositoryPage->repositories !== [] && count($repositories) < $repositoryPage->totalCount);
+
+        return $repositories;
     }
 }

@@ -35,7 +35,7 @@ it('finds the customer and budget a Bitbucket repository is mapped to', function
         ->and($mapping?->budget_id)->toBe($budget->id);
 });
 
-it('ignores an archived Bitbucket repository', function () {
+it('ignores an ignored Bitbucket repository', function () {
     // Given
     /** @var Customer $customer */
     $customer = Customer::factory()->create();
@@ -46,8 +46,7 @@ it('ignores an archived Bitbucket repository', function () {
         'repository_slug' => 'shop',
         'repository_name' => 'shop',
         'customer_id' => $customer->id,
-        'is_archived' => true,
-    ]);
+    ])->ignore();
 
     // When
     $mapping = app(GitRepositoryService::class)->findMappingByRemote(GitRemote::fromUrl('git@bitbucket.org:acme/shop.git'));
