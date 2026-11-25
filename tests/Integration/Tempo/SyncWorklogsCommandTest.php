@@ -16,7 +16,7 @@ use Timatic\Jira\Models\ProjectMapping;
 use Timatic\Jira\Models\UserMapping;
 use Timatic\Jira\Requests\GetIssuesRequest;
 use Timatic\Jira\Requests\GetUserByAccountIdRequest;
-use Timatic\Tempo\Requests\GetChangedWorklogsRequest;
+use Timatic\Tempo\Requests\GetWorklogsRequest;
 use Timatic\Tempo\Requests\GetDeletedWorklogsRequest;
 
 uses(RefreshDatabase::class);
@@ -28,12 +28,12 @@ afterEach(function () {
 it('creates an entry with the real author for a worklog changed in Tempo and stores the next sync position', function () {
     // Given
     $jira = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
-    $tempo = Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true]]);
+    $tempo = Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'worklog_sync_updated_since' => 1794870000000, 'worklog_sync_deleted_since' => 1794870000000]]);
     $budget = Budget::factory()->has(BudgetVersion::factory()->state(['effective_from' => now()->subYear(), 'effective_to' => null]))->create();
     ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'ACME', 'project_name' => 'Acme', 'customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
     $user = User::factory()->create(['email' => 'ann@example.com']);
     MockClient::global([
-        GetChangedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1, 'offset' => 0, 'limit' => 1000], 'results' => [[
+        GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1, 'offset' => 0, 'limit' => 1000], 'results' => [[
             'tempoWorklogId' => 70002,
             'issue' => ['id' => 21840],
             'timeSpentSeconds' => 5400,
@@ -52,7 +52,7 @@ it('creates an entry with the real author for a worklog changed in Tempo and sto
     ]);
 
     // When
-    $this->artisan('tempo:sync-worklogs', ['--since' => '2026-11-17'])->assertSuccessful();
+    $this->artisan('tempo:sync-worklogs')->assertSuccessful();
 
     // Then
     $entry = Entry::query()->sole();
@@ -68,7 +68,7 @@ it('creates an entry with the real author for a worklog changed in Tempo and sto
         ->and($entry->ended_at->toIso8601String())->toBe('2026-11-18T09:30:00+00:00')
         ->and($entry->minutes_spent)->toBe(90)
         ->and($tempo->refresh()->config['worklog_sync_updated_since'])->toBe(1795003200000)
-        ->and($tempo->config['worklog_sync_deleted_since'])->toBe(1794873600000 - 3600000);
+        ->and($tempo->config['worklog_sync_deleted_since'])->toBe(1794870000000);
 });
 
 it('updates the entry of a worklog that was changed in Tempo', function () {
@@ -80,7 +80,7 @@ it('updates the entry of a worklog that was changed in Tempo', function () {
     User::factory()->create(['email' => 'ann@example.com']);
     $entry = Entry::factory()->create(['external_id' => '70002', 'description' => 'Old description', 'started_at' => now()->subDay()]);
     MockClient::global([
-        GetChangedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
+        GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
             'tempoWorklogId' => 70002,
             'issue' => ['id' => 21840],
             'timeSpentSeconds' => 7200,
@@ -113,7 +113,7 @@ it('removes the entry of a worklog that was deleted in Tempo', function () {
     $tempo = Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
     $entry = Entry::factory()->create(['external_id' => '70002', 'started_at' => now()->subDay(), 'ended_at' => now()->subDay()->addHour()]);
     MockClient::global([
-        GetChangedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 0], 'results' => []]),
+        GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 0], 'results' => []]),
         GetDeletedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1, 'limit' => 1000], 'results' => [
             ['deletedAt' => '2026-11-18T13:00:00.000000', 'tempoWorklogId' => '70002', 'jiraWorklogId' => '108746'],
         ]]),
@@ -134,7 +134,7 @@ it('removes the entries of worklogs deleted in Tempo across several pages', func
     $first = Entry::factory()->create(['external_id' => '70002', 'started_at' => now()->subDay(), 'ended_at' => now()->subDay()->addHour()]);
     $second = Entry::factory()->create(['external_id' => '70003', 'started_at' => now()->subDay(), 'ended_at' => now()->subDay()->addHour()]);
     MockClient::global([
-        GetChangedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 0], 'results' => []]),
+        GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 0], 'results' => []]),
         GetDeletedWorklogsRequest::class => fn (PendingRequest $request) => $request->query()->get('lastEvaluatedKey') === 'key-1'
             ? MockResponse::make(['metadata' => ['count' => 1], 'results' => [['deletedAt' => '2026-11-18T14:00:00.000000', 'tempoWorklogId' => '70003']]])
             : MockResponse::make(['metadata' => ['count' => 1, 'next' => 'https://api.tempo.io/papertrail/1/events/deleted/types/worklog?lastEvaluatedKey=key-1', 'lastEvaluatedKey' => 'key-1'], 'results' => [['deletedAt' => '2026-11-18T13:00:00.000000', 'tempoWorklogId' => '70002']]]),
@@ -154,7 +154,7 @@ it('keeps an invoiced entry when its worklog is deleted in Tempo', function () {
     Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
     $entry = Entry::factory()->create(['external_id' => '70002', 'invoiced_at' => now(), 'started_at' => now()->subDay(), 'ended_at' => now()->subDay()->addHour()]);
     MockClient::global([
-        GetChangedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 0], 'results' => []]),
+        GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 0], 'results' => []]),
         GetDeletedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [
             ['deletedAt' => '2026-11-18T13:00:00.000000', 'tempoWorklogId' => '70002', 'jiraWorklogId' => '108746'],
         ]]),
@@ -176,7 +176,7 @@ it('records a worklog on a mirrored issue against the original issue of the othe
     ProjectMapping::query()->create(['integration_id' => $thesis->id, 'project_key' => 'ABC', 'project_name' => 'Abc', 'customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
     User::factory()->create(['email' => 'ann@example.com']);
     MockClient::global([
-        GetChangedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
+        GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
             'tempoWorklogId' => 70003,
             'issue' => ['id' => 5001],
             'timeSpentSeconds' => 3600,
@@ -220,7 +220,7 @@ it('does not contact Tempo while the sync to Timatic is disabled in the settings
     expect(Entry::query()->count())->toBe(1);
 });
 
-it('syncs every page of changed worklogs and records since when and until when the sync is complete', function () {
+it('imports every page of the worklogs from the chosen day and records since when and until when the sync is complete', function () {
     // Given
     $this->travelTo(CarbonImmutable::parse('2026-11-20T12:00:00Z'));
     $jira = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
@@ -229,7 +229,7 @@ it('syncs every page of changed worklogs and records since when and until when t
     ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'ACME', 'project_name' => 'Acme', 'customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
     User::factory()->create(['email' => 'ann@example.com']);
     MockClient::global([
-        GetChangedWorklogsRequest::class => fn (PendingRequest $request) => MockResponse::make([
+        GetWorklogsRequest::class => fn (PendingRequest $request) => MockResponse::make([
             'metadata' => $request->query()->get('offset') === 0 ? ['count' => 1, 'next' => 'https://api.tempo.io/4/worklogs?offset=200'] : ['count' => 1],
             'results' => [[
                 'tempoWorklogId' => $request->query()->get('offset') === 0 ? 70001 : 70002,
@@ -264,7 +264,7 @@ it('records the author of a skipped worklog as a Jira user without a Timatic use
     $jira = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
     Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
     MockClient::global([
-        GetChangedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
+        GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
             'tempoWorklogId' => 70002,
             'issue' => ['id' => 21840],
             'timeSpentSeconds' => 5400,
@@ -301,7 +301,7 @@ it('books a worklog on the Timatic user linked to its Jira author in the user ma
     $user = User::factory()->create(['email' => 'bob.jones@example.com']);
     UserMapping::query()->create(['integration_id' => $jira->id, 'account_id' => 'acc-9', 'display_name' => 'Bob Jones', 'email' => null, 'user_id' => $user->id]);
     MockClient::global([
-        GetChangedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
+        GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
             'tempoWorklogId' => 70002,
             'issue' => ['id' => 21840],
             'timeSpentSeconds' => 5400,

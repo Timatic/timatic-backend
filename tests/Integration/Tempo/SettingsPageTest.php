@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 use Tests\Concerns\LoginUser;
 use Timatic\Tempo\Filament\Pages\SettingsPage;
+use Timatic\Tempo\Jobs\BackfillWorklogsJob;
 use Timatic\Tempo\Jobs\SyncWorklogsJob;
 
 uses(LoginUser::class);
@@ -53,25 +54,27 @@ it('keeps the stored token when the field is left empty', function () {
         ->and($tempo->config['sync_to_tempo'])->toBeTrue();
 });
 
-it('queues a worklog sync from the chosen day and shows that it runs', function () {
+it('queues the sync and one import job per month from the chosen day', function () {
     // Given
     Queue::fake();
+    $this->travelTo(CarbonImmutable::parse('2026-08-10T12:00:00Z'));
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
     $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1']]);
     $tempo = Integration::create(['title' => 'Tempo', 'type' => 'tempo', 'config' => ['api_token' => 'secret-token', 'jira_integration_id' => $jira->id]]);
 
     // When
-    $page = Livewire::test(SettingsPage::class, ['record' => $tempo->id])
-        ->callAction(TestAction::make('sync_worklogs')->schemaComponent('worklog_sync'), ['since' => '2026-06-01']);
+    Livewire::test(SettingsPage::class, ['record' => $tempo->id])
+        ->callAction(TestAction::make('sync_worklogs')->schemaComponent('worklog_sync'), ['since' => '2026-06-15'])
+        ->assertNotified('Sync en import van 3 maanden ingepland.');
 
     // Then
-    // While its dialog is open Filament only re-renders the dialog, which keeps polling until the sync is done
-    expect($page->effects['partials']['action-modals.0'])
-        ->toContain('Worklogs synchroniseren…')
-        ->toContain('wire:poll.2s');
-    Queue::assertPushed(SyncWorklogsJob::class, fn (SyncWorklogsJob $job) => $job->run->integrationId === $tempo->id
-        && $job->run->updatedSinceMilliseconds === CarbonImmutable::parse('2026-05-31T22:00:00Z')->getTimestampMs());
+    Queue::assertPushed(SyncWorklogsJob::class, fn (SyncWorklogsJob $job) => $job->tempoId === $tempo->id);
+    expect(Queue::pushed(BackfillWorklogsJob::class)->map(fn (BackfillWorklogsJob $job) => [$job->from->toDateString(), $job->to->toDateString()])->all())->toBe([
+        ['2026-06-15', '2026-06-30'],
+        ['2026-07-01', '2026-07-31'],
+        ['2026-08-01', '2026-08-10'],
+    ]);
 });
 
 it('shows since when and until when the worklogs are synced', function () {
@@ -88,20 +91,4 @@ it('shows since when and until when the worklogs are synced', function () {
 
     // Then
     $page->assertSee('Gesynchroniseerd vanaf 01-06-2026, bijgewerkt tot 20-11-2026 14:30.');
-});
-
-it('shows a running worklog sync', function () {
-    // Given
-    $this->loginUser(permissions: ['integrations.read']);
-    Filament::setCurrentPanel('admin');
-    Queue::fake();
-    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1']]);
-    $tempo = Integration::create(['title' => 'Tempo', 'type' => 'tempo', 'config' => ['api_token' => 'secret-token', 'jira_integration_id' => $jira->id]]);
-    SyncWorklogsJob::start($tempo);
-
-    // When
-    $page = Livewire::test(SettingsPage::class, ['record' => $tempo->id]);
-
-    // Then
-    $page->assertSee('Worklogs synchroniseren…');
 });

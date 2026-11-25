@@ -19,10 +19,10 @@ use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
-use Timatic\Tempo\Exceptions\WorklogSyncNotStartedException;
+use Timatic\Tempo\Jobs\BackfillWorklogsJob;
 use Timatic\Tempo\Jobs\SyncWorklogsJob;
+use Timatic\Tempo\WorklogImporter;
 
 /**
  * @property Schema $form
@@ -65,8 +65,6 @@ class SettingsPage extends Page
         $config = $integration->config ?? [];
         $jiraIntegrations = Integration::query()->where('type', 'jira')->pluck('title', 'id');
         $timezone = config('timatic.preferred_timezone');
-        // Evaluated while rendering, so a sync started in this request already shows up
-        $syncStatus = fn (): array => ['isRunning' => SyncWorklogsJob::isRunning($integration->id)];
 
         return $form->schema([
             Section::make(__('tempo::tempo.settings.section_connection'))->schema([
@@ -106,36 +104,26 @@ class SettingsPage extends Page
                             'until' => CarbonImmutable::createFromTimestampMs($config['worklog_synced_until'], $timezone)->format('d-m-Y H:i'),
                         ])
                         : __('tempo::tempo.settings.sync_range_empty')),
-                    View::make('tempo::filament.pages.worklog-sync-status')->viewData($syncStatus),
                 ])
                 ->footerActions([
                     Action::make('sync_worklogs')
                         ->label(__('tempo::tempo.settings.action_sync'))
-                        ->disabled(! SyncWorklogsJob::isReady($integration))
+                        ->disabled(! WorklogImporter::isReady($integration))
                         ->modalDescription(__('tempo::tempo.settings.action_sync_description'))
-                        ->modalSubmitAction(fn (Action $action): Action => $action
-                            ->label(__('tempo::tempo.settings.action_sync_start'))
-                            ->disabled(fn (): bool => SyncWorklogsJob::isRunning($integration->id)))
-                        ->modalCancelActionLabel(__('tempo::tempo.settings.action_sync_close'))
+                        ->modalSubmitActionLabel(__('tempo::tempo.settings.action_sync_start'))
                         ->schema([
                             DatePicker::make('since')
                                 ->label(__('tempo::tempo.settings.field_sync_since'))
                                 ->helperText(__('tempo::tempo.settings.field_sync_since_helper'))
                                 ->maxDate(today($timezone)),
-                            View::make('tempo::filament.pages.worklog-sync-status')->viewData($syncStatus),
                         ])
-                        ->action(function (array $data, Action $action) use ($integration, $timezone): void {
-                            try {
-                                SyncWorklogsJob::start(
-                                    $integration,
-                                    filled($data['since'] ?? null) ? CarbonImmutable::parse($data['since'], $timezone)->startOfDay() : null,
-                                );
-                            } catch (WorklogSyncNotStartedException) {
-                                Notification::make()->title(__('tempo::tempo.settings.notification_sync_not_started'))->danger()->send();
-                            }
+                        ->action(function (array $data) use ($integration, $timezone): void {
+                            $months = filled($data['since'] ?? null)
+                                ? BackfillWorklogsJob::dispatchMonths($integration, CarbonImmutable::parse($data['since'], $timezone))
+                                : 0;
+                            SyncWorklogsJob::dispatch($integration->id);
 
-                            // Keeps the modal open, where the progress of the queued sync is shown
-                            $action->halt();
+                            Notification::make()->title(trans_choice('tempo::tempo.settings.notification_sync_queued', $months))->success()->send();
                         }),
                 ]),
             Section::make(__('tempo::tempo.settings.section_mirrored_issues'))->schema([

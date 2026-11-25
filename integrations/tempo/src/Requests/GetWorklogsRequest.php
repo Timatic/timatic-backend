@@ -13,14 +13,18 @@ use Saloon\PaginationPlugin\Contracts\Paginatable;
 use Saloon\PaginationPlugin\OffsetPaginator;
 use Timatic\Tempo\DataTransferObjects\TempoWorklog;
 
-class GetChangedWorklogsRequest extends Request implements HasRequestPagination, Paginatable
+class GetWorklogsRequest extends Request implements HasRequestPagination, Paginatable
 {
-    // One page is one queued job, so it has to be done well within the default 60 second worker timeout
     public const LIMIT = 200;
 
     protected Method $method = Method::GET;
 
-    public function __construct(private readonly CarbonImmutable $updatedFrom) {}
+    /** Either the worklogs changed since $updatedFrom, or the worklogs of the days $from through $to */
+    public function __construct(
+        private readonly ?CarbonImmutable $updatedFrom = null,
+        private readonly ?CarbonImmutable $from = null,
+        private readonly ?CarbonImmutable $to = null,
+    ) {}
 
     public function resolveEndpoint(): string
     {
@@ -29,7 +33,11 @@ class GetChangedWorklogsRequest extends Request implements HasRequestPagination,
 
     protected function defaultQuery(): array
     {
-        return ['updatedFrom' => $this->updatedFrom->utc()->format('Y-m-d\TH:i:s\Z')];
+        return array_filter([
+            'updatedFrom' => $this->updatedFrom?->utc()->format('Y-m-d\TH:i:s\Z'),
+            'from' => $this->from?->toDateString(),
+            'to' => $this->to?->toDateString(),
+        ]);
     }
 
     /** @return Collection<int, TempoWorklog> */
@@ -53,7 +61,7 @@ class GetChangedWorklogsRequest extends Request implements HasRequestPagination,
     {
         return new class(connector: $connector, request: $this) extends OffsetPaginator
         {
-            protected ?int $perPageLimit = GetChangedWorklogsRequest::LIMIT;
+            protected ?int $perPageLimit = GetWorklogsRequest::LIMIT;
 
             protected function isLastPage(Response $response): bool
             {
