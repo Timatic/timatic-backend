@@ -24,14 +24,14 @@ use Saloon\Http\Response;
 use Throwable;
 use Timatic\Jira\JiraDirectory;
 use Timatic\Jira\Models\ProjectMapping;
+use Timatic\Tempo\Connector;
 use Timatic\Tempo\DataTransferObjects\TempoDeletedWorklog;
 use Timatic\Tempo\DataTransferObjects\TempoWorklog;
 use Timatic\Tempo\DataTransferObjects\WorklogSyncRun;
 use Timatic\Tempo\Exceptions\WorklogSyncNotStartedException;
-use Timatic\Tempo\Connector;
 use Timatic\Tempo\Requests\GetChangedWorklogsRequest;
-use Timatic\Tempo\WorklogSyncTracker;
 use Timatic\Tempo\Requests\GetDeletedWorklogsRequest;
+use Timatic\Tempo\WorklogSyncTracker;
 
 /**
  * Syncs one page of Tempo worklogs and queues the next page, so a long backfill never outlives the worker timeout.
@@ -43,12 +43,6 @@ class SyncWorklogsJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable;
 
     public int $tries = 1;
-
-    private JiraDirectory $jiraDirectory;
-
-    private EntryEnricher $entryEnricher;
-
-    private WorklogSyncTracker $tracker;
 
     private Integration $jira;
 
@@ -99,11 +93,8 @@ class SyncWorklogsJob implements ShouldQueue
      * and the sync position is stored. Issues, authors and the project mapping are resolved through the Jira instance Tempo runs on.
      * Entries that are invoiced or in a locked period are left untouched and logged.
      */
-    public function handle(JiraDirectory $jiraDirectory, EntryEnricher $entryEnricher, WorklogSyncTracker $tracker): void
+    public function handle(WorklogSyncTracker $tracker): void
     {
-        $this->jiraDirectory = $jiraDirectory;
-        $this->entryEnricher = $entryEnricher;
-        $this->tracker = $tracker;
         $run = $this->run;
 
         // The claim of this run expired while it waited in the queue and another run took its place
@@ -141,7 +132,7 @@ class SyncWorklogsJob implements ShouldQueue
             if ($pages->valid()) {
                 // ponytail: a worklog deleted in Tempo mid-run shifts the next page by one and skips a worklog; sync again from the same date if a backfill misses one
                 $run = $run->with(page: $run->page + 1);
-                $this->tracker->update($run);
+                $tracker->update($run);
                 self::dispatch($run);
 
                 return;
@@ -167,7 +158,7 @@ class SyncWorklogsJob implements ShouldQueue
             'worklog_synced_until' => $run->startedAtMilliseconds,
         ])]);
 
-        $this->tracker->close($run);
+        $tracker->close($run);
     }
 
     public function failed(?Throwable $exception): void
@@ -184,7 +175,7 @@ class SyncWorklogsJob implements ShouldQueue
             ->mapWithKeys(fn (string $issueId): array => [$issueId => $tickets->fetchTicketByKey($issueId)])
             ->filter()
             ->map(fn (Ticket $ticket) => $this->resolveMirroredIssue($ticket));
-        $users = $this->jiraDirectory->timaticUsers($this->jira, $worklogs->pluck('authorAccountId'));
+        $users = app(JiraDirectory::class)->timaticUsers($this->jira, $worklogs->pluck('authorAccountId'));
 
         foreach ($worklogs as $worklog) {
             $issue = $issues->get($worklog->issueId);
@@ -233,7 +224,7 @@ class SyncWorklogsJob implements ShouldQueue
             }
 
             $entry->save();
-            $this->entryEnricher->enrich($entry, isPartialUpdate: false, hasOvertime: false, hasCustomerOvertime: false, overtimeStartedAt: null, overtimeEndedAt: null);
+            app(EntryEnricher::class)->enrich($entry, isPartialUpdate: false, hasOvertime: false, hasCustomerOvertime: false, overtimeStartedAt: null, overtimeEndedAt: null);
         }
     }
 
