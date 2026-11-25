@@ -5,7 +5,9 @@ namespace App\Models;
 use App\Exceptions\ConflictingSuggestionFieldException;
 use Carbon\Carbon;
 use Database\Factories\EntrySuggestionFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -36,7 +38,10 @@ class EntrySuggestion extends Model
     /** @use HasFactory<EntrySuggestionFactory> */
     use HasFactory;
 
+    use MassPrunable;
     use SoftDeletes;
+
+    public const RETENTION_DAYS = 30;
 
     protected $fillable = [
         'ticket_id',
@@ -55,6 +60,22 @@ class EntrySuggestion extends Model
             'id' => 'integer',
             'is_internal' => 'bool',
         ];
+    }
+
+    /**
+     * Open suggestions outlive their pruned activities as empty shells. Dismissed
+     * ones are kept because they must keep suppressing on a rebuild of their day,
+     * and booked ones are part of their entry's history.
+     *
+     * @return Builder<static>
+     */
+    public function prunable(): Builder
+    {
+        // The prune command includes trashed models, so dismissed ones are excluded explicitly.
+        return $this->newQuery()
+            ->whereNull('deleted_at')
+            ->whereDoesntHave('entry', fn (Builder $query) => $query->withTrashed())
+            ->where('created_at', '<', now()->subDays(self::RETENTION_DAYS));
     }
 
     /**
