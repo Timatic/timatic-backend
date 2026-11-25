@@ -7,10 +7,8 @@ use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 use Tests\Concerns\LoginUser;
-use Timatic\Tempo\DataTransferObjects\WorklogSyncRun;
 use Timatic\Tempo\Filament\Pages\SettingsPage;
 use Timatic\Tempo\Jobs\SyncWorklogsJob;
-use Timatic\Tempo\WorklogSyncTracker;
 
 uses(LoginUser::class);
 
@@ -96,8 +94,10 @@ it('shows a running worklog sync', function () {
     // Given
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
-    $tempo = Integration::create(['title' => 'Tempo', 'type' => 'tempo', 'config' => []]);
-    app(WorklogSyncTracker::class)->claim(new WorklogSyncRun(id: 'run-1', integrationId: $tempo->id, updatedSinceMilliseconds: 0, deletedSinceMilliseconds: 0, startedAtMilliseconds: 0, latestUpdatedMilliseconds: 0));
+    Queue::fake();
+    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1']]);
+    $tempo = Integration::create(['title' => 'Tempo', 'type' => 'tempo', 'config' => ['api_token' => 'secret-token', 'jira_integration_id' => $jira->id]]);
+    SyncWorklogsJob::start($tempo);
 
     // When
     $page = Livewire::test(SettingsPage::class, ['record' => $tempo->id]);

@@ -17,6 +17,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -31,7 +32,6 @@ use Timatic\Tempo\DataTransferObjects\WorklogSyncRun;
 use Timatic\Tempo\Exceptions\WorklogSyncNotStartedException;
 use Timatic\Tempo\Requests\GetChangedWorklogsRequest;
 use Timatic\Tempo\Requests\GetDeletedWorklogsRequest;
-use Timatic\Tempo\WorklogSyncTracker;
 
 /**
  * Syncs one page of Tempo worklogs and queues the next page, so a long backfill never outlives the worker timeout.
@@ -42,6 +42,9 @@ class SyncWorklogsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable;
 
+    // A run whose worker died stops blocking the next run after this long without progress
+    private const ACTIVE_SECONDS = 600;
+
     public int $tries = 1;
 
     private Integration $jira;
@@ -50,6 +53,11 @@ class SyncWorklogsJob implements ShouldQueue
     private array $mirroredIssuePrefixes = [];
 
     public function __construct(public readonly WorklogSyncRun $run) {}
+
+    public static function isRunning(int $integrationId): bool
+    {
+        return Cache::has(self::activeRunKey($integrationId));
+    }
 
     public static function isReady(Integration $tempo): bool
     {
@@ -81,7 +89,8 @@ class SyncWorklogsJob implements ShouldQueue
             latestUpdatedMilliseconds: $updatedSince,
         );
 
-        if (! app(WorklogSyncTracker::class)->claim($run)) {
+        // The active run is the lock against a second run over the same pages
+        if (! Cache::add(self::activeRunKey($tempo->id), $run, self::ACTIVE_SECONDS)) {
             throw WorklogSyncNotStartedException::alreadyRunning();
         }
 
@@ -93,12 +102,12 @@ class SyncWorklogsJob implements ShouldQueue
      * and the sync position is stored. Issues, authors and the project mapping are resolved through the Jira instance Tempo runs on.
      * Entries that are invoiced or in a locked period are left untouched and logged.
      */
-    public function handle(WorklogSyncTracker $tracker): void
+    public function handle(): void
     {
         $run = $this->run;
 
         // The claim of this run expired while it waited in the queue and another run took its place
-        if ($tracker->active($run->integrationId)?->id !== $run->id && ! $tracker->claim($run)) {
+        if (Cache::get(self::activeRunKey($run->integrationId))?->id !== $run->id && ! Cache::add(self::activeRunKey($run->integrationId), $run, self::ACTIVE_SECONDS)) {
             return;
         }
 
@@ -132,7 +141,7 @@ class SyncWorklogsJob implements ShouldQueue
             if ($pages->valid()) {
                 // ponytail: a worklog deleted in Tempo mid-run shifts the next page by one and skips a worklog; sync again from the same date if a backfill misses one
                 $run = $run->with(page: $run->page + 1);
-                $tracker->update($run);
+                Cache::put(self::activeRunKey($run->integrationId), $run, self::ACTIVE_SECONDS);
                 self::dispatch($run);
 
                 return;
@@ -158,12 +167,25 @@ class SyncWorklogsJob implements ShouldQueue
             'worklog_synced_until' => $run->startedAtMilliseconds,
         ])]);
 
-        $tracker->close($run);
+        $this->release($run);
     }
 
     public function failed(?Throwable $exception): void
     {
-        app(WorklogSyncTracker::class)->close($this->run);
+        $this->release($this->run);
+    }
+
+    private static function activeRunKey(int $integrationId): string
+    {
+        return "tempo.worklog_sync.active.{$integrationId}";
+    }
+
+    // A run that lost its claim must not release the run that took over
+    private function release(WorklogSyncRun $run): void
+    {
+        if (Cache::get(self::activeRunKey($run->integrationId))?->id === $run->id) {
+            Cache::forget(self::activeRunKey($run->integrationId));
+        }
     }
 
     /** @param Collection<int, TempoWorklog> $worklogs */

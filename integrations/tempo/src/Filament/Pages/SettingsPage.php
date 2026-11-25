@@ -23,7 +23,6 @@ use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Timatic\Tempo\Exceptions\WorklogSyncNotStartedException;
 use Timatic\Tempo\Jobs\SyncWorklogsJob;
-use Timatic\Tempo\WorklogSyncTracker;
 
 /**
  * @property Schema $form
@@ -66,9 +65,8 @@ class SettingsPage extends Page
         $config = $integration->config ?? [];
         $jiraIntegrations = Integration::query()->where('type', 'jira')->pluck('title', 'id');
         $timezone = config('timatic.preferred_timezone');
-        $tracker = app(WorklogSyncTracker::class);
         // Evaluated while rendering, so a sync started in this request already shows up
-        $syncStatus = fn (): array => ['isRunning' => $tracker->active($integration->id) !== null];
+        $syncStatus = fn (): array => ['isRunning' => SyncWorklogsJob::isRunning($integration->id)];
 
         return $form->schema([
             Section::make(__('tempo::tempo.settings.section_connection'))->schema([
@@ -117,7 +115,7 @@ class SettingsPage extends Page
                         ->modalDescription(__('tempo::tempo.settings.action_sync_description'))
                         ->modalSubmitAction(fn (Action $action): Action => $action
                             ->label(__('tempo::tempo.settings.action_sync_start'))
-                            ->disabled(fn (): bool => $tracker->active($integration->id) !== null))
+                            ->disabled(fn (): bool => SyncWorklogsJob::isRunning($integration->id)))
                         ->modalCancelActionLabel(__('tempo::tempo.settings.action_sync_close'))
                         ->schema([
                             DatePicker::make('since')
