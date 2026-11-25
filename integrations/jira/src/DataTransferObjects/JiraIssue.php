@@ -12,5 +12,6 @@ readonly class JiraIssue
         public string $summary,
         public CarbonImmutable $createdAt,
         public ?CarbonImmutable $resolvedAt,
+        public ?string $id = null,
     ) {}
 }

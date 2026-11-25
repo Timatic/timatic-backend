@@ -7,5 +7,6 @@ readonly class JiraUser
     public function __construct(
         public string $accountId,
         public string $emailAddress,
+        public string $displayName = '',
     ) {}
 }

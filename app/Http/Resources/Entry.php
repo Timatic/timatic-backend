@@ -45,6 +45,7 @@ class Entry extends JsonApiResource
             'createdAt' => $this->created_at,
             'updatedAt' => $this->updated_at,
             'isBasedOnSuggestion' => $this->entry_suggestion_id !== null,
+            'externalId' => $this->external_id,
         ];
     }
 

@@ -14,7 +14,6 @@ return [
         'action_save' => 'Opslaan',
         'action_refresh' => 'Vernieuwen',
         'field_title' => 'Titel',
-        'notification_title_changed' => 'Titel gewijzigd.',
         'connection_expired_title' => 'Jira verbinding verlopen',
         'connection_expired_body' => 'Verbind Jira opnieuw via Instellingen.',
     ],
@@ -33,6 +32,7 @@ return [
         'field_select_site' => 'Jira omgeving',
         'notification_connected' => 'Verbonden met Jira.',
         'notification_select_site_required' => 'Selecteer een Jira omgeving.',
+        'notification_saved' => 'Instellingen opgeslagen.',
         'action_share_link' => 'Deel koppellink',
         'share_link_field_label' => 'Koppellink (1 week geldig)',
     ],
@@ -51,6 +51,19 @@ return [
         'action_restore' => 'Herstellen',
         'filter_archived' => 'Gearchiveerd',
         'filter_unmapped' => 'Alleen niet gekoppeld',
+    ],
+
+    'user_mapping' => [
+        'page_title' => ':title (Jira) — Gebruikers koppelen',
+        'nav_label' => 'Gebruikers koppelen',
+        'table_heading' => 'Jira-gebruikers',
+        'column_name' => 'Naam',
+        'column_email' => 'E-mailadres',
+        'column_user' => 'Timatic-gebruiker',
+        'email_hidden' => 'Verborgen in Jira',
+        'action_link' => 'Koppelen aan Timatic-gebruiker',
+        'empty_heading' => 'Geen gebruikers gevonden',
+        'empty_description' => 'Klik op "Vernieuwen" om de gebruikers uit Jira op te halen. Gebruikers met hetzelfde e-mailadres worden automatisch gekoppeld.',
     ],
 
     'consent' => [

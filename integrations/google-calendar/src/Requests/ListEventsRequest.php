@@ -35,7 +35,10 @@ class ListEventsRequest extends Request
      */
     public function createDtoFromResponse(Response $response): Collection
     {
-        return new Collection($response->json('items') ?? [])
+        /** @var array<int, array<string, mixed>> $items */
+        $items = $response->json('items') ?? [];
+
+        return new Collection($items)
             ->reject(fn (array $item): bool => ($item['status'] ?? '') === 'cancelled')
             ->filter(fn (array $item): bool => isset($item['start']['dateTime']))
             ->map(fn (array $item): CalendarEvent => CalendarEvent::fromApiResponse($item))

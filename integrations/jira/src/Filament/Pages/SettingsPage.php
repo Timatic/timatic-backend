@@ -41,7 +41,11 @@ class SettingsPage extends Page
     public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
-        $this->form->fill(['title' => $this->getIntegration()->title]);
+        $integration = $this->getIntegration();
+
+        $this->form->fill([
+            'title' => $integration->title,
+        ]);
 
         if (session('jira_success')) {
             Notification::make()->title(session('jira_success'))->success()->send();
@@ -68,6 +72,9 @@ class SettingsPage extends Page
             NavigationItem::make(__('jira::jira.project_mapping.nav_label'))
                 ->url(ProjectMappingPage::getUrl(['record' => $record]))
                 ->isActiveWhen(fn () => request()->url() === ProjectMappingPage::getUrl(['record' => $record])),
+            NavigationItem::make(__('jira::jira.user_mapping.nav_label'))
+                ->url(UserMappingPage::getUrl(['record' => $record]))
+                ->isActiveWhen(fn () => request()->url() === UserMappingPage::getUrl(['record' => $record])),
         ];
     }
 
@@ -163,8 +170,11 @@ class SettingsPage extends Page
                 ->label(__('jira::jira.common.action_save'))
                 ->action(function (): void {
                     $data = $this->form->getState();
-                    $this->getIntegration()->update(['title' => $data['title']]);
-                    Notification::make()->title(__('jira::jira.common.notification_title_changed'))->success()->send();
+                    $integration = $this->getIntegration();
+
+                    $integration->update(['title' => $data['title']]);
+
+                    Notification::make()->title(__('jira::jira.settings.notification_saved'))->success()->send();
                 })
                 ->visible($this->isConnected($config)),
         ];

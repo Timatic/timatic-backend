@@ -14,7 +14,6 @@ return [
         'action_save' => 'Save',
         'action_refresh' => 'Refresh',
         'field_title' => 'Title',
-        'notification_title_changed' => 'Title updated.',
         'connection_expired_title' => 'Jira connection expired',
         'connection_expired_body' => 'Reconnect Jira via Settings.',
     ],
@@ -33,6 +32,7 @@ return [
         'field_select_site' => 'Jira environment',
         'notification_connected' => 'Connected to Jira.',
         'notification_select_site_required' => 'Please select a Jira environment.',
+        'notification_saved' => 'Settings saved.',
     ],
 
     'project_mapping' => [
@@ -49,6 +49,19 @@ return [
         'action_restore' => 'Restore',
         'filter_archived' => 'Archived',
         'filter_unmapped' => 'Unmapped only',
+    ],
+
+    'user_mapping' => [
+        'page_title' => ':title (Jira) — User mapping',
+        'nav_label' => 'User mapping',
+        'table_heading' => 'Jira users',
+        'column_name' => 'Name',
+        'column_email' => 'E-mail',
+        'column_user' => 'Timatic user',
+        'email_hidden' => 'Hidden in Jira',
+        'action_link' => 'Link to Timatic user',
+        'empty_heading' => 'No users found',
+        'empty_description' => 'Click "Refresh" to load the users from Jira. Users with the same e-mail address are linked automatically.',
     ],
 
     'consent' => [
