@@ -3,7 +3,6 @@
 namespace Timatic\Jira\Filament\Pages;
 
 use App\Filament\Resources\Integrations\IntegrationResource;
-use App\Models\Integration;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -18,8 +17,9 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Artisan;
 use Saloon\Exceptions\Request\RequestException;
-use Timatic\Jira\JiraDirectory;
+use Timatic\Jira\Commands\SyncUsersCommand;
 use Timatic\Jira\Models\UserMapping;
 
 /**
@@ -108,9 +108,7 @@ class UserMappingPage extends Page implements HasTable
                 ->label(__('jira::jira.common.action_refresh'))
                 ->action(function (): void {
                     try {
-                        /** @var Integration $jira */
-                        $jira = $this->getRecord();
-                        app(JiraDirectory::class)->syncUsers($jira);
+                        Artisan::call(SyncUsersCommand::class, ['integration' => $this->getRecord()->getKey()]);
                     } catch (RequestException) {
                         Notification::make()
                             ->title(__('jira::jira.common.connection_expired_title'))

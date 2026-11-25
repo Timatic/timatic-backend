@@ -12,7 +12,6 @@ use Timatic\Jira\Models\UserMapping;
 use Timatic\Jira\Requests\GetIssuesRequest;
 use Timatic\Jira\Requests\GetUserByAccountIdRequest;
 use Timatic\Jira\Requests\GetUserByEmailRequest;
-use Timatic\Jira\Requests\GetUsersRequest;
 
 /**
  * Looks up issues and accounts of a connected Jira instance for other integrations,
@@ -40,15 +39,6 @@ final class JiraDirectory
 
             return $id === null ? null : (int) $id;
         });
-    }
-
-    /** Stores every person of the Jira instance in the user mapping and links the new ones to a Timatic user by e-mail */
-    public function syncUsers(Integration $jira): void
-    {
-        /** @var JiraUser $user */
-        foreach ((new GetUsersRequest)->paginate($this->connector($jira))->items() as $user) {
-            $this->remember($jira, $user);
-        }
     }
 
     /**

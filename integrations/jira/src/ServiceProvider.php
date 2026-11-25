@@ -7,6 +7,7 @@ use App\Integrations\Suggestions\SuggestionProviderRegistry;
 use App\Integrations\Tickets\TicketProviderRegistry;
 use App\Models\Integration;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
+use Timatic\Jira\Commands\SyncUsersCommand;
 use Timatic\Jira\Filament\Pages\ProjectMappingPage;
 use Timatic\Jira\Filament\Pages\SettingsPage;
 use Timatic\Jira\Filament\Pages\UserMappingPage;
@@ -44,5 +45,7 @@ class ServiceProvider extends BaseServiceProvider
         $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'jira');
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
         $this->loadRoutesFrom(__DIR__.'/../routes/api.php');
+
+        $this->commands([SyncUsersCommand::class]);
     }
 }
