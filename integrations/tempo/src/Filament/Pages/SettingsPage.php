@@ -64,7 +64,7 @@ class SettingsPage extends Page
     {
         $integration = $this->getIntegration();
         $config = $integration->config ?? [];
-        $jiraIntegrations = Integration::query()->where('type', 'jira')->pluck('title', 'id');
+        $jiraIntegrations = Integration::query()->where('type', 'jira')->get()->pluck('display_title', 'id');
         $timezone = config('timatic.preferred_timezone');
 
         return $form->schema([
@@ -110,7 +110,8 @@ class SettingsPage extends Page
                 ->footerActions([
                     Action::make('import_worklogs')
                         ->label(__('tempo::tempo.settings.action_import'))
-                        ->disabled(! WorklogImporter::isReady($integration))
+                        // Evaluated while rendering, so the action enables as soon as the settings are saved
+                        ->disabled(fn (): bool => ! WorklogImporter::isReady($this->getIntegration()))
                         ->modalDescription(__('tempo::tempo.settings.action_import_description'))
                         ->modalSubmitActionLabel(__('tempo::tempo.settings.action_import_start'))
                         ->schema([
