@@ -13,8 +13,8 @@ use Saloon\Http\Faking\MockResponse;
 use Timatic\Jira\Models\ProjectMapping;
 use Timatic\Jira\Requests\GetIssuesRequest;
 use Timatic\Jira\Requests\GetUserByAccountIdRequest;
-use Timatic\Tempo\Requests\GetWorklogsRequest;
 use Timatic\Tempo\Requests\GetDeletedWorklogsRequest;
+use Timatic\Tempo\Requests\GetWorklogsRequest;
 
 uses(RefreshDatabase::class);
 
