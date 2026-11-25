@@ -19,12 +19,19 @@ class GetWorklogsRequest extends Request implements HasRequestPagination, Pagina
 
     protected Method $method = Method::GET;
 
-    /** Either the worklogs changed since $updatedFrom, or the worklogs of the days $from through $to */
-    public function __construct(
-        private readonly ?CarbonImmutable $updatedFrom = null,
-        private readonly ?CarbonImmutable $from = null,
-        private readonly ?CarbonImmutable $to = null,
-    ) {}
+    /** @param array<string, string> $filter */
+    private function __construct(private readonly array $filter) {}
+
+    public static function changedSince(CarbonImmutable $updatedFrom): self
+    {
+        return new self(['updatedFrom' => $updatedFrom->utc()->format('Y-m-d\TH:i:s\Z')]);
+    }
+
+    /** The worklogs of the days $from through $to */
+    public static function between(CarbonImmutable $from, CarbonImmutable $to): self
+    {
+        return new self(['from' => $from->toDateString(), 'to' => $to->toDateString()]);
+    }
 
     public function resolveEndpoint(): string
     {
@@ -33,11 +40,7 @@ class GetWorklogsRequest extends Request implements HasRequestPagination, Pagina
 
     protected function defaultQuery(): array
     {
-        return array_filter([
-            'updatedFrom' => $this->updatedFrom?->utc()->format('Y-m-d\TH:i:s\Z'),
-            'from' => $this->from?->toDateString(),
-            'to' => $this->to?->toDateString(),
-        ]);
+        return $this->filter;
     }
 
     /** @return Collection<int, TempoWorklog> */

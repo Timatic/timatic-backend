@@ -42,7 +42,7 @@ class SyncWorklogsJob implements ShouldQueue
         $connector = new Connector($tempo->config['api_token']);
 
         /** @var Collection<int, TempoWorklog> $worklogs */
-        $worklogs = (new GetWorklogsRequest(updatedFrom: CarbonImmutable::createFromTimestampMs($updatedSince)))->paginate($connector)->collect()->collect();
+        $worklogs = GetWorklogsRequest::changedSince(CarbonImmutable::createFromTimestampMs($updatedSince))->paginate($connector)->collect()->collect();
         $importer->import($tempo, $worklogs);
 
         /** @var Collection<int, TempoDeletedWorklog> $deleted */
