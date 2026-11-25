@@ -54,7 +54,7 @@ it('keeps the stored token when the field is left empty', function () {
         ->and($tempo->config['sync_to_tempo'])->toBeTrue();
 });
 
-it('queues the sync and one import job per month from the chosen day', function () {
+it('queues the sync and one import job per month from the chosen day and shows how many months are still queued', function () {
     // Given
     Queue::fake();
     $this->travelTo(CarbonImmutable::parse('2026-08-10T12:00:00Z'));
@@ -66,7 +66,8 @@ it('queues the sync and one import job per month from the chosen day', function 
     // When
     Livewire::test(SettingsPage::class, ['record' => $tempo->id])
         ->callAction(TestAction::make('sync_worklogs')->schemaComponent('worklog_sync'), ['since' => '2026-06-15'])
-        ->assertNotified('Sync en import van 3 maanden ingepland.');
+        ->assertNotified('Sync en import van 3 maanden ingepland.')
+        ->assertSee('Oudere worklogs importeren: nog 3 van 3 maanden in de wachtrij.');
 
     // Then
     Queue::assertPushed(SyncWorklogsJob::class, fn (SyncWorklogsJob $job) => $job->tempoId === $tempo->id);

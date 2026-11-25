@@ -24,6 +24,8 @@ return [
         'section_mirrored_issues' => 'Gespiegelde issues',
         'sync_range' => 'Gesynchroniseerd vanaf :from, bijgewerkt tot :until.',
         'sync_range_empty' => 'Nog geen worklogs gesynchroniseerd.',
+        'import_running' => 'Oudere worklogs importeren: nog :remaining van :total maanden in de wachtrij.',
+        'import_failed' => '{1} De import van 1 maand is mislukt.|[2,*] De import van :count maanden is mislukt.',
         'action_sync' => 'Nu synchroniseren',
         'action_sync_description' => 'Kopieert de in Tempo gewijzigde worklogs naar Timatic-entries.',
         'field_sync_since' => 'Synchroniseren vanaf',

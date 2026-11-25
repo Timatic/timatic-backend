@@ -19,7 +19,9 @@ use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Bus;
 use Timatic\Tempo\Jobs\BackfillWorklogsJob;
 use Timatic\Tempo\Jobs\SyncWorklogsJob;
 use Timatic\Tempo\WorklogImporter;
@@ -104,6 +106,10 @@ class SettingsPage extends Page
                             'until' => CarbonImmutable::createFromTimestampMs($config['worklog_synced_until'], $timezone)->format('d-m-Y H:i'),
                         ])
                         : __('tempo::tempo.settings.sync_range_empty')),
+                    // Evaluated while rendering, so an import queued in this request already shows up
+                    View::make('tempo::filament.pages.worklog-import-status')->viewData(fn (): array => [
+                        'batch' => isset($integration->config['worklog_backfill_batch_id']) ? Bus::findBatch($integration->config['worklog_backfill_batch_id']) : null,
+                    ]),
                 ])
                 ->footerActions([
                     Action::make('sync_worklogs')

@@ -6,11 +6,13 @@ namespace Timatic\Tempo\Jobs;
 
 use App\Models\Integration;
 use Carbon\CarbonImmutable;
+use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Bus;
 use Timatic\Tempo\Connector;
 use Timatic\Tempo\DataTransferObjects\TempoWorklog;
 use Timatic\Tempo\Requests\GetWorklogsRequest;
@@ -19,7 +21,7 @@ use Timatic\Tempo\WorklogImporter;
 /** Copies the Tempo worklogs of the days $from through $to to entries. */
 class BackfillWorklogsJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable;
+    use Batchable, Dispatchable, InteractsWithQueue, Queueable;
 
     public function __construct(
         public readonly int $tempoId,
@@ -27,18 +29,21 @@ class BackfillWorklogsJob implements ShouldQueue
         public readonly CarbonImmutable $to,
     ) {}
 
-    /** Queues one job per month from $since through today and returns how many were queued. */
+    /** Queues one job per month from $since through today as a batch, whose id is stored to show its progress, and returns how many were queued. */
     public static function dispatchMonths(Integration $tempo, CarbonImmutable $since): int
     {
         $today = CarbonImmutable::today($since->timezone);
-        $count = 0;
+        $jobs = [];
 
         for ($from = $since->startOfDay(); $from->lte($today); $from = $from->addMonthNoOverflow()->startOfMonth()) {
-            self::dispatch($tempo->id, $from, $from->endOfMonth()->startOfDay()->min($today));
-            $count++;
+            $jobs[] = new self($tempo->id, $from, $from->endOfMonth()->startOfDay()->min($today));
         }
 
-        return $count;
+        // A failed month must not cancel the months after it
+        $batch = Bus::batch($jobs)->name("Tempo worklog import {$tempo->id}")->allowFailures()->dispatch();
+        $tempo->update(['config' => array_merge($tempo->refresh()->config ?? [], ['worklog_backfill_batch_id' => $batch->id])]);
+
+        return count($jobs);
     }
 
     public function handle(WorklogImporter $importer): void

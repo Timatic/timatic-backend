@@ -24,6 +24,8 @@ return [
         'section_mirrored_issues' => 'Mirrored issues',
         'sync_range' => 'Synced from :from, up to date until :until.',
         'sync_range_empty' => 'No worklogs synced yet.',
+        'import_running' => 'Importing older worklogs: :remaining of :total months still queued.',
+        'import_failed' => '{1} The import of 1 month failed.|[2,*] The import of :count months failed.',
         'action_sync' => 'Sync now',
         'action_sync_description' => 'Copies the worklogs changed in Tempo to Timatic entries.',
         'field_sync_since' => 'Sync from',
