@@ -22,7 +22,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Timatic\Tempo\Exceptions\WorklogSyncNotStartedException;
-use Timatic\Tempo\WorklogSync;
+use Timatic\Tempo\Jobs\SyncWorklogsJob;
 use Timatic\Tempo\WorklogSyncTracker;
 
 /**
@@ -113,7 +113,7 @@ class SettingsPage extends Page
                 ->footerActions([
                     Action::make('sync_worklogs')
                         ->label(__('tempo::tempo.settings.action_sync'))
-                        ->disabled(! app(WorklogSync::class)->isReady($integration))
+                        ->disabled(! SyncWorklogsJob::isReady($integration))
                         ->modalDescription(__('tempo::tempo.settings.action_sync_description'))
                         ->modalSubmitAction(fn (Action $action): Action => $action
                             ->label(__('tempo::tempo.settings.action_sync_start'))
@@ -128,7 +128,7 @@ class SettingsPage extends Page
                         ])
                         ->action(function (array $data, Action $action) use ($integration, $timezone): void {
                             try {
-                                app(WorklogSync::class)->start(
+                                SyncWorklogsJob::start(
                                     $integration,
                                     filled($data['since'] ?? null) ? CarbonImmutable::parse($data['since'], $timezone)->startOfDay() : null,
                                 );

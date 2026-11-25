@@ -6,7 +6,7 @@ use App\Models\Integration;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 use Timatic\Tempo\Exceptions\WorklogSyncNotStartedException;
-use Timatic\Tempo\WorklogSync;
+use Timatic\Tempo\Jobs\SyncWorklogsJob;
 
 class SyncWorklogsCommand extends Command
 {
@@ -14,7 +14,7 @@ class SyncWorklogsCommand extends Command
 
     protected $description = 'Queue a sync of the Tempo worklogs changed since the last run to Timatic entries';
 
-    public function handle(WorklogSync $worklogSync): int
+    public function handle(): int
     {
         $since = $this->option('since') === null ? null : CarbonImmutable::parse($this->option('since'), config('timatic.preferred_timezone'));
 
@@ -29,7 +29,7 @@ class SyncWorklogsCommand extends Command
             }
 
             try {
-                $worklogSync->start($integration, $since);
+                SyncWorklogsJob::start($integration, $since);
             } catch (WorklogSyncNotStartedException $exception) {
                 $this->info("{$label}: {$exception->getMessage()}");
 
