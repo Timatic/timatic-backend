@@ -19,8 +19,6 @@ class SyncWorklogsCommand extends Command
             $label = $integration->display_title;
 
             if (! ($integration->config['sync_to_timatic'] ?? false)) {
-                $this->info("{$label}: sync to Timatic is disabled in the Tempo integration settings.");
-
                 continue;
             }
 
