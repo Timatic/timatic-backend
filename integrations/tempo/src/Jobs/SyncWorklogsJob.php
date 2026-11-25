@@ -47,14 +47,17 @@ class SyncWorklogsJob implements ShouldQueue
 
         /** @var Collection<int, TempoDeletedWorklog> $deleted */
         $deleted = (new GetDeletedWorklogsRequest(CarbonImmutable::createFromTimestampMs($deletedSince)))->paginate($connector)->collect()->collect();
-        $importer->remove($deleted->pluck('id')->unique()->values());
+        $importer->remove($deleted->pluck('id'));
+
+        $lastUpdatedAt = $worklogs->max(fn (TempoWorklog $worklog) => $worklog->updatedAt->getTimestampMs()) ?? $updatedSince;
+        $lastDeletedAt = $deleted->max(fn (TempoDeletedWorklog $worklog) => $worklog->deletedAt->getTimestampMs()) ?? 0;
 
         // Read again: the settings may have been saved while the sync was busy
         $config = $tempo->refresh()->config ?? [];
         $tempo->update(['config' => array_merge($config, [
             // Worklogs changed while the sync was busy may have been paged past, so never move beyond its start
-            'worklog_sync_updated_since' => min($worklogs->max(fn (TempoWorklog $worklog) => $worklog->updatedAt->getTimestampMs()) ?? $updatedSince, $startedAt),
-            'worklog_sync_deleted_since' => max($deletedSince, $deleted->max(fn (TempoDeletedWorklog $worklog) => $worklog->deletedAt->getTimestampMs()) ?? 0),
+            'worklog_sync_updated_since' => min($lastUpdatedAt, $startedAt),
+            'worklog_sync_deleted_since' => max($deletedSince, $lastDeletedAt),
             'worklog_sync_from' => min($config['worklog_sync_from'] ?? PHP_INT_MAX, $updatedSince),
             'worklog_synced_until' => $startedAt,
         ])]);
