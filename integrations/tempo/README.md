@@ -5,16 +5,19 @@ read from Tempo. Add a Tempo integration in the admin with a Tempo API token and
 Tempo runs on, then switch on "Sync Tempo worklogs to Timatic entries". Every fifteen minutes the
 worklogs changed or deleted since the previous run are copied to entries, with the customer and
 budget of the Jira project mapping. Entries that are invoiced or in a locked period are left
-untouched and logged. The first run starts from the current moment; pass a day to also import all
-worklogs from that day on, one queued job per month:
+untouched and logged. The first run starts from the current moment. To run the sync by hand:
 
 ```bash
-php artisan tempo:sync-worklogs [--since=2026-01-01]
+php artisan tempo:sync-worklogs
 ```
 
-The command only queues jobs; a queue worker runs them. The import of older worklogs does not see
-worklogs deleted in Tempo. "Sync now" in the Tempo integration settings queues the same jobs. The
-settings also show since which day and until when the worklogs are synced.
+The command only queues the sync; a queue worker runs it. The settings of the Tempo integration
+show when the last sync ran.
+
+Worklogs from before the first sync are imported with "Import worklogs" in the Tempo integration
+settings: pick a period and every worklog in it is copied to entries, one queued job per month.
+The import is independent of the sync: it does not move the sync position and does not see
+worklogs deleted in Tempo.
 
 A worklog is booked on the Timatic user linked to its Jira author under "User mapping" of the
 Jira integration. "Refresh" there loads every person of the Jira instance and links the ones with

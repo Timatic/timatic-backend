@@ -220,11 +220,11 @@ it('does not contact Tempo while the sync to Timatic is disabled in the settings
     expect(Entry::query()->count())->toBe(1);
 });
 
-it('imports every page of the worklogs from the chosen day and records since when and until when the sync is complete', function () {
+it('imports every page of the changed worklogs and records when the sync ran', function () {
     // Given
     $this->travelTo(CarbonImmutable::parse('2026-11-20T12:00:00Z'));
     $jira = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
-    $tempo = Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true]]);
+    $tempo = Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
     $budget = Budget::factory()->has(BudgetVersion::factory()->state(['effective_from' => now()->subYear(), 'effective_to' => null]))->create();
     ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'ACME', 'project_name' => 'Acme', 'customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
     User::factory()->create(['email' => 'ann@example.com']);
@@ -251,12 +251,11 @@ it('imports every page of the worklogs from the chosen day and records since whe
     ]);
 
     // When
-    $this->artisan('tempo:sync-worklogs', ['--since' => '2026-11-17'])->assertSuccessful();
+    $this->artisan('tempo:sync-worklogs')->assertSuccessful();
 
     // Then
     expect(Entry::query()->orderBy('external_id')->pluck('external_id')->all())->toBe(['70001', '70002'])
-        ->and($tempo->refresh()->config['worklog_sync_from'])->toBe(CarbonImmutable::parse('2026-11-16T23:00:00Z')->getTimestampMs())
-        ->and($tempo->config['worklog_synced_until'])->toBe(CarbonImmutable::parse('2026-11-20T12:00:00Z')->getTimestampMs());
+        ->and($tempo->refresh()->config['worklog_synced_until'])->toBe(CarbonImmutable::parse('2026-11-20T12:00:00Z')->getTimestampMs());
 });
 
 it('records the author of a skipped worklog as a Jira user without a Timatic user', function () {

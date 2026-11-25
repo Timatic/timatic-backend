@@ -23,7 +23,6 @@ use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Bus;
 use Timatic\Tempo\Jobs\BackfillWorklogsJob;
-use Timatic\Tempo\Jobs\SyncWorklogsJob;
 use Timatic\Tempo\WorklogImporter;
 
 /**
@@ -100,36 +99,40 @@ class SettingsPage extends Page
                     Toggle::make('sync_to_tempo')
                         ->label(__('tempo::tempo.settings.field_sync_to_tempo'))
                         ->helperText(__('tempo::tempo.settings.field_sync_to_tempo_helper')),
-                    Text::make(isset($config['worklog_sync_from'], $config['worklog_synced_until'])
-                        ? __('tempo::tempo.settings.sync_range', [
-                            'from' => CarbonImmutable::createFromTimestampMs($config['worklog_sync_from'], $timezone)->format('d-m-Y'),
-                            'until' => CarbonImmutable::createFromTimestampMs($config['worklog_synced_until'], $timezone)->format('d-m-Y H:i'),
-                        ])
-                        : __('tempo::tempo.settings.sync_range_empty')),
+                    Text::make(isset($config['worklog_synced_until'])
+                        ? __('tempo::tempo.settings.last_synced', ['at' => CarbonImmutable::createFromTimestampMs($config['worklog_synced_until'], $timezone)->format('d-m-Y H:i')])
+                        : __('tempo::tempo.settings.last_synced_never')),
                     // Evaluated while rendering, so an import queued in this request already shows up
                     View::make('tempo::filament.pages.worklog-import-status')->viewData(fn (): array => [
                         'batch' => isset($integration->config['worklog_backfill_batch_id']) ? Bus::findBatch($integration->config['worklog_backfill_batch_id']) : null,
                     ]),
                 ])
                 ->footerActions([
-                    Action::make('sync_worklogs')
-                        ->label(__('tempo::tempo.settings.action_sync'))
+                    Action::make('import_worklogs')
+                        ->label(__('tempo::tempo.settings.action_import'))
                         ->disabled(! WorklogImporter::isReady($integration))
-                        ->modalDescription(__('tempo::tempo.settings.action_sync_description'))
-                        ->modalSubmitActionLabel(__('tempo::tempo.settings.action_sync_start'))
+                        ->modalDescription(__('tempo::tempo.settings.action_import_description'))
+                        ->modalSubmitActionLabel(__('tempo::tempo.settings.action_import_start'))
                         ->schema([
-                            DatePicker::make('since')
-                                ->label(__('tempo::tempo.settings.field_sync_since'))
-                                ->helperText(__('tempo::tempo.settings.field_sync_since_helper'))
-                                ->maxDate(today($timezone)),
+                            DatePicker::make('from')
+                                ->label(__('tempo::tempo.settings.field_import_from'))
+                                ->maxDate(today($timezone))
+                                ->required(),
+                            DatePicker::make('until')
+                                ->label(__('tempo::tempo.settings.field_import_until'))
+                                ->default(today($timezone))
+                                ->afterOrEqual('from')
+                                ->maxDate(today($timezone))
+                                ->required(),
                         ])
                         ->action(function (array $data) use ($integration, $timezone): void {
-                            $months = filled($data['since'] ?? null)
-                                ? BackfillWorklogsJob::dispatchMonths($integration, CarbonImmutable::parse($data['since'], $timezone))
-                                : 0;
-                            SyncWorklogsJob::dispatch($integration->id);
+                            $months = BackfillWorklogsJob::dispatchMonths(
+                                $integration,
+                                CarbonImmutable::parse($data['from'], $timezone)->startOfDay(),
+                                CarbonImmutable::parse($data['until'], $timezone)->startOfDay(),
+                            );
 
-                            Notification::make()->title(trans_choice('tempo::tempo.settings.notification_sync_queued', $months))->success()->send();
+                            Notification::make()->title(trans_choice('tempo::tempo.settings.notification_import_queued', $months))->success()->send();
                         }),
                 ]),
             Section::make(__('tempo::tempo.settings.section_mirrored_issues'))->schema([

@@ -58,7 +58,6 @@ class SyncWorklogsJob implements ShouldQueue
             // Worklogs changed while the sync was busy may have been paged past, so never move beyond its start
             'worklog_sync_updated_since' => min($lastUpdatedAt, $startedAt),
             'worklog_sync_deleted_since' => max($deletedSince, $lastDeletedAt),
-            'worklog_sync_from' => min($config['worklog_sync_from'] ?? PHP_INT_MAX, $updatedSince),
             'worklog_synced_until' => $startedAt,
         ])]);
     }

@@ -29,14 +29,13 @@ class BackfillWorklogsJob implements ShouldQueue
         public readonly CarbonImmutable $to,
     ) {}
 
-    /** Queues one job per month from $since through today as a batch, whose id is stored to show its progress, and returns how many were queued. */
-    public static function dispatchMonths(Integration $tempo, CarbonImmutable $since): int
+    /** Queues one job per month of the days $from through $until as a batch, whose id is stored to show its progress, and returns how many were queued. */
+    public static function dispatchMonths(Integration $tempo, CarbonImmutable $from, CarbonImmutable $until): int
     {
-        $today = CarbonImmutable::today($since->timezone);
         $jobs = [];
 
-        for ($from = $since->startOfDay(); $from->lte($today); $from = $from->addMonthNoOverflow()->startOfMonth()) {
-            $jobs[] = new self($tempo->id, $from, $from->endOfMonth()->startOfDay()->min($today));
+        for ($start = $from; $start->lte($until); $start = $start->addMonthNoOverflow()->startOfMonth()) {
+            $jobs[] = new self($tempo->id, $start, $start->endOfMonth()->startOfDay()->min($until));
         }
 
         // A failed month must not cancel the months after it
@@ -53,10 +52,5 @@ class BackfillWorklogsJob implements ShouldQueue
         /** @var Collection<int, TempoWorklog> $worklogs */
         $worklogs = GetWorklogsRequest::between($this->from, $this->to)->paginate(new Connector($tempo->config['api_token']))->collect()->collect();
         $importer->import($tempo, $worklogs);
-
-        $config = $tempo->refresh()->config ?? [];
-        $tempo->update(['config' => array_merge($config, [
-            'worklog_sync_from' => min($config['worklog_sync_from'] ?? PHP_INT_MAX, $this->from->getTimestampMs()),
-        ])]);
     }
 }
