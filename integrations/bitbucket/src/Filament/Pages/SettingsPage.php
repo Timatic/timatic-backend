@@ -329,16 +329,12 @@ class SettingsPage extends Page
         return $this->hasWorkspace($config) && filled($config['webhook_uuid'] ?? null);
     }
 
-    /**
-     * Existing integrations predate workspace_admin and count as admin.
-     *
-     * @param  array<string, mixed>  $config
-     */
+    /** @param array<string, mixed> $config */
     private function isWithoutWebhook(array $config): bool
     {
         return $this->hasWorkspace($config)
             && ! $this->hasWebhook($config)
-            && ! ($config['workspace_admin'] ?? true);
+            && empty($config['workspace_admin']);
     }
 
     /** @return Collection<int, BitbucketWorkspace> */
