@@ -66,7 +66,8 @@ final class WorklogImporter
         try {
             foreach ($worklogs as $worklog) {
                 $issue = $issues->get($worklog->issueId);
-                $epicKey = $issue === null ? null : $epicKeys->get($issue->number);
+                // A mirrored issue carries the key of its original, which the linked Jira may have as well
+                $epicKey = $issue === null || $issue !== $jiraIssues->get($worklog->issueId) ? null : $epicKeys->get($issue->number);
                 $mapping = $issue === null ? null : $this->findBudgetMapping($issue, $epicKey, $jira);
                 $user = $users->get($worklog->authorAccountId);
 

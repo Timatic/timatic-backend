@@ -48,15 +48,12 @@ final class JiraDirectory
     public function epicKeys(Integration $jira, Collection $issueKeys): Collection
     {
         $issues = $this->issuesByKey($jira, $issueKeys);
-        // A sub-task hangs under a story or task, and that one hangs under the epic
+        // A sub-task hangs under a story or task that hangs under the epic, or under the epic itself
         $parents = $this->issuesByKey($jira, $issues->where('hierarchyLevel', '<', 0)->pluck('parentKey')->filter());
+        $epicKey = fn (?JiraIssue $issue): ?string => $issue !== null && $issue->hierarchyLevel > 0 ? $issue->key : $issue?->parentKey;
 
         return $issues
-            ->map(fn (JiraIssue $issue): ?string => match (true) {
-                $issue->hierarchyLevel > 0 => $issue->key,
-                $issue->hierarchyLevel < 0 => $parents->get($issue->parentKey)?->parentKey,
-                default => $issue->parentKey,
-            })
+            ->map(fn (JiraIssue $issue): ?string => $epicKey($issue->hierarchyLevel < 0 ? $parents->get($issue->parentKey) : $issue))
             ->filter();
     }
 
