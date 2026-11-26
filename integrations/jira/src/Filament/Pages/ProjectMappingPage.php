@@ -132,7 +132,7 @@ class ProjectMappingPage extends Page implements HasTable
                     ->icon('heroicon-o-link')
                     ->iconButton()
                     ->fillForm(fn (ProjectMapping $record): array => $record->only(['customer_id', 'budget_id']))
-                    ->schema($this->assignSchema())
+                    ->schema($this->assignmentSchema())
                     ->action(fn (ProjectMapping $record, array $data) => $record->update([
                         'customer_id' => $data['customer_id'] ?: null,
                         'budget_id' => $data['budget_id'] ?: null,
@@ -152,10 +152,11 @@ class ProjectMappingPage extends Page implements HasTable
                     ->visible(fn (ProjectMapping $record) => $record->is_archived)
                     ->action(fn (ProjectMapping $record) => $record->update(['is_archived' => false])),
             ])
+            ->recordAction('assign')
             ->bulkActions([
                 BulkAction::make('assign')
                     ->label(__('jira::jira.common.assign_action'))
-                    ->form($this->assignSchema())
+                    ->form($this->assignmentSchema())
                     ->action(function (Collection $records, array $data): void {
                         $records->each->update([
                             'customer_id' => $data['customer_id'] ?: null,
@@ -190,7 +191,7 @@ class ProjectMappingPage extends Page implements HasTable
     }
 
     /** @return array<int, Select> */
-    private function assignSchema(): array
+    private function assignmentSchema(): array
     {
         return [
             Select::make('customer_id')

@@ -120,6 +120,8 @@ For OAuth 2.0 implementation details (OAuthService pattern, controllers, routes)
 - Table columns: identifier, name, customer.name, (budget.title if applicable)
 - Bulk action "Assign customer" — always
 - Bulk action "Assign budget" — only if budget mapping enabled (budget select filter by selected customer via reactive)
+- Row action `assign` on every row — icon button (`heroicon-o-link`) that opens the form of the bulk action, filled with the values of that row (`->fillForm()`), so one row is linked without selecting it. A click on the row opens it too (`->recordAction('assign')`). Bulk and row action share one private `assignmentSchema()`.
+- Filters: one per linked field, never a single "unmapped" filter — `without_customer` (`common.filter_without_customer`, `No customer linked`) and, if budget mapping enabled, `without_budget` (`common.filter_without_budget`, `No budget linked`). Only the filter of the last field a mapping needs is `->default()`: budget when enabled, otherwise customer.
 - Header action "Refresh"
 - Last sync time: after a successful sync, re-read the integration and merge `{resources}_synced_at` (unix timestamp) into `Integration.config`. Show it under the table heading with `->description(fn () => ...)` as a closure, so the time is current in the response of the "Refresh" action itself: lang key `common.last_synced` (`Last refreshed: :at.`), formatted `d-m-Y H:i` in `config('timatic.preferred_timezone')`. Return `null` while no time is stored. See `integrations/jira/src/Filament/Pages/ProjectMappingPage.php`.
 
