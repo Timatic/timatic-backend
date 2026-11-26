@@ -5,6 +5,8 @@ return [
         'page_title' => ':title (Tempo) — Instellingen',
         'field_title' => 'Titel',
         'callout_no_jira_title' => 'Geen Jira-integratie',
+        'callout_jira_disconnected_title' => 'Jira is niet meer verbonden',
+        'callout_jira_disconnected_description' => 'De gekoppelde Jira-integratie heeft geen geldige verbinding. Verbind Jira opnieuw in de instellingen van die integratie; tot die tijd worden er geen worklogs gesynchroniseerd of geïmporteerd.',
         'callout_no_jira_description' => 'Tempo boekt tijd op Jira-issues. Verbind eerst een Jira-integratie en koppel die hier.',
         'field_api_token' => 'Tempo API-token',
         'field_api_token_helper' => 'Maak een token aan in Tempo onder Settings > API integration met lees- en schrijfrechten op worklogs.',

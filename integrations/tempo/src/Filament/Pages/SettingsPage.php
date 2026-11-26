@@ -22,6 +22,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Bus;
+use Timatic\Jira\JiraDirectory;
 use Timatic\Tempo\Jobs\BackfillWorklogsJob;
 use Timatic\Tempo\WorklogImporter;
 
@@ -77,6 +78,14 @@ class SettingsPage extends Page
                     ->warning()
                     ->description(__('tempo::tempo.settings.callout_no_jira_description'))
                     ->visible($jiraIntegrations->isEmpty()),
+                Callout::make(__('tempo::tempo.settings.callout_jira_disconnected_title'))
+                    ->warning()
+                    ->description(__('tempo::tempo.settings.callout_jira_disconnected_description'))
+                    ->visible(function (): bool {
+                        $jiraId = $this->getIntegration()->config['jira_integration_id'] ?? null;
+
+                        return filled($jiraId) && ! app(JiraDirectory::class)->isConnected(Integration::find((int) $jiraId));
+                    }),
                 TextInput::make('api_token')
                     ->label(__('tempo::tempo.settings.field_api_token'))
                     ->helperText(__(filled($config['api_token'] ?? null) ? 'tempo::tempo.settings.field_api_token_helper_stored' : 'tempo::tempo.settings.field_api_token_helper'))

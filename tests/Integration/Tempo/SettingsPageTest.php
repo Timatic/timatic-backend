@@ -66,6 +66,20 @@ it('lists a Jira instance without a title by its default name', function () {
     $page->assertSuccessful()->assertSee($jira->display_title);
 });
 
+it('warns when the linked Jira instance is no longer connected', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => []]);
+    $tempo = Integration::create(['title' => 'Tempo', 'type' => 'tempo', 'config' => ['api_token' => 'secret-token', 'jira_integration_id' => $jira->id]]);
+
+    // When
+    $page = Livewire::test(SettingsPage::class, ['record' => $tempo->id]);
+
+    // Then
+    $page->assertSee('Jira is niet meer verbonden');
+});
+
 it('queues one import job per month of the chosen period and shows how many months are still queued', function () {
     // Given
     Queue::fake();

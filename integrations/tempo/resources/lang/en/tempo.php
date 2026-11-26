@@ -5,6 +5,8 @@ return [
         'page_title' => ':title (Tempo) — Settings',
         'field_title' => 'Title',
         'callout_no_jira_title' => 'No Jira integration',
+        'callout_jira_disconnected_title' => 'Jira is no longer connected',
+        'callout_jira_disconnected_description' => 'The linked Jira integration has no valid connection. Reconnect Jira in the settings of that integration; until then no worklogs are synced or imported.',
         'callout_no_jira_description' => 'Tempo logs time on Jira issues. Connect a Jira integration first, then link it here.',
         'field_api_token' => 'Tempo API token',
         'field_api_token_helper' => 'Create a token in Tempo under Settings > API integration with worklog read and write permissions.',
