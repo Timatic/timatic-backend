@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
+use Saloon\Http\PendingRequest;
 use Timatic\Jira\Models\EpicMapping;
 use Timatic\Jira\Models\ProjectMapping;
 use Timatic\Jira\Models\UserMapping;
@@ -321,4 +322,75 @@ it('remembers the epic of a skipped worklog as the one that still needs a mappin
     expect(Entry::query()->count())->toBe(0)
         ->and($tempo->refresh()->config['worklog_skipped_epic_mapping_ids'])->toBe([EpicMapping::query()->where(['integration_id' => $jira->id, 'epic_key' => 'SUP-3'])->sole()->id])
         ->and($tempo->config['worklog_skipped_project_mapping_ids'])->toBe([]);
+});
+
+it('books a worklog on a sub-task on the epic of the parent of that sub-task', function () {
+    // Given
+    $jira = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
+    $budget = Budget::factory()->has(BudgetVersion::factory()->state(['effective_from' => now()->subYear(), 'effective_to' => null]))->create();
+    ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'SUP', 'project_name' => 'Support', 'is_mapped_per_epic' => true]);
+    EpicMapping::query()->create(['integration_id' => $jira->id, 'epic_key' => 'SUP-3', 'epic_name' => 'Acme', 'customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
+    User::factory()->create(['email' => 'ann@example.com']);
+    $subTask = ['id' => '21841', 'key' => 'SUP-13', 'fields' => ['summary' => 'Restore the backup', 'issuetype' => ['name' => 'Sub-task', 'hierarchyLevel' => -1], 'created' => '2026-09-01T10:00:00.000+0000', 'parent' => ['key' => 'SUP-12']]];
+    $story = ['id' => '21840', 'key' => 'SUP-12', 'fields' => ['summary' => 'Website offline', 'issuetype' => ['name' => 'Story', 'hierarchyLevel' => 0], 'created' => '2026-09-01T10:00:00.000+0000', 'parent' => ['key' => 'SUP-3']]];
+    MockClient::global([
+        GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
+            'tempoWorklogId' => 70006,
+            'issue' => ['id' => 21841],
+            'timeSpentSeconds' => 3600,
+            'startDateTimeUtc' => '2026-11-18T08:00:00Z',
+            'description' => '',
+            'updatedAt' => '2026-11-18T12:00:00Z',
+            'author' => ['accountId' => 'acc-1'],
+        ]]]),
+        GetDeletedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 0], 'results' => []]),
+        GetIssuesRequest::class => fn (PendingRequest $request) => MockResponse::make(['issues' => [$request->query()->get('jql') === 'key in ("SUP-12")' ? $story : $subTask]]),
+        GetUserByAccountIdRequest::class => MockResponse::make(['accountId' => 'acc-1', 'emailAddress' => 'ann@example.com']),
+    ]);
+
+    // When
+    $this->artisan('tempo:sync-worklogs')->assertSuccessful();
+
+    // Then
+    $entry = Entry::query()->sole();
+    expect($entry->ticket_number)->toBe('SUP-13')
+        ->and($entry->customer_id)->toBe($budget->customer_id)
+        ->and($entry->budget_id)->toBe($budget->id);
+});
+
+it('books a worklog on the project mapping when the epic of its issue has no customer and budget', function () {
+    // Given
+    $jira = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
+    $supportBudget = Budget::factory()->has(BudgetVersion::factory()->state(['effective_from' => now()->subYear(), 'effective_to' => null]))->create();
+    ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'SUP', 'project_name' => 'Support', 'customer_id' => $supportBudget->customer_id, 'budget_id' => $supportBudget->id, 'is_mapped_per_epic' => true]);
+    EpicMapping::query()->create(['integration_id' => $jira->id, 'epic_key' => 'SUP-3', 'epic_name' => 'Acme']);
+    User::factory()->create(['email' => 'ann@example.com']);
+    MockClient::global([
+        GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
+            'tempoWorklogId' => 70007,
+            'issue' => ['id' => 21840],
+            'timeSpentSeconds' => 3600,
+            'startDateTimeUtc' => '2026-11-18T08:00:00Z',
+            'description' => '',
+            'updatedAt' => '2026-11-18T12:00:00Z',
+            'author' => ['accountId' => 'acc-1'],
+        ]]]),
+        GetDeletedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 0], 'results' => []]),
+        GetIssuesRequest::class => MockResponse::make(['issues' => [[
+            'id' => '21840',
+            'key' => 'SUP-12',
+            'fields' => ['summary' => 'Website offline', 'issuetype' => ['name' => 'Task', 'hierarchyLevel' => 0], 'created' => '2026-09-01T10:00:00.000+0000', 'parent' => ['key' => 'SUP-3']],
+        ]]]),
+        GetUserByAccountIdRequest::class => MockResponse::make(['accountId' => 'acc-1', 'emailAddress' => 'ann@example.com']),
+    ]);
+
+    // When
+    $this->artisan('tempo:sync-worklogs')->assertSuccessful();
+
+    // Then
+    $entry = Entry::query()->sole();
+    expect($entry->customer_id)->toBe($supportBudget->customer_id)
+        ->and($entry->budget_id)->toBe($supportBudget->id);
 });
