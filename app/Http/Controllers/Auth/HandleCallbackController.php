@@ -21,17 +21,14 @@ class HandleCallbackController
         // @phpstan-ignore-next-line
         $socialiteUser = Socialite::driver(config('auth.socialite_driver'))->stateless()->user();
 
-        $user = User::firstOrCreate(
-            [
-                'email' => $socialiteUser->getEmail(),
-            ],
-            [
-                'external_id' => $socialiteUser->getId(),
-                'family_name' => $socialiteUser->getName(),
-            ]
-        );
+        $user = User::firstOrNew(['email' => $socialiteUser->getEmail()]);
+        $user->external_id ??= $socialiteUser->getId();
+        $user->given_name ??= $socialiteUser->getRaw()['given_name'] ?? null;
+        $user->family_name ??= $socialiteUser->getRaw()['family_name'] ?? $socialiteUser->getName();
+        $user->save();
 
-        if ($user->wasRecentlyCreated) {
+        // Users added by hand (e.g. for a Tempo sync) have no role until their first login
+        if ($user->roles()->doesntExist()) {
             $role = User::count() === 1 ? 'super_admin' : 'employee';
             Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
             $user->assignRole($role);
