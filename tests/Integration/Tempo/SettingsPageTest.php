@@ -1,12 +1,17 @@
 <?php
 
 use App\Models\Integration;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 use Tests\Concerns\LoginUser;
+use Timatic\Jira\Filament\Pages\ProjectMappingPage;
+use Timatic\Jira\Filament\Pages\UserMappingPage;
+use Timatic\Jira\Models\ProjectMapping;
+use Timatic\Jira\Models\UserMapping;
 use Timatic\Tempo\Filament\Pages\SettingsPage;
 use Timatic\Tempo\Jobs\BackfillWorklogsJob;
 
@@ -71,4 +76,30 @@ it('queues one import job per week of the chosen period and shows how many weeks
         ['2026-06-22', '2026-06-28'],
         ['2026-06-29', '2026-07-01'],
     ]);
+});
+
+it('links to the Jira users and projects on which the sync skipped a worklog', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1']]);
+    $ann = UserMapping::query()->create(['integration_id' => $jira->id, 'account_id' => 'acc-1', 'display_name' => 'Ann Smith']);
+    $linkedSince = UserMapping::query()->create(['integration_id' => $jira->id, 'account_id' => 'acc-2', 'display_name' => 'Bob Jones', 'user_id' => User::factory()->create()->id]);
+    $acme = ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'ACME', 'project_name' => 'Acme']);
+    $beta = ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'BETA', 'project_name' => 'Beta']);
+    $tempo = Integration::create(['title' => 'Tempo', 'type' => 'tempo', 'config' => [
+        'api_token' => 'secret-token',
+        'jira_integration_id' => $jira->id,
+        'worklog_skipped_user_mapping_ids' => [$ann->id, $linkedSince->id],
+        'worklog_skipped_project_mapping_ids' => [$acme->id, $beta->id],
+    ]]);
+
+    // When
+    $page = Livewire::test(SettingsPage::class, ['record' => $tempo->id]);
+
+    // Then
+    $page->assertSee('1 gebruiker koppelen')
+        ->assertSee('2 projecten koppelen in Jira')
+        ->assertSeeHtml(e(UserMappingPage::getUrl(['record' => $jira->id, 'filters' => ['id' => ['ids' => "{$ann->id}"]]])))
+        ->assertSeeHtml(e(ProjectMappingPage::getUrl(['record' => $jira->id, 'filters' => ['id' => ['ids' => "{$acme->id},{$beta->id}"]]])));
 });

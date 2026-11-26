@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\Integration;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Navigation\NavigationItem;
 use Filament\Notifications\Notification;
@@ -22,6 +23,7 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Livewire\Attributes\Url;
 use Saloon\Exceptions\Request\RequestException;
 use Timatic\Jira\Connector;
 use Timatic\Jira\DataTransferObjects\JiraProject;
@@ -37,6 +39,10 @@ class ProjectMappingPage extends Page implements HasTable
     protected static string $resource = IntegrationResource::class;
 
     protected string $view = 'jira::filament.pages.jira-project-mapping-page';
+
+    /** @var array<string, mixed> | null In the URL so another page can link to rows by id: ?filters[id][ids]=1,2,4 */
+    #[Url(as: 'filters')]
+    public ?array $tableFilters = null;
 
     public function getTitle(): string
     {
@@ -105,6 +111,10 @@ class ProjectMappingPage extends Page implements HasTable
                     ->label(__('jira::jira.project_mapping.filter_unmapped'))
                     ->default()
                     ->query(fn (Builder $query) => $query->whereNull('customer_id')),
+                Filter::make('id')
+                    ->schema([Hidden::make('ids')])
+                    ->query(fn (Builder $query, array $data) => $query->when(filled($data['ids'] ?? null), fn (Builder $query) => $query->whereKey(explode(',', (string) $data['ids']))))
+                    ->indicateUsing(fn (array $data): ?string => filled($data['ids'] ?? null) ? trans_choice('jira::jira.common.filter_ids_indicator', count(explode(',', (string) $data['ids']))) : null),
                 TernaryFilter::make('is_archived')
                     ->label(__('jira::jira.project_mapping.filter_archived'))
                     ->default(false),

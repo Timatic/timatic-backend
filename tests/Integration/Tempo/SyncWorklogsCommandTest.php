@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
 use Timatic\Jira\Models\ProjectMapping;
+use Timatic\Jira\Models\UserMapping;
 use Timatic\Jira\Requests\GetIssuesRequest;
 use Timatic\Jira\Requests\GetUserByAccountIdRequest;
 use Timatic\Tempo\Requests\GetDeletedWorklogsRequest;
@@ -180,4 +181,71 @@ it('records a worklog on a mirrored issue against the original issue of the othe
         ->and($entry->ticket_title)->toBe('Fix login')
         ->and($entry->customer_id)->toBe($budget->customer_id)
         ->and($entry->budget_id)->toBe($budget->id);
+});
+
+it('remembers the Jira account and project of a skipped worklog as the ones that still need a mapping', function () {
+    // Given
+    $jira = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    $tempo = Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
+    ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'OTHER', 'project_name' => 'Other']);
+    MockClient::global([
+        GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
+            'tempoWorklogId' => 70003,
+            'issue' => ['id' => 21840],
+            'timeSpentSeconds' => 3600,
+            'startDateTimeUtc' => '2026-11-18T08:00:00Z',
+            'description' => 'Fixed the login',
+            'updatedAt' => '2026-11-18T12:00:00Z',
+            'author' => ['accountId' => 'acc-1'],
+        ]]]),
+        GetDeletedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 0], 'results' => []]),
+        GetIssuesRequest::class => MockResponse::make(['issues' => [[
+            'id' => '21840',
+            'key' => 'ACME-12',
+            'fields' => ['summary' => 'Login fails on Safari', 'issuetype' => ['name' => 'Bug'], 'created' => '2026-09-01T10:00:00.000+0000'],
+        ]]]),
+        GetUserByAccountIdRequest::class => MockResponse::make(['accountId' => 'acc-1', 'displayName' => 'Ann Smith']),
+    ]);
+
+    // When
+    $this->artisan('tempo:sync-worklogs')->assertSuccessful();
+
+    // Then
+    expect(Entry::query()->count())->toBe(0)
+        ->and($tempo->refresh()->config['worklog_skipped_user_mapping_ids'])->toBe([UserMapping::query()->where('display_name', 'Ann Smith')->sole()->id])
+        ->and($tempo->config['worklog_skipped_project_mapping_ids'])->toBe([ProjectMapping::query()->where(['integration_id' => $jira->id, 'project_key' => 'ACME'])->sole()->id]);
+});
+
+it('remembers the unmapped project of a mirrored issue in the Jira instance of the original, without adding it to the linked one', function () {
+    // Given
+    $pionect = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    $thesis = Integration::factory()->create(['type' => 'jira', 'config' => []]);
+    $tempo = Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $pionect->id, 'sync_to_timatic' => true, 'mirrored_issues_enabled' => true, 'mirrored_issue_prefixes' => ['ABC'], 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
+    $original = ProjectMapping::query()->create(['integration_id' => $thesis->id, 'project_key' => 'ABC', 'project_name' => 'Abc']);
+    User::factory()->create(['email' => 'ann@example.com']);
+    MockClient::global([
+        GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
+            'tempoWorklogId' => 70003,
+            'issue' => ['id' => 5001],
+            'timeSpentSeconds' => 3600,
+            'startDateTimeUtc' => '2026-11-18T08:00:00Z',
+            'description' => '',
+            'updatedAt' => '2026-11-18T12:00:00Z',
+            'author' => ['accountId' => 'acc-1'],
+        ]]]),
+        GetDeletedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 0], 'results' => []]),
+        GetIssuesRequest::class => MockResponse::make(['issues' => [[
+            'id' => '5001',
+            'key' => 'PIO-7',
+            'fields' => ['summary' => 'ABC-42 Fix login', 'issuetype' => ['name' => 'Task'], 'created' => '2026-09-01T10:00:00.000+0000'],
+        ]]]),
+        GetUserByAccountIdRequest::class => MockResponse::make(['accountId' => 'acc-1', 'emailAddress' => 'ann@example.com']),
+    ]);
+
+    // When
+    $this->artisan('tempo:sync-worklogs')->assertSuccessful();
+
+    // Then
+    expect($tempo->refresh()->config['worklog_skipped_project_mapping_ids'])->toBe([$original->id])
+        ->and(ProjectMapping::query()->where('integration_id', $pionect->id)->count())->toBe(0);
 });

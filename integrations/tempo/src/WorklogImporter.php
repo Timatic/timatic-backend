@@ -13,15 +13,18 @@ use App\Services\EntryEnricher;
 use App\Services\EntryLockedDateService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Context;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Timatic\Jira\JiraDirectory;
 use Timatic\Jira\Models\ProjectMapping;
+use Timatic\Jira\Models\UserMapping;
 use Timatic\Tempo\DataTransferObjects\TempoWorklog;
 
 /**
  * Copies Tempo worklogs to entries, with the issue, author and project mapping of the Jira instance Tempo runs on.
  * Entries are matched on the worklog id, so importing the same worklog twice is harmless. Entries that are invoiced
- * or in a locked period are left untouched and logged.
+ * or in a locked period are left untouched and logged. A worklog without a mapped author or project is skipped, and
+ * the Tempo integration remembers that Jira account or project so its settings can link to exactly those.
  *
  * @arch-ignore app-boundary: turns worklogs into entries with the enricher and lock rules of the core
  */
@@ -45,11 +48,13 @@ final class WorklogImporter
         $jira = Integration::findOrFail((int) $tempo->config['jira_integration_id']);
         $tickets = $this->ticketProviders->makeProvider($jira->type, [...$jira->config, 'integration_id' => $jira->id]);
         // Tempo only knows the numeric issue id, which Jira accepts wherever it accepts an issue key
-        $issues = $worklogs->pluck('issueId')->unique()
+        $jiraIssues = $worklogs->pluck('issueId')->unique()
             ->mapWithKeys(fn (string $issueId): array => [$issueId => $tickets->fetchTicketByKey($issueId)])
-            ->filter()
-            ->map(fn (Ticket $ticket) => $this->resolveMirroredIssue($ticket, $tempo));
+            ->filter();
+        $issues = $jiraIssues->map(fn (Ticket $ticket) => $this->resolveMirroredIssue($ticket, $tempo));
         $users = $this->jiraDirectory->timaticUsers($jira, $worklogs->pluck('authorAccountId'));
+        $unmappedAccountIds = [];
+        $unmappedProjectKeys = [];
 
         // Lets the outbound subscriber tell an imported change from one made in Timatic
         Context::add('entry_sync_source', true);
@@ -62,6 +67,14 @@ final class WorklogImporter
 
                 if ($issue === null || $mapping === null || $user === null) {
                     Log::warning("Tempo worklog {$worklog->id} skipped: no issue, budget mapping or Timatic user", ['issue' => $issue?->number, 'author' => $worklog->authorAccountId]);
+
+                    if ($user === null) {
+                        $unmappedAccountIds[] = $worklog->authorAccountId;
+                    }
+
+                    if ($issue !== null && $mapping === null) {
+                        $unmappedProjectKeys[] = $this->projectKey($issue);
+                    }
 
                     continue;
                 }
@@ -104,6 +117,8 @@ final class WorklogImporter
                 $entry->save();
                 $this->entryEnricher->enrich($entry, isPartialUpdate: false, hasOvertime: false, hasCustomerOvertime: false, overtimeStartedAt: null, overtimeEndedAt: null);
             }
+
+            $this->rememberSkipped($tempo, $jira, $unmappedAccountIds, $unmappedProjectKeys, $jiraIssues->map($this->projectKey(...))->all());
         } finally {
             Context::forget('entry_sync_source');
         }
@@ -133,11 +148,48 @@ final class WorklogImporter
     private function findBudgetMapping(Ticket $issue, Integration $jira): ?ProjectMapping
     {
         return ProjectMapping::active()
-            ->where('project_key', strtoupper(explode('-', $issue->number)[0]))
+            ->where('project_key', $this->projectKey($issue))
             ->whereNotNull('customer_id')
             ->whereNotNull('budget_id')
             ->orderByRaw('integration_id = ? desc', [$jira->id])
             ->first();
+    }
+
+    private function projectKey(Ticket $issue): string
+    {
+        return strtoupper(explode('-', $issue->number)[0]);
+    }
+
+    /**
+     * @param  array<int, string>  $accountIds
+     * @param  array<int, string>  $projectKeys
+     * @param  array<int|string, string>  $linkedJiraProjectKeys
+     */
+    private function rememberSkipped(Integration $tempo, Integration $jira, array $accountIds, array $projectKeys, array $linkedJiraProjectKeys): void
+    {
+        // A project nobody loaded on the mapping page yet has no row to map. The project of a mirrored original
+        // does not exist in the linked Jira instance, where a row for it would break the ticket search by project.
+        foreach (array_unique(array_intersect($projectKeys, $linkedJiraProjectKeys)) as $projectKey) {
+            ProjectMapping::query()->firstOrCreate(['integration_id' => $jira->id, 'project_key' => $projectKey], ['project_name' => $projectKey]);
+        }
+
+        $userMappingIds = UserMapping::query()->where('integration_id', $jira->id)->whereIn('account_id', $accountIds)->pluck('id')->all();
+        $projectMappingIds = ProjectMapping::active()->whereIn('project_key', $projectKeys)->pluck('id')->all();
+
+        if ($userMappingIds === [] && $projectMappingIds === []) {
+            return;
+        }
+
+        // ponytail: the lock only keeps concurrent imports apart; a sync or settings save writing at the same moment
+        // can still drop these ids, which return with the next skipped worklog. Own table if that ever hurts.
+        DB::transaction(function () use ($tempo, $userMappingIds, $projectMappingIds): void {
+            $config = Integration::query()->lockForUpdate()->findOrFail($tempo->id)->config ?? [];
+
+            $tempo->update(['config' => array_merge($config, [
+                'worklog_skipped_user_mapping_ids' => array_values(array_unique([...$config['worklog_skipped_user_mapping_ids'] ?? [], ...$userMappingIds])),
+                'worklog_skipped_project_mapping_ids' => array_values(array_unique([...$config['worklog_skipped_project_mapping_ids'] ?? [], ...$projectMappingIds])),
+            ])]);
+        });
     }
 
     /**

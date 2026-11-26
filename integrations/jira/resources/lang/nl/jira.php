@@ -16,6 +16,7 @@ return [
         'field_title' => 'Titel',
         'connection_expired_title' => 'Jira verbinding verlopen',
         'connection_expired_body' => 'Verbind Jira opnieuw via Instellingen.',
+        'filter_ids_indicator' => '{1} Selectie van 1 rij|[2,*] Selectie van :count rijen',
     ],
 
     'settings' => [

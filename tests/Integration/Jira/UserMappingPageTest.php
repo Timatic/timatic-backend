@@ -40,3 +40,23 @@ it('loads every person of the Jira instance and links them to the Timatic user w
         ['account_id' => 'acc-2', 'display_name' => 'Bob Jones', 'email' => null, 'user_id' => null],
     ]);
 });
+
+it('lists only the accounts another page links to by id and shows that as a removable filter', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => []]);
+    $ann = UserMapping::query()->create(['integration_id' => $jira->id, 'account_id' => 'acc-1', 'display_name' => 'Ann Smith']);
+    $bob = UserMapping::query()->create(['integration_id' => $jira->id, 'account_id' => 'acc-2', 'display_name' => 'Bob Jones']);
+    $carl = UserMapping::query()->create(['integration_id' => $jira->id, 'account_id' => 'acc-3', 'display_name' => 'Carl Young']);
+
+    // When
+    $page = Livewire::withQueryParams(['filters' => ['id' => ['ids' => "{$ann->id},{$carl->id}"]]])->test(UserMappingPage::class, ['record' => $jira->id]);
+
+    // Then
+    $page->assertCanSeeTableRecords([$ann, $carl])
+        ->assertCanNotSeeTableRecords([$bob])
+        ->assertSee('Selectie van 2 rijen')
+        ->removeTableFilter('id')
+        ->assertCanSeeTableRecords([$ann, $bob, $carl]);
+});
