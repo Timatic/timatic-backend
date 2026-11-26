@@ -113,12 +113,15 @@ it('links to the Jira epics on which the sync skipped a worklog', function () {
     Filament::setCurrentPanel('admin');
     $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1']]);
     $budget = Budget::factory()->create();
+    ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'SUP', 'project_name' => 'Support', 'is_mapped_per_epic' => true]);
+    ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'ACME', 'project_name' => 'Acme']);
     $unmapped = EpicMapping::query()->create(['integration_id' => $jira->id, 'epic_key' => 'SUP-3', 'epic_name' => 'Acme']);
     $mappedSince = EpicMapping::query()->create(['integration_id' => $jira->id, 'epic_key' => 'SUP-4', 'epic_name' => 'Beta', 'customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
+    $ofRemovedProject = EpicMapping::query()->create(['integration_id' => $jira->id, 'epic_key' => 'ACME-1', 'epic_name' => 'Webshop']);
     $tempo = Integration::create(['title' => 'Tempo', 'type' => 'tempo', 'config' => [
         'api_token' => 'secret-token',
         'jira_integration_id' => $jira->id,
-        'worklog_skipped_epic_mapping_ids' => [$unmapped->id, $mappedSince->id],
+        'worklog_skipped_epic_mapping_ids' => [$unmapped->id, $mappedSince->id, $ofRemovedProject->id],
     ]]);
 
     // When

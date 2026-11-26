@@ -85,14 +85,18 @@ class SettingsPage extends Page
             ->where('integration_id', $jiraId)
             ->whereNull('user_id')
             ->pluck('id');
-        // A worklog without a mapped epic falls back to its project, so mapping that project settles the epic too
-        $mappedProjectKeys = ProjectMapping::active()->where('integration_id', $jiraId)->whereNotNull('customer_id')->whereNotNull('budget_id')->pluck('project_key');
+        // An epic only needs a mapping while its project is mapped per epic and has no mapping of its own to fall back on
+        $projectKeysWithoutFallback = ProjectMapping::active()
+            ->where('integration_id', $jiraId)
+            ->where('is_mapped_per_epic', true)
+            ->where(fn (Builder $query) => $query->whereNull('customer_id')->orWhereNull('budget_id'))
+            ->pluck('project_key');
         $unmappedEpicIds = EpicMapping::query()
             ->whereKey($config['worklog_skipped_epic_mapping_ids'] ?? [])
             ->where('integration_id', $jiraId)
             ->where(fn (Builder $query) => $query->whereNull('customer_id')->orWhereNull('budget_id'))
             ->get(['id', 'epic_key'])
-            ->reject(fn (EpicMapping $epic): bool => $mappedProjectKeys->contains(Str::before($epic->epic_key, '-')))
+            ->filter(fn (EpicMapping $epic): bool => $projectKeysWithoutFallback->contains(Str::before($epic->epic_key, '-')))
             ->pluck('id');
         // A mirrored issue is booked on the project of another Jira instance, so the projects are listed per instance
         $unmappedProjectIds = ProjectMapping::active()
