@@ -156,7 +156,7 @@ class ProjectMappingPage extends Page implements HasTable
             ->bulkActions([
                 BulkAction::make('assign')
                     ->label(__('jira::jira.common.assign_action'))
-                    ->form($this->assignmentSchema())
+                    ->schema($this->assignmentSchema())
                     ->action(function (Collection $records, array $data): void {
                         $records->each->update([
                             'customer_id' => $data['customer_id'] ?: null,
