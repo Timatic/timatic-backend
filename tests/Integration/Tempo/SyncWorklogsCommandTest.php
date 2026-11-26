@@ -183,10 +183,10 @@ it('records a worklog on a mirrored issue against the original issue of the othe
         ->and($entry->budget_id)->toBe($budget->id);
 });
 
-it('marks the Jira account and project of a skipped worklog as the ones that still need a mapping', function () {
+it('remembers the Jira account and project of a skipped worklog as the ones that still need a mapping', function () {
     // Given
     $jira = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
-    Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
+    $tempo = Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $jira->id, 'sync_to_timatic' => true, 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
     ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'OTHER', 'project_name' => 'Other']);
     MockClient::global([
         GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
@@ -212,16 +212,16 @@ it('marks the Jira account and project of a skipped worklog as the ones that sti
 
     // Then
     expect(Entry::query()->count())->toBe(0)
-        ->and(UserMapping::query()->skippedWorklogs()->pluck('display_name')->all())->toBe(['Ann Smith'])
-        ->and(ProjectMapping::query()->skippedWorklogs()->pluck('integration_id', 'project_key')->all())->toBe(['ACME' => $jira->id]);
+        ->and($tempo->refresh()->config['worklog_skipped_user_mapping_ids'])->toBe([UserMapping::query()->where('display_name', 'Ann Smith')->sole()->id])
+        ->and($tempo->config['worklog_skipped_project_mapping_ids'])->toBe([ProjectMapping::query()->where(['integration_id' => $jira->id, 'project_key' => 'ACME'])->sole()->id]);
 });
 
-it('marks the unmapped project of a mirrored issue in the Jira instance of the original, without adding it to the linked one', function () {
+it('remembers the unmapped project of a mirrored issue in the Jira instance of the original, without adding it to the linked one', function () {
     // Given
     $pionect = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
     $thesis = Integration::factory()->create(['type' => 'jira', 'config' => []]);
-    Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $pionect->id, 'sync_to_timatic' => true, 'mirrored_issues_enabled' => true, 'mirrored_issue_prefixes' => ['ABC'], 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
-    ProjectMapping::query()->create(['integration_id' => $thesis->id, 'project_key' => 'ABC', 'project_name' => 'Abc']);
+    $tempo = Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $pionect->id, 'sync_to_timatic' => true, 'mirrored_issues_enabled' => true, 'mirrored_issue_prefixes' => ['ABC'], 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
+    $original = ProjectMapping::query()->create(['integration_id' => $thesis->id, 'project_key' => 'ABC', 'project_name' => 'Abc']);
     User::factory()->create(['email' => 'ann@example.com']);
     MockClient::global([
         GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
@@ -246,6 +246,6 @@ it('marks the unmapped project of a mirrored issue in the Jira instance of the o
     $this->artisan('tempo:sync-worklogs')->assertSuccessful();
 
     // Then
-    expect(ProjectMapping::query()->skippedWorklogs()->pluck('integration_id', 'project_key')->all())->toBe(['ABC' => $thesis->id])
+    expect($tempo->refresh()->config['worklog_skipped_project_mapping_ids'])->toBe([$original->id])
         ->and(ProjectMapping::query()->where('integration_id', $pionect->id)->count())->toBe(0);
 });

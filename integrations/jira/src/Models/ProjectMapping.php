@@ -42,18 +42,6 @@ class ProjectMapping extends Model
         $query->where('is_archived', false);
     }
 
-    /**
-     * Active projects without a customer and budget on which a worklog import skipped a worklog.
-     *
-     * @param  Builder<self>  $query
-     */
-    public function scopeSkippedWorklogs(Builder $query): void
-    {
-        $query->where('is_archived', false)
-            ->whereNotNull('worklog_skipped_at')
-            ->where(fn (Builder $query) => $query->whereNull('customer_id')->orWhereNull('budget_id'));
-    }
-
     /** @return BelongsTo<Integration, $this> */
     public function integration(): BelongsTo
     {

@@ -26,7 +26,7 @@ does the same from the command line.
 
 A worklog is skipped when its author has no Timatic user or its Jira project has no customer and
 budget. The Tempo integration settings then show how many Jira users and projects that concerns,
-with links to the user mapping and project mapping filtered on "Skipped worklogs".
+with links to the user mapping and project mapping that list exactly those.
 
 Issues mirrored from another Jira instance usually start with the original issue key in their
 title, e.g. "ABC-12 Fix login". Switch on "Record mirrored issues on the original issue" in the

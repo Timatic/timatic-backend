@@ -41,19 +41,19 @@ it('reports an expired connection when jira refuses the refresh token', function
     expect($integration->refresh()->config)->toBe([]);
 });
 
-it('lists only the projects with a skipped worklog and no customer and budget when opened with that filter', function () {
+it('lists only the projects another page links to by id, also the ones with a customer', function () {
     // Given
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
     $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
     MockClient::global([GetProjectsRequest::class => MockResponse::make(['values' => []])]);
     $withoutBudget = ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'ACME', 'project_name' => 'Acme', 'customer_id' => Customer::factory()->create()->id]);
-    $withoutBudget->forceFill(['worklog_skipped_at' => now()])->save();
-    $neverLoggedOn = ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'BETA', 'project_name' => 'Beta']);
+    $unmapped = ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'BETA', 'project_name' => 'Beta']);
+    $notLinked = ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'GAMMA', 'project_name' => 'Gamma']);
 
     // When
-    $page = Livewire::withQueryParams(['filters' => ['skipped_worklogs' => ['isActive' => '1']]])->test(ProjectMappingPage::class, ['record' => $jira->id]);
+    $page = Livewire::withQueryParams(['filter' => ['id' => "{$withoutBudget->id},{$unmapped->id}"]])->test(ProjectMappingPage::class, ['record' => $jira->id]);
 
     // Then
-    $page->assertCanSeeTableRecords([$withoutBudget])->assertCanNotSeeTableRecords([$neverLoggedOn]);
+    $page->assertCanSeeTableRecords([$withoutBudget, $unmapped])->assertCanNotSeeTableRecords([$notLinked]);
 });

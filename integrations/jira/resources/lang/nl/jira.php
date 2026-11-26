@@ -16,7 +16,6 @@ return [
         'field_title' => 'Titel',
         'connection_expired_title' => 'Jira verbinding verlopen',
         'connection_expired_body' => 'Verbind Jira opnieuw via Instellingen.',
-        'filter_skipped_worklogs' => 'Worklogs overgeslagen',
     ],
 
     'settings' => [

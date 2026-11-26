@@ -21,6 +21,8 @@ use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Bus;
 use Timatic\Jira\Filament\Pages\ProjectMappingPage;
 use Timatic\Jira\Filament\Pages\UserMappingPage;
@@ -73,11 +75,19 @@ class SettingsPage extends Page
         $timezone = config('timatic.preferred_timezone');
         // A date string: the pickers would shift a date object to the app timezone, which is a day earlier
         $today = CarbonImmutable::today($timezone)->toDateString();
-        $skippedWorklogsFilter = ['filters' => ['skipped_worklogs' => ['isActive' => true]]];
         $jiraId = (int) ($config['jira_integration_id'] ?? 0);
-        $unmappedUserCount = UserMapping::query()->where('integration_id', $jiraId)->skippedWorklogs()->count();
+        // The import remembers every mapping it skipped a worklog for; the ones mapped since drop out here
+        $unmappedUserIds = UserMapping::query()
+            ->whereKey($config['worklog_skipped_user_mapping_ids'] ?? [])
+            ->where('integration_id', $jiraId)
+            ->whereNull('user_id')
+            ->pluck('id');
         // A mirrored issue is booked on the project of another Jira instance, so the projects are listed per instance
-        $unmappedProjectCounts = ProjectMapping::query()->skippedWorklogs()->get()->countBy('integration_id');
+        $unmappedProjectIds = ProjectMapping::active()
+            ->whereKey($config['worklog_skipped_project_mapping_ids'] ?? [])
+            ->where(fn (Builder $query) => $query->whereNull('customer_id')->orWhereNull('budget_id'))
+            ->get(['id', 'integration_id'])
+            ->groupBy('integration_id');
 
         return $form->schema([
             Section::make(__('tempo::tempo.settings.section_connection'))->schema([
@@ -125,17 +135,17 @@ class SettingsPage extends Page
                     Callout::make(__('tempo::tempo.settings.callout_skipped_title'))
                         ->warning()
                         ->description(__('tempo::tempo.settings.callout_skipped_description'))
-                        ->visible($unmappedUserCount > 0 || $unmappedProjectCounts->isNotEmpty())
+                        ->visible($unmappedUserIds->isNotEmpty() || $unmappedProjectIds->isNotEmpty())
                         ->footer([
                             Action::make('map_users')
-                                ->label(trans_choice('tempo::tempo.settings.action_map_users', $unmappedUserCount))
+                                ->label(trans_choice('tempo::tempo.settings.action_map_users', $unmappedUserIds->count()))
                                 ->link()
-                                ->url(UserMappingPage::getUrl(['record' => $jiraId, ...$skippedWorklogsFilter]))
-                                ->visible($unmappedUserCount > 0),
-                            ...$unmappedProjectCounts->map(fn (int $count, int $projectJiraId): Action => Action::make("map_projects_{$projectJiraId}")
-                                ->label(trans_choice('tempo::tempo.settings.action_map_projects', $count, ['jira' => $jiraIntegrations[$projectJiraId]]))
+                                ->url(UserMappingPage::getUrl(['record' => $jiraId, 'filter' => ['id' => $unmappedUserIds->implode(',')]]))
+                                ->visible($unmappedUserIds->isNotEmpty()),
+                            ...$unmappedProjectIds->map(fn (Collection $projects, int $projectJiraId): Action => Action::make("map_projects_{$projectJiraId}")
+                                ->label(trans_choice('tempo::tempo.settings.action_map_projects', $projects->count(), ['jira' => $jiraIntegrations[$projectJiraId]]))
                                 ->link()
-                                ->url(ProjectMappingPage::getUrl(['record' => $projectJiraId, ...$skippedWorklogsFilter])))->values(),
+                                ->url(ProjectMappingPage::getUrl(['record' => $projectJiraId, 'filter' => ['id' => $projects->pluck('id')->implode(',')]])))->values(),
                         ]),
                     // Evaluated while rendering, so an import queued in this request already shows up
                     View::make('tempo::filament.pages.worklog-import-status')->viewData(fn (): array => [

@@ -39,9 +39,9 @@ class ProjectMappingPage extends Page implements HasTable
 
     protected string $view = 'jira::filament.pages.jira-project-mapping-page';
 
-    /** @var array<string, mixed> | null */
-    #[Url(as: 'filters')]
-    public ?array $tableFilters = null;
+    /** @var array<string, mixed> Holds "id": comma separated mapping ids another page links to, e.g. ?filter[id]=1,2,4 */
+    #[Url]
+    public array $filter = [];
 
     public function getTitle(): string
     {
@@ -90,8 +90,12 @@ class ProjectMappingPage extends Page implements HasTable
                 ->emptyStateIcon('heroicon-o-cog-6-tooth');
         }
 
+        $linkedIds = is_string($this->filter['id'] ?? null) ? explode(',', $this->filter['id']) : [];
+
         return $table
-            ->query(ProjectMapping::query()->where('integration_id', $this->getRecord()->getKey()))
+            ->query(ProjectMapping::query()
+                ->where('integration_id', $this->getRecord()->getKey())
+                ->when($linkedIds !== [], fn (Builder $query) => $query->whereKey($linkedIds)))
             ->columns([
                 TextColumn::make('project_key')->label(__('jira::jira.project_mapping.column_project_key'))->searchable()->sortable(),
                 TextColumn::make('project_name')
@@ -108,11 +112,9 @@ class ProjectMappingPage extends Page implements HasTable
             ->filters([
                 Filter::make('unmapped')
                     ->label(__('jira::jira.project_mapping.filter_unmapped'))
-                    ->default()
+                    // A linked project can have a customer and still miss its budget
+                    ->default($linkedIds === [])
                     ->query(fn (Builder $query) => $query->whereNull('customer_id')),
-                Filter::make('skipped_worklogs')
-                    ->label(__('jira::jira.common.filter_skipped_worklogs'))
-                    ->query(fn (Builder $query) => $query->scopes('skippedWorklogs')),
                 TernaryFilter::make('is_archived')
                     ->label(__('jira::jira.project_mapping.filter_archived'))
                     ->default(false),

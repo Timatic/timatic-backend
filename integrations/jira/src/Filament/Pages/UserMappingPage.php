@@ -35,9 +35,9 @@ class UserMappingPage extends Page implements HasTable
 
     protected string $view = 'jira::filament.pages.jira-project-mapping-page';
 
-    /** @var array<string, mixed> | null */
-    #[Url(as: 'filters')]
-    public ?array $tableFilters = null;
+    /** @var array<string, mixed> Holds "id": comma separated mapping ids another page links to, e.g. ?filter[id]=1,2,4 */
+    #[Url]
+    public array $filter = [];
 
     public function getTitle(): string
     {
@@ -73,8 +73,12 @@ class UserMappingPage extends Page implements HasTable
 
     public function table(Table $table): Table
     {
+        $linkedIds = is_string($this->filter['id'] ?? null) ? explode(',', $this->filter['id']) : [];
+
         return $table
-            ->query(UserMapping::query()->where('integration_id', $this->getRecord()->getKey()))
+            ->query(UserMapping::query()
+                ->where('integration_id', $this->getRecord()->getKey())
+                ->when($linkedIds !== [], fn (Builder $query) => $query->whereKey($linkedIds)))
             ->columns([
                 TextColumn::make('display_name')->label(__('jira::jira.user_mapping.column_name'))->searchable()->sortable(),
                 TextColumn::make('email')->label(__('jira::jira.user_mapping.column_email'))->placeholder(__('jira::jira.user_mapping.email_hidden'))->searchable(),
@@ -83,11 +87,8 @@ class UserMappingPage extends Page implements HasTable
             ->filters([
                 Filter::make('unmapped')
                     ->label(__('jira::jira.project_mapping.filter_unmapped'))
-                    ->default()
+                    ->default($linkedIds === [])
                     ->query(fn (Builder $query) => $query->whereNull('user_id')),
-                Filter::make('skipped_worklogs')
-                    ->label(__('jira::jira.common.filter_skipped_worklogs'))
-                    ->query(fn (Builder $query) => $query->scopes('skippedWorklogs')),
             ])
             ->actions([
                 Action::make('link')
