@@ -99,7 +99,7 @@ class SettingsPage extends Page
             ])->statePath('data');
         }
 
-        if ($this->isWithoutWebhook($config)) {
+        if (! $this->hasWebhook($config) && ! $this->canInstallWebhook($config)) {
             return $form->schema([
                 TextInput::make('title')
                     ->label(__('bitbucket::bitbucket.common.field_title'))
@@ -235,7 +235,7 @@ class SettingsPage extends Page
                             ->send();
                     }
                 })
-                ->visible($this->hasWorkspace($config) && ! $this->hasWebhook($config) && ! $this->isWithoutWebhook($config)),
+                ->visible($this->canInstallWebhook($config) && ! $this->hasWebhook($config)),
 
             Action::make('choose_workspace')
                 ->label(__('bitbucket::bitbucket.settings.action_choose_workspace'))
@@ -330,11 +330,9 @@ class SettingsPage extends Page
     }
 
     /** @param array<string, mixed> $config */
-    private function isWithoutWebhook(array $config): bool
+    private function canInstallWebhook(array $config): bool
     {
-        return $this->hasWorkspace($config)
-            && ! $this->hasWebhook($config)
-            && empty($config['workspace_admin']);
+        return $this->hasWorkspace($config) && ! empty($config['workspace_admin']);
     }
 
     /** @return Collection<int, BitbucketWorkspace> */
