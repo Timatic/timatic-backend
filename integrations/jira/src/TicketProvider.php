@@ -204,7 +204,7 @@ final class TicketProvider implements TicketProviderInterface
             }
         }
 
-        if (! isset($this->config['access_token'], $this->config['cloud_id'])) {
+        if (! Connector::hasCredentials($this->config)) {
             return null;
         }
 

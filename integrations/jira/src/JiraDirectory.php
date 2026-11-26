@@ -27,7 +27,7 @@ final class JiraDirectory
     /** @phpstan-assert-if-true Integration $jira */
     public function isConnected(?Integration $jira): bool
     {
-        return filled($jira?->config['access_token'] ?? null) && filled($jira->config['cloud_id'] ?? null);
+        return Connector::hasCredentials($jira->config ?? []);
     }
 
     public function findIssueId(Integration $jira, string $issueKey): ?int

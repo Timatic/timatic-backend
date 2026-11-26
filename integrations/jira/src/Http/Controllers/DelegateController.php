@@ -5,6 +5,7 @@ namespace Timatic\Jira\Http\Controllers;
 use App\Models\Integration;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
+use Timatic\Jira\Connector;
 use Timatic\Jira\OAuthService;
 
 class DelegateController
@@ -13,7 +14,7 @@ class DelegateController
     {
         $integration = Integration::where('share_token', $token)->firstOrFail();
 
-        if ($this->isConfigured($integration)) {
+        if (Connector::hasCredentials($integration->config ?? [])) {
             return view('jira::consent.connected');
         }
 
@@ -26,7 +27,7 @@ class DelegateController
     {
         $integration = Integration::where('share_token', $token)->firstOrFail();
 
-        if ($this->isConfigured($integration)) {
+        if (Connector::hasCredentials($integration->config ?? [])) {
             return redirect()->route('jira.delegate.show', $token);
         }
 
@@ -35,12 +36,5 @@ class DelegateController
         ]);
 
         return redirect(app(OAuthService::class)->buildAuthorizationUrl($integration));
-    }
-
-    private function isConfigured(Integration $integration): bool
-    {
-        $config = $integration->config ?? [];
-
-        return filled($config['access_token'] ?? null) && filled($config['cloud_id'] ?? null);
     }
 }

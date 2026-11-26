@@ -11,6 +11,12 @@ class Connector extends SaloonConnector
     /** @param array<string, string> $credentials */
     public function __construct(private readonly array $credentials) {}
 
+    /** @param array<string, mixed> $credentials */
+    public static function hasCredentials(array $credentials): bool
+    {
+        return filled($credentials['access_token'] ?? null) && filled($credentials['cloud_id'] ?? null);
+    }
+
     public function handlePsrRequest(RequestInterface $request, PendingRequest $pendingRequest): RequestInterface
     {
         $uri = $request->getUri();

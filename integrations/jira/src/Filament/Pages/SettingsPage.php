@@ -17,6 +17,7 @@ use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Schema;
+use Timatic\Jira\Connector;
 use Timatic\Jira\OAuthService;
 
 /**
@@ -100,7 +101,7 @@ class SettingsPage extends Page
             ])->statePath('data');
         }
 
-        if (! $this->isConnected($config)) {
+        if (! Connector::hasCredentials($config)) {
             return $form->schema([
                 Callout::make(__('jira::jira.settings.callout_disconnected_title'))
                     ->warning()
@@ -137,7 +138,7 @@ class SettingsPage extends Page
                         app(OAuthService::class)->disconnect($this->getIntegration());
                         $this->redirect(static::getUrl(['record' => $this->getRecord()]));
                     })
-                    ->visible($this->isConnected($config) || $isPending),
+                    ->visible(Connector::hasCredentials($config) || $isPending),
 
                 DeleteAction::make()
                     ->successRedirectUrl(IntegrationResource::getUrl('index')),
@@ -146,7 +147,7 @@ class SettingsPage extends Page
             Action::make('connect')
                 ->label(__('jira::jira.settings.action_connect'))
                 ->url(route('jira.oauth.redirect', $this->getRecord()))
-                ->visible(! $this->isConnected($config) && ! $isPending),
+                ->visible(! Connector::hasCredentials($config) && ! $isPending),
 
             Action::make('confirmSite')
                 ->label(__('jira::jira.settings.action_confirm_site'))
@@ -176,14 +177,8 @@ class SettingsPage extends Page
 
                     Notification::make()->title(__('jira::jira.settings.notification_saved'))->success()->send();
                 })
-                ->visible($this->isConnected($config)),
+                ->visible(Connector::hasCredentials($config)),
         ];
-    }
-
-    /** @param array<string, mixed> $config */
-    private function isConnected(array $config): bool
-    {
-        return filled($config['access_token'] ?? null) && filled($config['cloud_id'] ?? null);
     }
 
     /** @param array<string, mixed> $config */

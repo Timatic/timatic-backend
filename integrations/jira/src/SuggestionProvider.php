@@ -38,8 +38,7 @@ class SuggestionProvider implements SuggestionProviderInterface
     public function isActiveFor(User $user): bool
     {
         return Integration::query()->where('type', 'jira')->get()->contains(
-            fn (Integration $integration): bool => filled($integration->config['access_token'] ?? null)
-                && filled($integration->config['cloud_id'] ?? null),
+            fn (Integration $integration): bool => Connector::hasCredentials($integration->config ?? []),
         );
     }
 
