@@ -5,6 +5,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
 use Timatic\Bitbucket\Requests\GetWorkspacesRequest;
+use Timatic\Bitbucket\Requests\RefreshTokenRequest;
 
 uses(RefreshDatabase::class);
 
@@ -82,4 +83,33 @@ it('confirms the installation once the webhook exists', function () {
 
     $response->assertOk();
     $response->assertSee('Webhook succesvol geïnstalleerd. De integratie is volledig geconfigureerd.');
+});
+
+it('offers the connect button again when bitbucket refuses the refresh token', function () {
+    MockClient::global([
+        RefreshTokenRequest::class => MockResponse::make(['error' => 'invalid_grant'], 400),
+    ]);
+    $integration = Integration::factory()->create([
+        'type' => 'bitbucket',
+        'config' => ['access_token' => 'token', 'refresh_token' => 'a-revoked-refresh-token', 'expires_at' => now()->subMinute()->timestamp],
+        'share_token' => 'share-token',
+    ]);
+
+    $response = $this->get(route('bitbucket.delegate.show', $integration->share_token));
+
+    $response->assertOk();
+    $response->assertSee(route('bitbucket.delegate.oauth-redirect', 'share-token'));
+});
+
+it('sends an unconnected integration back to the consent page instead of installing a webhook', function () {
+    $integration = Integration::factory()->create([
+        'type' => 'bitbucket',
+        'config' => [],
+        'share_token' => 'share-token',
+    ]);
+
+    $response = $this->post(route('bitbucket.delegate.install-webhook', $integration->share_token), ['workspace_slug' => 'acme']);
+
+    $response->assertRedirect(route('bitbucket.delegate.show', 'share-token'));
+    expect($integration->refresh()->config)->toBe([]);
 });
