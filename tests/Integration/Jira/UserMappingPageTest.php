@@ -2,6 +2,7 @@
 
 use App\Models\Integration;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -59,4 +60,20 @@ it('lists only the accounts another page links to by id and shows that as a remo
         ->assertSee('Selectie van 2 rijen')
         ->removeTableFilter('id')
         ->assertCanSeeTableRecords([$ann, $bob, $carl]);
+});
+
+it('shows when the users were last refreshed', function () {
+    // Given
+    $this->travelTo(CarbonImmutable::parse('2026-11-26T10:30:00Z'));
+    config()->set('timatic.preferred_timezone', 'Europe/Amsterdam');
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    MockClient::global([GetUsersRequest::class => MockResponse::make([['accountId' => 'acc-1', 'accountType' => 'atlassian', 'displayName' => 'Ann Smith']])]);
+
+    // When
+    $page = Livewire::test(UserMappingPage::class, ['record' => $jira->id])->callAction('refresh');
+
+    // Then
+    $page->assertSee(__('jira::jira.common.last_synced', ['at' => '26-11-2026 11:30']));
 });

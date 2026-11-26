@@ -2,6 +2,7 @@
 
 use App\Models\Customer;
 use App\Models\Integration;
+use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -10,6 +11,7 @@ use Saloon\Http\Faking\MockResponse;
 use Tests\Concerns\LoginUser;
 use Timatic\Jira\Filament\Pages\ProjectMappingPage;
 use Timatic\Jira\Models\ProjectMapping;
+use Timatic\Jira\Requests\GetProjectsRequest;
 use Timatic\Jira\Requests\RefreshTokenRequest;
 
 uses(LoginUser::class);
@@ -69,4 +71,21 @@ it('leaves jira alone when opening a page that already has projects', function (
 
     // Then
     $mockClient->assertNothingSent();
+});
+
+it('shows when the projects were last refreshed', function () {
+    // Given
+    $this->travelTo(CarbonImmutable::parse('2026-11-26T10:30:00Z'));
+    config()->set('timatic.preferred_timezone', 'Europe/Amsterdam');
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'ACME', 'project_name' => 'Acme']);
+    MockClient::global([GetProjectsRequest::class => MockResponse::make(['values' => [['key' => 'ACME', 'name' => 'Acme']]])]);
+
+    // When
+    $page = Livewire::test(ProjectMappingPage::class, ['record' => $jira->id])->callAction('refresh');
+
+    // Then
+    $page->assertSee(__('jira::jira.common.last_synced', ['at' => '26-11-2026 11:30']));
 });

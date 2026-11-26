@@ -37,6 +37,9 @@ class SyncUsersCommand extends Command
             }
         }
 
+        $jira->refresh();
+        $jira->update(['config' => [...$jira->config, 'users_synced_at' => now()->timestamp]]);
+
         return self::SUCCESS;
     }
 }

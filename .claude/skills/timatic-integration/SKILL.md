@@ -121,6 +121,7 @@ For OAuth 2.0 implementation details (OAuthService pattern, controllers, routes)
 - Bulk action "Assign customer" — always
 - Bulk action "Assign budget" — only if budget mapping enabled (budget select filter by selected customer via reactive)
 - Header action "Refresh"
+- Last sync time: after a successful sync, re-read the integration and merge `{resources}_synced_at` (unix timestamp) into `Integration.config`. Show it under the table heading with `->description(fn () => ...)` as a closure, so the time is current in the response of the "Refresh" action itself: lang key `common.last_synced` (`Last refreshed: :at.`), formatted `d-m-Y H:i` in `config('timatic.preferred_timezone')`. Return `null` while no time is stored. See `integrations/jira/src/Filament/Pages/ProjectMappingPage.php`.
 
 ### 8. ServiceProvider
 ```php

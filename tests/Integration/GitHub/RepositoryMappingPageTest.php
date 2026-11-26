@@ -4,6 +4,7 @@ use App\Models\Budget;
 use App\Models\BudgetVersion;
 use App\Models\Customer;
 use App\Models\Integration;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
@@ -267,4 +268,35 @@ it('keeps the mappings of an installation that could not be reached', function (
         ->assertNotified(__('github::github.common.connection_expired_title'));
 
     expect(RepositoryMapping::sole()->is_archived)->toBeFalse();
+});
+
+it('shows when the repositories were last refreshed', function () {
+    // Given
+    $this->travelTo(CarbonImmutable::parse('2026-11-26T10:30:00Z'));
+    config()->set('timatic.preferred_timezone', 'Europe/Amsterdam');
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => ['installations' => [['id' => 4242, 'account' => 'acme']]]]);
+    RepositoryMapping::create([
+        'integration_id' => $integration->id,
+        'installation_id' => 4242,
+        'owner_login' => 'acme',
+        'repository_name' => 'api',
+        'repository_full_name' => 'acme/api',
+    ]);
+    Cache::put('github.installation_token.4242', 'ghs_installation_token');
+    MockClient::global([
+        GetInstallationRepositoriesRequest::class => MockResponse::make([
+            'total_count' => 1,
+            'repositories' => [
+                ['id' => 1, 'name' => 'api', 'full_name' => 'acme/api', 'owner' => ['login' => 'acme'], 'archived' => false],
+            ],
+        ]),
+    ]);
+
+    // When
+    $page = Livewire::test(RepositoryMappingPage::class, ['record' => $integration->id])->callAction('refresh');
+
+    // Then
+    $page->assertSee(__('github::github.common.last_synced', ['at' => '26-11-2026 11:30']));
 });

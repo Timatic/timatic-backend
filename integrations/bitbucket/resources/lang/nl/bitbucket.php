@@ -13,6 +13,7 @@ return [
         'action_disconnect' => 'Verbinding verwijderen',
         'action_save' => 'Opslaan',
         'action_refresh' => 'Vernieuwen',
+        'last_synced' => 'Laatst vernieuwd: :at.',
         'field_title' => 'Titel',
         'notification_title_changed' => 'Titel gewijzigd.',
         'connection_expired_title' => 'Bitbucket verbinding verlopen',
