@@ -29,7 +29,9 @@ class DelegateController
 
         if ($this->isConnected($integration)) {
             $integration = app(OAuthService::class)->refreshIfExpired($integration);
+        }
 
+        if ($this->isConnected($integration)) {
             return view('bitbucket::consent.select-workspace', [
                 'integration' => $integration,
                 'workspaces' => $this->workspaces($integration),
@@ -69,6 +71,10 @@ class DelegateController
         $request->validate(['workspace_slug' => 'required|string|max:255']);
 
         $integration = app(OAuthService::class)->refreshIfExpired($integration);
+
+        if (! $this->isConnected($integration)) {
+            return redirect()->route('bitbucket.delegate.show', $token);
+        }
 
         $config = $integration->config ?? [];
         $config['workspace'] = $request->string('workspace_slug')->toString();

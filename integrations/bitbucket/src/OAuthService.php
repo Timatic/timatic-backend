@@ -66,7 +66,7 @@ class OAuthService
 
     public function refreshIfExpired(Integration $integration): Integration
     {
-        if (now()->timestamp < ($integration->config['expires_at'] ?? 0)) {
+        if (! isset($integration->config['refresh_token']) || now()->timestamp < ($integration->config['expires_at'] ?? 0)) {
             return $integration;
         }
 
@@ -106,7 +106,7 @@ class OAuthService
         }
 
         if ($response->failed()) {
-            throw new RuntimeException('Token refresh failed.');
+            throw new RuntimeException("Token refresh failed with status {$response->status()}: {$response->body()}");
         }
 
         /** @var BitbucketTokens $tokens */

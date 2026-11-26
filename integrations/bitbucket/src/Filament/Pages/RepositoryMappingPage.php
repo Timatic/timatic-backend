@@ -188,6 +188,13 @@ class RepositoryMappingPage extends Page implements HasTable
     {
         try {
             $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
+
+            if (! $this->hasCredentials()) {
+                $this->notifyConnectionExpired();
+
+                return;
+            }
+
             $config = $integration->config ?? [];
             $response = (new Connector($config))->send(new GetRepositoriesRequest($config['workspace']));
 
