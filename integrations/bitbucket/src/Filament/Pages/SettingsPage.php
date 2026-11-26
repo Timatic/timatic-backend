@@ -266,6 +266,39 @@ class SettingsPage extends Page
                 ->url(route('bitbucket.oauth.redirect', $this->getRecord()))
                 ->visible(! $this->hasTokens($config)),
 
+            Action::make('connectWithToken')
+                ->label(__('bitbucket::bitbucket.settings.action_connect_token'))
+                ->color('gray')
+                ->modalDescription(__('bitbucket::bitbucket.settings.connect_token_description'))
+                ->schema([
+                    TextInput::make('email')
+                        ->label(__('bitbucket::bitbucket.settings.field_email'))
+                        ->helperText(__('bitbucket::bitbucket.settings.field_email_helper'))
+                        ->email()
+                        ->required(),
+                    TextInput::make('api_token')
+                        ->label(__('bitbucket::bitbucket.settings.field_api_token'))
+                        ->helperText(__('bitbucket::bitbucket.settings.field_api_token_helper'))
+                        ->password()
+                        ->revealable()
+                        ->autocomplete('off')
+                        ->required(),
+                ])
+                ->action(function (array $data, Action $action): void {
+                    $credentials = ['email' => $data['email'], 'api_token' => $data['api_token']];
+
+                    if (new Connector($credentials)->send(new GetWorkspacesRequest)->failed()) {
+                        Notification::make()->title(__('bitbucket::bitbucket.settings.notification_token_rejected'))->danger()->send();
+                        $action->halt();
+                    }
+
+                    $integration = $this->getIntegration();
+                    $integration->update(['config' => array_merge($integration->config ?? [], $credentials)]);
+                    session()->flash('bitbucket_success', __('bitbucket::bitbucket.settings.notification_connected'));
+                    $this->redirect(static::getUrl(['record' => $this->getRecord()]));
+                })
+                ->visible(! $this->hasTokens($config)),
+
             Action::make('save')
                 ->label(__('bitbucket::bitbucket.common.action_save'))
                 ->action(function (): void {
@@ -279,7 +312,7 @@ class SettingsPage extends Page
     /** @param array<string, mixed> $config */
     private function hasTokens(array $config): bool
     {
-        return filled($config['access_token'] ?? null);
+        return Connector::hasCredentials($config);
     }
 
     /** @param array<string, mixed> $config */
