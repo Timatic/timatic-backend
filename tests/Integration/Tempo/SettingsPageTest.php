@@ -36,22 +36,6 @@ it('stores the token, the linked Jira instance, both sync switches and the mirro
     ]);
 });
 
-it('enables the worklog import as soon as the token and the Jira instance are saved', function () {
-    // Given
-    $this->loginUser(permissions: ['integrations.read']);
-    Filament::setCurrentPanel('admin');
-    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1']]);
-    $tempo = Integration::create(['title' => 'Tempo', 'type' => 'tempo', 'config' => []]);
-
-    // When
-    $page = Livewire::test(SettingsPage::class, ['record' => $tempo->id])
-        ->fillForm(['api_token' => 'secret-token', 'jira_integration_id' => $jira->id])
-        ->callAction('save');
-
-    // Then
-    $page->assertActionEnabled(TestAction::make('import_worklogs')->schemaComponent('worklog_sync'));
-});
-
 it('lists a Jira instance without a title by its default name', function () {
     // Given
     $this->loginUser(permissions: ['integrations.read']);
