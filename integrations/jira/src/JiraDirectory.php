@@ -42,6 +42,25 @@ final class JiraDirectory
     }
 
     /**
+     * @param  Collection<int, string>  $issueKeys
+     * @return Collection<string, non-falsy-string> the epic key per issue key, without the issues that have no epic
+     */
+    public function epicKeys(Integration $jira, Collection $issueKeys): Collection
+    {
+        $issues = $this->issuesByKey($jira, $issueKeys);
+        // A sub-task hangs under a story or task, and that one hangs under the epic
+        $parents = $this->issuesByKey($jira, $issues->where('hierarchyLevel', '<', 0)->pluck('parentKey')->filter());
+
+        return $issues
+            ->map(fn (JiraIssue $issue): ?string => match (true) {
+                $issue->hierarchyLevel > 0 => $issue->key,
+                $issue->hierarchyLevel < 0 => $parents->get($issue->parentKey)?->parentKey,
+                default => $issue->parentKey,
+            })
+            ->filter();
+    }
+
+    /**
      * @param  Collection<int, string>  $accountIds
      * @return Collection<string, User> keyed by account id, without the accounts that have no Timatic user
      */
@@ -73,6 +92,23 @@ final class JiraDirectory
         $jiraUser = $this->connector($jira)->send(new GetUserByEmailRequest($user->email))->dto();
 
         return $jiraUser === null ? null : $this->remember($jira, $jiraUser)->account_id;
+    }
+
+    /**
+     * @param  Collection<int, string>  $issueKeys
+     * @return Collection<string, JiraIssue>
+     */
+    private function issuesByKey(Integration $jira, Collection $issueKeys): Collection
+    {
+        // In chunks, because the keys travel in the query string
+        return $issueKeys->unique()->chunk(100)
+            ->flatMap(function (Collection $keys) use ($jira): array {
+                /** @var iterable<int, JiraIssue> $issues */
+                $issues = (new GetIssuesRequest('key in ("'.$keys->implode('","').'")'))->paginate($this->connector($jira))->items();
+
+                return iterator_to_array($issues, preserve_keys: false);
+            })
+            ->keyBy(fn (JiraIssue $issue): string => $issue->key);
     }
 
     private function connector(Integration $jira): Connector

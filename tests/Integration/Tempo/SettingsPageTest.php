@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Budget;
 use App\Models\Integration;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -8,8 +9,10 @@ use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 use Tests\Concerns\LoginUser;
+use Timatic\Jira\Filament\Pages\EpicMappingPage;
 use Timatic\Jira\Filament\Pages\ProjectMappingPage;
 use Timatic\Jira\Filament\Pages\UserMappingPage;
+use Timatic\Jira\Models\EpicMapping;
 use Timatic\Jira\Models\ProjectMapping;
 use Timatic\Jira\Models\UserMapping;
 use Timatic\Tempo\Filament\Pages\SettingsPage;
@@ -102,4 +105,26 @@ it('links to the Jira users and projects on which the sync skipped a worklog', f
         ->assertSee('2 projecten koppelen in Jira')
         ->assertSeeHtml(e(UserMappingPage::getUrl(['record' => $jira->id, 'filters' => ['id' => ['ids' => "{$ann->id}"]]])))
         ->assertSeeHtml(e(ProjectMappingPage::getUrl(['record' => $jira->id, 'filters' => ['id' => ['ids' => "{$acme->id},{$beta->id}"]]])));
+});
+
+it('links to the Jira epics on which the sync skipped a worklog', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1']]);
+    $budget = Budget::factory()->create();
+    $unmapped = EpicMapping::query()->create(['integration_id' => $jira->id, 'epic_key' => 'SUP-3', 'epic_name' => 'Acme']);
+    $mappedSince = EpicMapping::query()->create(['integration_id' => $jira->id, 'epic_key' => 'SUP-4', 'epic_name' => 'Beta', 'customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
+    $tempo = Integration::create(['title' => 'Tempo', 'type' => 'tempo', 'config' => [
+        'api_token' => 'secret-token',
+        'jira_integration_id' => $jira->id,
+        'worklog_skipped_epic_mapping_ids' => [$unmapped->id, $mappedSince->id],
+    ]]);
+
+    // When
+    $page = Livewire::test(SettingsPage::class, ['record' => $tempo->id]);
+
+    // Then
+    $page->assertSee('1 epic koppelen')
+        ->assertSeeHtml(e(EpicMappingPage::getUrl(['record' => $jira->id, 'filters' => ['id' => ['ids' => "{$unmapped->id}"]]])));
 });
