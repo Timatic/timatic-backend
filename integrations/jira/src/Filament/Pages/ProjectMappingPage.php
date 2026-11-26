@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\Integration;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Navigation\NavigationItem;
 use Filament\Notifications\Notification;
@@ -39,9 +40,9 @@ class ProjectMappingPage extends Page implements HasTable
 
     protected string $view = 'jira::filament.pages.jira-project-mapping-page';
 
-    /** @var array<string, mixed> Holds "id": comma separated mapping ids another page links to, e.g. ?filter[id]=1,2,4 */
-    #[Url]
-    public array $filter = [];
+    /** @var array<string, mixed> | null In the URL so another page can link to rows by id: ?filters[id][ids]=1,2,4 */
+    #[Url(as: 'filters')]
+    public ?array $tableFilters = null;
 
     public function getTitle(): string
     {
@@ -90,12 +91,8 @@ class ProjectMappingPage extends Page implements HasTable
                 ->emptyStateIcon('heroicon-o-cog-6-tooth');
         }
 
-        $linkedIds = is_string($this->filter['id'] ?? null) ? explode(',', $this->filter['id']) : [];
-
         return $table
-            ->query(ProjectMapping::query()
-                ->where('integration_id', $this->getRecord()->getKey())
-                ->when($linkedIds !== [], fn (Builder $query) => $query->whereKey($linkedIds)))
+            ->query(ProjectMapping::query()->where('integration_id', $this->getRecord()->getKey()))
             ->columns([
                 TextColumn::make('project_key')->label(__('jira::jira.project_mapping.column_project_key'))->searchable()->sortable(),
                 TextColumn::make('project_name')
@@ -112,9 +109,12 @@ class ProjectMappingPage extends Page implements HasTable
             ->filters([
                 Filter::make('unmapped')
                     ->label(__('jira::jira.project_mapping.filter_unmapped'))
-                    // A linked project can have a customer and still miss its budget
-                    ->default($linkedIds === [])
+                    ->default()
                     ->query(fn (Builder $query) => $query->whereNull('customer_id')),
+                Filter::make('id')
+                    ->schema([Hidden::make('ids')])
+                    ->query(fn (Builder $query, array $data) => $query->when(filled($data['ids'] ?? null), fn (Builder $query) => $query->whereKey(explode(',', (string) $data['ids']))))
+                    ->indicateUsing(fn (array $data): ?string => filled($data['ids'] ?? null) ? trans_choice('jira::jira.common.filter_ids_indicator', count(explode(',', (string) $data['ids']))) : null),
                 TernaryFilter::make('is_archived')
                     ->label(__('jira::jira.project_mapping.filter_archived'))
                     ->default(false),

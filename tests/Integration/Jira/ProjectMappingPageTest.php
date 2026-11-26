@@ -52,7 +52,7 @@ it('lists only the projects another page links to by id, also the ones with a cu
     $notLinked = ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'GAMMA', 'project_name' => 'Gamma']);
 
     // When
-    $page = Livewire::withQueryParams(['filter' => ['id' => "{$withoutBudget->id},{$unmapped->id}"]])->test(ProjectMappingPage::class, ['record' => $jira->id]);
+    $page = Livewire::withQueryParams(['filters' => ['id' => ['ids' => "{$withoutBudget->id},{$unmapped->id}"]]])->test(ProjectMappingPage::class, ['record' => $jira->id]);
 
     // Then
     $page->assertCanSeeTableRecords([$withoutBudget, $unmapped])->assertCanNotSeeTableRecords([$notLinked]);

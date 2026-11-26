@@ -5,6 +5,7 @@ namespace Timatic\Jira\Filament\Pages;
 use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Models\User;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Navigation\NavigationItem;
 use Filament\Notifications\Notification;
@@ -35,9 +36,9 @@ class UserMappingPage extends Page implements HasTable
 
     protected string $view = 'jira::filament.pages.jira-project-mapping-page';
 
-    /** @var array<string, mixed> Holds "id": comma separated mapping ids another page links to, e.g. ?filter[id]=1,2,4 */
-    #[Url]
-    public array $filter = [];
+    /** @var array<string, mixed> | null In the URL so another page can link to rows by id: ?filters[id][ids]=1,2,4 */
+    #[Url(as: 'filters')]
+    public ?array $tableFilters = null;
 
     public function getTitle(): string
     {
@@ -73,12 +74,8 @@ class UserMappingPage extends Page implements HasTable
 
     public function table(Table $table): Table
     {
-        $linkedIds = is_string($this->filter['id'] ?? null) ? explode(',', $this->filter['id']) : [];
-
         return $table
-            ->query(UserMapping::query()
-                ->where('integration_id', $this->getRecord()->getKey())
-                ->when($linkedIds !== [], fn (Builder $query) => $query->whereKey($linkedIds)))
+            ->query(UserMapping::query()->where('integration_id', $this->getRecord()->getKey()))
             ->columns([
                 TextColumn::make('display_name')->label(__('jira::jira.user_mapping.column_name'))->searchable()->sortable(),
                 TextColumn::make('email')->label(__('jira::jira.user_mapping.column_email'))->placeholder(__('jira::jira.user_mapping.email_hidden'))->searchable(),
@@ -87,8 +84,12 @@ class UserMappingPage extends Page implements HasTable
             ->filters([
                 Filter::make('unmapped')
                     ->label(__('jira::jira.project_mapping.filter_unmapped'))
-                    ->default($linkedIds === [])
+                    ->default()
                     ->query(fn (Builder $query) => $query->whereNull('user_id')),
+                Filter::make('id')
+                    ->schema([Hidden::make('ids')])
+                    ->query(fn (Builder $query, array $data) => $query->when(filled($data['ids'] ?? null), fn (Builder $query) => $query->whereKey(explode(',', (string) $data['ids']))))
+                    ->indicateUsing(fn (array $data): ?string => filled($data['ids'] ?? null) ? trans_choice('jira::jira.common.filter_ids_indicator', count(explode(',', (string) $data['ids']))) : null),
             ])
             ->actions([
                 Action::make('link')

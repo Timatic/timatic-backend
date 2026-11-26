@@ -100,6 +100,6 @@ it('links to the Jira users and projects on which the sync skipped a worklog', f
     // Then
     $page->assertSee('1 gebruiker koppelen')
         ->assertSee('2 projecten koppelen in Jira')
-        ->assertSeeHtml(e(UserMappingPage::getUrl(['record' => $jira->id, 'filter' => ['id' => "{$ann->id}"]])))
-        ->assertSeeHtml(e(ProjectMappingPage::getUrl(['record' => $jira->id, 'filter' => ['id' => "{$acme->id},{$beta->id}"]])));
+        ->assertSeeHtml(e(UserMappingPage::getUrl(['record' => $jira->id, 'filters' => ['id' => ['ids' => "{$ann->id}"]]])))
+        ->assertSeeHtml(e(ProjectMappingPage::getUrl(['record' => $jira->id, 'filters' => ['id' => ['ids' => "{$acme->id},{$beta->id}"]]])));
 });

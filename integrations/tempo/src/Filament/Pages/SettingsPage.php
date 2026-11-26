@@ -140,12 +140,12 @@ class SettingsPage extends Page
                             Action::make('map_users')
                                 ->label(trans_choice('tempo::tempo.settings.action_map_users', $unmappedUserIds->count()))
                                 ->link()
-                                ->url(UserMappingPage::getUrl(['record' => $jiraId, 'filter' => ['id' => $unmappedUserIds->implode(',')]]))
+                                ->url(UserMappingPage::getUrl(['record' => $jiraId, 'filters' => ['id' => ['ids' => $unmappedUserIds->implode(',')]]]))
                                 ->visible($unmappedUserIds->isNotEmpty()),
                             ...$unmappedProjectIds->map(fn (Collection $projects, int $projectJiraId): Action => Action::make("map_projects_{$projectJiraId}")
                                 ->label(trans_choice('tempo::tempo.settings.action_map_projects', $projects->count(), ['jira' => $jiraIntegrations[$projectJiraId]]))
                                 ->link()
-                                ->url(ProjectMappingPage::getUrl(['record' => $projectJiraId, 'filter' => ['id' => $projects->pluck('id')->implode(',')]])))->values(),
+                                ->url(ProjectMappingPage::getUrl(['record' => $projectJiraId, 'filters' => ['id' => ['ids' => $projects->pluck('id')->implode(',')]]])))->values(),
                         ]),
                     // Evaluated while rendering, so an import queued in this request already shows up
                     View::make('tempo::filament.pages.worklog-import-status')->viewData(fn (): array => [
