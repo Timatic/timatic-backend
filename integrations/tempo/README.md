@@ -22,8 +22,11 @@ worklogs deleted in Tempo.
 A worklog is booked on the Timatic user linked to its Jira author under "User mapping" of the
 Jira integration. "Refresh" there loads every person of the Jira instance and links the ones with
 the same e-mail address; link the others by hand. `php artisan jira:sync-users {integration id}`
-does the same from the command line. Worklogs of unlinked authors are skipped, and those authors
-show up in the list as not linked.
+does the same from the command line.
+
+A worklog is skipped when its author has no Timatic user or its Jira project has no customer and
+budget. The Tempo integration settings then show how many Jira users and projects that concerns,
+with links to the user mapping and project mapping filtered on "Skipped worklogs".
 
 Issues mirrored from another Jira instance usually start with the original issue key in their
 title, e.g. "ABC-12 Fix login". Switch on "Record mirrored issues on the original issue" in the

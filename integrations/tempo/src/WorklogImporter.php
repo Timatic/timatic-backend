@@ -16,12 +16,14 @@ use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
 use Timatic\Jira\JiraDirectory;
 use Timatic\Jira\Models\ProjectMapping;
+use Timatic\Jira\Models\UserMapping;
 use Timatic\Tempo\DataTransferObjects\TempoWorklog;
 
 /**
  * Copies Tempo worklogs to entries, with the issue, author and project mapping of the Jira instance Tempo runs on.
  * Entries are matched on the worklog id, so importing the same worklog twice is harmless. Entries that are invoiced
- * or in a locked period are left untouched and logged.
+ * or in a locked period are left untouched and logged. A worklog without a mapped author or project is skipped, and
+ * that Jira account or project is marked so the mapping pages can list exactly those.
  *
  * @arch-ignore app-boundary: turns worklogs into entries with the enricher and lock rules of the core
  */
@@ -50,6 +52,8 @@ final class WorklogImporter
             ->filter()
             ->map(fn (Ticket $ticket) => $this->resolveMirroredIssue($ticket, $tempo));
         $users = $this->jiraDirectory->timaticUsers($jira, $worklogs->pluck('authorAccountId'));
+        $unmappedAccountIds = [];
+        $unmappedProjectKeys = [];
 
         // Lets the outbound subscriber tell an imported change from one made in Timatic
         Context::add('entry_sync_source', true);
@@ -62,6 +66,14 @@ final class WorklogImporter
 
                 if ($issue === null || $mapping === null || $user === null) {
                     Log::warning("Tempo worklog {$worklog->id} skipped: no issue, budget mapping or Timatic user", ['issue' => $issue?->number, 'author' => $worklog->authorAccountId]);
+
+                    if ($user === null) {
+                        $unmappedAccountIds[] = $worklog->authorAccountId;
+                    }
+
+                    if ($issue !== null && $mapping === null) {
+                        $unmappedProjectKeys[] = $this->projectKey($issue);
+                    }
 
                     continue;
                 }
@@ -104,6 +116,8 @@ final class WorklogImporter
                 $entry->save();
                 $this->entryEnricher->enrich($entry, isPartialUpdate: false, hasOvertime: false, hasCustomerOvertime: false, overtimeStartedAt: null, overtimeEndedAt: null);
             }
+
+            $this->markSkipped($jira, $unmappedAccountIds, array_unique($unmappedProjectKeys));
         } finally {
             Context::forget('entry_sync_source');
         }
@@ -133,11 +147,34 @@ final class WorklogImporter
     private function findBudgetMapping(Ticket $issue, Integration $jira): ?ProjectMapping
     {
         return ProjectMapping::active()
-            ->where('project_key', strtoupper(explode('-', $issue->number)[0]))
+            ->where('project_key', $this->projectKey($issue))
             ->whereNotNull('customer_id')
             ->whereNotNull('budget_id')
             ->orderByRaw('integration_id = ? desc', [$jira->id])
             ->first();
+    }
+
+    private function projectKey(Ticket $issue): string
+    {
+        return strtoupper(explode('-', $issue->number)[0]);
+    }
+
+    /**
+     * @param  array<int, string>  $accountIds
+     * @param  array<int, string>  $projectKeys
+     */
+    private function markSkipped(Integration $jira, array $accountIds, array $projectKeys): void
+    {
+        UserMapping::query()->where('integration_id', $jira->id)->whereIn('account_id', $accountIds)->update(['worklog_skipped_at' => now()]);
+
+        foreach ($projectKeys as $projectKey) {
+            // A project nobody loaded on the mapping page yet has no row to map
+            if (ProjectMapping::query()->where('project_key', $projectKey)->doesntExist()) {
+                ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => $projectKey, 'project_name' => $projectKey]);
+            }
+        }
+
+        ProjectMapping::active()->whereIn('project_key', $projectKeys)->update(['worklog_skipped_at' => now()]);
     }
 
     /**

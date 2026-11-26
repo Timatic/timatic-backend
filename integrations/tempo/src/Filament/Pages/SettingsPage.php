@@ -22,7 +22,11 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Bus;
+use Timatic\Jira\Filament\Pages\ProjectMappingPage;
+use Timatic\Jira\Filament\Pages\UserMappingPage;
 use Timatic\Jira\JiraDirectory;
+use Timatic\Jira\Models\ProjectMapping;
+use Timatic\Jira\Models\UserMapping;
 use Timatic\Tempo\Jobs\BackfillWorklogsJob;
 use Timatic\Tempo\WorklogImporter;
 
@@ -69,6 +73,11 @@ class SettingsPage extends Page
         $timezone = config('timatic.preferred_timezone');
         // A date string: the pickers would shift a date object to the app timezone, which is a day earlier
         $today = CarbonImmutable::today($timezone)->toDateString();
+        $skippedWorklogsFilter = ['filters' => ['skipped_worklogs' => ['isActive' => true]]];
+        $jiraId = (int) ($config['jira_integration_id'] ?? 0);
+        $unmappedUserCount = UserMapping::query()->where('integration_id', $jiraId)->skippedWorklogs()->count();
+        // A mirrored issue is booked on the project of another Jira instance, so the projects are listed per instance
+        $unmappedProjectCounts = ProjectMapping::query()->skippedWorklogs()->get()->countBy('integration_id');
 
         return $form->schema([
             Section::make(__('tempo::tempo.settings.section_connection'))->schema([
@@ -113,6 +122,21 @@ class SettingsPage extends Page
                     Text::make(isset($config['worklog_synced_until'])
                         ? __('tempo::tempo.settings.last_synced', ['at' => CarbonImmutable::createFromTimestampMs($config['worklog_synced_until'], $timezone)->format('d-m-Y H:i')])
                         : __('tempo::tempo.settings.last_synced_never')),
+                    Callout::make(__('tempo::tempo.settings.callout_skipped_title'))
+                        ->warning()
+                        ->description(__('tempo::tempo.settings.callout_skipped_description'))
+                        ->visible($unmappedUserCount > 0 || $unmappedProjectCounts->isNotEmpty())
+                        ->footer([
+                            Action::make('map_users')
+                                ->label(trans_choice('tempo::tempo.settings.action_map_users', $unmappedUserCount))
+                                ->link()
+                                ->url(UserMappingPage::getUrl(['record' => $jiraId, ...$skippedWorklogsFilter]))
+                                ->visible($unmappedUserCount > 0),
+                            ...$unmappedProjectCounts->map(fn (int $count, int $projectJiraId): Action => Action::make("map_projects_{$projectJiraId}")
+                                ->label(trans_choice('tempo::tempo.settings.action_map_projects', $count, ['jira' => $jiraIntegrations[$projectJiraId]]))
+                                ->link()
+                                ->url(ProjectMappingPage::getUrl(['record' => $projectJiraId, ...$skippedWorklogsFilter])))->values(),
+                        ]),
                     // Evaluated while rendering, so an import queued in this request already shows up
                     View::make('tempo::filament.pages.worklog-import-status')->viewData(fn (): array => [
                         'batch' => isset($integration->config['worklog_backfill_batch_id']) ? Bus::findBatch($integration->config['worklog_backfill_batch_id']) : null,
