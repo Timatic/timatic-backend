@@ -112,7 +112,7 @@ class DelegateController
 
     private function isConnected(Integration $integration): bool
     {
-        return filled(($integration->config ?? [])['access_token'] ?? null);
+        return Connector::hasCredentials($integration->config ?? []);
     }
 
     /**

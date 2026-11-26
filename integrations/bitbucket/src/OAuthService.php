@@ -87,7 +87,7 @@ class OAuthService
     {
         $integration->update([
             'config' => Arr::except($integration->config ?? [], [
-                'access_token', 'refresh_token', 'expires_at', 'workspace', 'oauth_nonce',
+                'access_token', 'refresh_token', 'expires_at', 'email', 'api_token', 'workspace', 'workspace_admin', 'oauth_nonce',
                 'webhook_uuid', 'webhook_uuids', 'webhook_secret',
             ]),
         ]);

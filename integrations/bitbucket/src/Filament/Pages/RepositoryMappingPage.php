@@ -187,7 +187,7 @@ class RepositoryMappingPage extends Page implements HasTable
     {
         $config = $this->getIntegration()->config ?? [];
 
-        return filled($config['access_token'] ?? null)
+        return Connector::hasCredentials($config)
             && filled($config['workspace'] ?? null);
     }
 
