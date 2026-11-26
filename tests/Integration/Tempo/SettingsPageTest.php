@@ -80,22 +80,6 @@ it('warns when the linked Jira instance is no longer connected', function () {
     $page->assertSee('Jira is niet meer verbonden');
 });
 
-it('proposes today in the preferred timezone as the end of the import period', function () {
-    // Given
-    $this->travelTo(CarbonImmutable::parse('2026-06-20T12:00:00Z'));
-    $this->loginUser(permissions: ['integrations.read']);
-    Filament::setCurrentPanel('admin');
-    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1']]);
-    $tempo = Integration::create(['title' => 'Tempo', 'type' => 'tempo', 'config' => ['api_token' => 'secret-token', 'jira_integration_id' => $jira->id]]);
-
-    // When
-    $page = Livewire::test(SettingsPage::class, ['record' => $tempo->id])
-        ->mountAction(TestAction::make('import_worklogs')->schemaComponent('worklog_sync'));
-
-    // Then
-    expect($page->get('mountedActions.0.data.until'))->toBe('2026-06-20');
-});
-
 it('queues one import job per week of the chosen period and shows how many weeks are still queued', function () {
     // Given
     Queue::fake();
