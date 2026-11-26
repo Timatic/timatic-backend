@@ -17,6 +17,7 @@ use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Timatic\Bitbucket\Connector;
 use Timatic\Bitbucket\DataTransferObjects\BitbucketWebhook;
@@ -95,6 +96,18 @@ class SettingsPage extends Page
                 Callout::make(__('bitbucket::bitbucket.settings.callout_choose_workspace_title'))
                     ->info()
                     ->description(__('bitbucket::bitbucket.settings.callout_choose_workspace_description')),
+            ])->statePath('data');
+        }
+
+        if ($this->isWithoutWebhook($config)) {
+            return $form->schema([
+                TextInput::make('title')
+                    ->label(__('bitbucket::bitbucket.common.field_title'))
+                    ->autocomplete(false)
+                    ->helperText(__('integrations.title_helper')),
+                Callout::make(__('bitbucket::bitbucket.settings.callout_without_webhook_title'))
+                    ->info()
+                    ->description(__('bitbucket::bitbucket.settings.callout_without_webhook_description', ['workspace' => $config['workspace'] ?? ''])),
             ])->statePath('data');
         }
 
@@ -222,37 +235,26 @@ class SettingsPage extends Page
                             ->send();
                     }
                 })
-                ->visible($this->hasWorkspace($config) && ! $this->hasWebhook($config)),
+                ->visible($this->hasWorkspace($config) && ! $this->hasWebhook($config) && ! $this->isWithoutWebhook($config)),
 
             Action::make('choose_workspace')
                 ->label(__('bitbucket::bitbucket.settings.action_choose_workspace'))
                 ->form([
                     Select::make('workspace')
                         ->label(__('bitbucket::bitbucket.settings.workspace_select_label'))
-                        ->options(function () {
-                            $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
-
-                            if (! $this->hasTokens($integration->config ?? [])) {
-                                return [];
-                            }
-
-                            $response = new Connector($integration->config ?? [])
-                                ->send(new GetWorkspacesRequest);
-
-                            /** @var array<int, BitbucketWorkspace> $workspaces */
-                            $workspaces = $response->dto() ?? [];
-
-                            return collect($workspaces)
-                                ->mapWithKeys(fn (BitbucketWorkspace $w) => [$w->slug => $w->slug]);
-                        })
+                        ->options(fn () => $this->workspaces()->mapWithKeys(fn (BitbucketWorkspace $w) => [
+                            $w->slug => $w->isAdministrator ? $w->slug : $w->slug.' ('.__('bitbucket::bitbucket.consent.not_administrator').')',
+                        ]))
                         ->searchable()
                         ->required(),
                 ])
                 ->action(function (array $data): void {
+                    $workspace = $this->workspaces()->firstWhere('slug', $data['workspace']);
                     $integration = $this->getIntegration();
                     $integration->update([
                         'config' => array_merge($integration->config ?? [], [
                             'workspace' => $data['workspace'],
+                            'workspace_admin' => $workspace->isAdministrator ?? false,
                             'webhook_secret' => $integration->config['webhook_secret'] ?? Str::random(32),
                         ]),
                     ]);
@@ -325,6 +327,33 @@ class SettingsPage extends Page
     private function hasWebhook(array $config): bool
     {
         return $this->hasWorkspace($config) && filled($config['webhook_uuid'] ?? null);
+    }
+
+    /**
+     * Existing integrations predate workspace_admin and count as admin.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function isWithoutWebhook(array $config): bool
+    {
+        return $this->hasWorkspace($config)
+            && ! $this->hasWebhook($config)
+            && ! ($config['workspace_admin'] ?? true);
+    }
+
+    /** @return Collection<int, BitbucketWorkspace> */
+    private function workspaces(): Collection
+    {
+        $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
+
+        if (! $this->hasTokens($integration->config ?? [])) {
+            return collect();
+        }
+
+        /** @var array<int, BitbucketWorkspace> $workspaces */
+        $workspaces = new Connector($integration->config ?? [])->send(new GetWorkspacesRequest)->dto() ?? [];
+
+        return collect($workspaces);
     }
 
     private function reportExpiredConnection(): void

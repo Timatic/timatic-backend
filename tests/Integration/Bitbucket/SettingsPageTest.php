@@ -87,3 +87,33 @@ it('stores nothing when bitbucket rejects the api token', function () {
     // Then
     expect($integration->refresh()->config)->toBe([]);
 });
+
+it('connects without webhook when the account is no admin of the chosen workspace', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $integration = Integration::create(['title' => 'Bitbucket', 'type' => 'bitbucket', 'config' => [
+        'email' => 'jane@acme.test',
+        'api_token' => 'secret-token',
+        'webhook_secret' => 'a-webhook-secret',
+    ]]);
+    MockClient::global([
+        GetWorkspacesRequest::class => MockResponse::make(['values' => [['administrator' => false, 'workspace' => ['slug' => 'acme']]]]),
+    ]);
+
+    // When
+    Livewire::test(SettingsPage::class, ['record' => $integration->id])
+        ->callAction('choose_workspace', ['workspace' => 'acme']);
+
+    // Then
+    expect($integration->refresh()->config)->toBe([
+        'email' => 'jane@acme.test',
+        'api_token' => 'secret-token',
+        'webhook_secret' => 'a-webhook-secret',
+        'workspace' => 'acme',
+        'workspace_admin' => false,
+    ]);
+    Livewire::test(SettingsPage::class, ['record' => $integration->id])
+        ->assertSee(__('bitbucket::bitbucket.settings.callout_without_webhook_title'))
+        ->assertActionHidden('install_webhook');
+});
