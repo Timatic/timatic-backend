@@ -266,8 +266,18 @@ class EpicMappingPage extends Page implements HasTable
 
             $integration->refresh();
             $integration->update(['config' => [...$integration->config, 'epics_synced_at' => now()->timestamp]]);
-        } catch (RequestException) {
-            $this->notifyConnectionExpired();
+        } catch (RequestException $e) {
+            if (in_array($e->getResponse()->status(), [401, 403])) {
+                $this->notifyConnectionExpired();
+
+                return;
+            }
+
+            Notification::make()
+                ->title(__('jira::jira.epic_mapping.sync_failed_title'))
+                ->body($e->getResponse()->json('errorMessages.0') ?? "HTTP {$e->getResponse()->status()}")
+                ->danger()
+                ->send();
         }
     }
 

@@ -6,6 +6,7 @@ use App\Models\Integration;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
+use Filament\Notifications\Notification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Saloon\Http\Faking\MockClient;
@@ -106,4 +107,24 @@ it('links one epic to a customer and budget from its row', function () {
 
     // Then
     expect($epic->refresh()->only(['customer_id', 'budget_id']))->toBe(['customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
+});
+
+it('reports the reason Jira gives when the epics cannot be loaded', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'GONE', 'project_name' => 'Gone', 'is_mapped_per_epic' => true]);
+    MockClient::global([
+        GetIssuesRequest::class => MockResponse::make(['errorMessages' => ["The value 'GONE' does not exist for the field 'project'."]], 400),
+    ]);
+
+    // When
+    $page = Livewire::test(EpicMappingPage::class, ['record' => $jira->id])->callAction('refresh');
+
+    // Then
+    $page->assertNotified(Notification::make()
+        ->title(__('jira::jira.epic_mapping.sync_failed_title'))
+        ->body("The value 'GONE' does not exist for the field 'project'.")
+        ->danger());
 });

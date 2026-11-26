@@ -78,6 +78,7 @@ return [
         'action_remove_project' => 'Verwijder project',
         'field_project' => 'Jira-project',
         'remove_project_description' => 'De epics van dit project verdwijnen uit de lijst en de worklogs ervan volgen weer de project mapping. De koppelingen van de epics blijven bewaard voor als je het project opnieuw toevoegt.',
+        'sync_failed_title' => 'Epics konden niet worden opgehaald',
     ],
 
     'user_mapping' => [

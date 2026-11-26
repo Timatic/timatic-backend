@@ -76,6 +76,7 @@ return [
         'action_remove_project' => 'Remove project',
         'field_project' => 'Jira project',
         'remove_project_description' => 'The epics of this project leave the list and its worklogs go by the project mapping again. The links of its epics are kept for when you add the project again.',
+        'sync_failed_title' => 'Epics could not be loaded',
     ],
 
     'user_mapping' => [
