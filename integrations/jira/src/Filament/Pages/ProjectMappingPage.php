@@ -17,7 +17,6 @@ use Filament\Pages\Enums\SubNavigationPosition;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
@@ -110,9 +109,6 @@ class ProjectMappingPage extends Page implements HasTable
                     ->label(__('jira::jira.common.column_budget'))
                     ->placeholder(__('jira::jira.common.not_linked'))
                     ->formatStateUsing(fn ($state, $record) => $record->budget?->getTitle()),
-                ToggleColumn::make('is_mapped_per_epic')
-                    ->label(__('jira::jira.project_mapping.column_mapped_per_epic'))
-                    ->tooltip(__('jira::jira.project_mapping.column_mapped_per_epic_tooltip')),
             ])
             ->filters([
                 Filter::make('unmapped')

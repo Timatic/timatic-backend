@@ -56,8 +56,6 @@ return [
         'table_heading' => 'Jira projecten',
         'column_project_key' => 'Project key',
         'column_name' => 'Naam',
-        'column_mapped_per_epic' => 'Klant per epic',
-        'column_mapped_per_epic_tooltip' => 'Voor een project met het werk van meerdere klanten. De epics ervan staan onder "Epic mapping".',
         'empty_heading' => 'Geen projecten gevonden',
         'empty_description' => 'Klik op "Vernieuwen" om projecten op te halen uit Jira.',
         'action_archive' => 'Archiveren',
@@ -73,7 +71,11 @@ return [
         'column_epic_key' => 'Epic key',
         'column_name' => 'Naam',
         'empty_heading' => 'Geen epics gevonden',
-        'empty_description' => 'Zet "Klant per epic" aan bij een project in de project mapping en klik daarna op "Vernieuwen" om de epics op te halen uit Jira.',
+        'empty_description' => 'Klik op "Voeg project toe" om de epics te tonen van een Jira-project waarvan de epics bij verschillende klanten of budgetten horen.',
+        'action_add_project' => 'Voeg project toe',
+        'action_remove_project' => 'Verwijder project',
+        'field_project' => 'Jira-project',
+        'remove_project_description' => 'De epics van dit project verdwijnen uit de lijst en de worklogs ervan volgen weer de project mapping. De koppelingen van de epics blijven bewaard voor als je het project opnieuw toevoegt.',
     ],
 
     'user_mapping' => [

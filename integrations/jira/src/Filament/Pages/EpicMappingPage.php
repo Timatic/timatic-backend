@@ -22,6 +22,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as SupportCollection;
 use Livewire\Attributes\Url;
 use Saloon\Exceptions\Request\RequestException;
 use Timatic\Jira\Connector;
@@ -32,8 +33,8 @@ use Timatic\Jira\OAuthService;
 use Timatic\Jira\Requests\GetIssuesRequest;
 
 /**
- * Links the epics of the projects marked as "customer per epic" to a customer and budget,
- * for a project such as support that holds the work of several customers.
+ * Links the epics of the projects added here to a customer and budget, for a project
+ * whose epics belong to different customers or to different budgets of one customer.
  */
 class EpicMappingPage extends Page implements HasTable
 {
@@ -56,10 +57,6 @@ class EpicMappingPage extends Page implements HasTable
     public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
-
-        if (! EpicMapping::query()->where('integration_id', $this->getRecord()->getKey())->exists()) {
-            $this->syncEpicsFromJira();
-        }
     }
 
     public static function getSubNavigationPosition(): SubNavigationPosition
@@ -90,7 +87,13 @@ class EpicMappingPage extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query(EpicMapping::query()->where('integration_id', $this->getRecord()->getKey()))
+            // A closure, so adding or removing a project shows in the same request
+            ->query(fn (): Builder => EpicMapping::query()
+                ->where('integration_id', $this->getRecord()->getKey())
+                ->where(fn (Builder $query) => $this->projectsMappedPerEpic()->pluck('project_key')->reduce(
+                    fn (Builder $query, string $projectKey) => $query->orWhere('epic_key', 'like', addcslashes($projectKey, '_%').'-%'),
+                    $query->whereRaw('1 = 0'),
+                )))
             ->columns([
                 TextColumn::make('epic_key')->label(__('jira::jira.epic_mapping.column_epic_key'))->searchable()->sortable(),
                 TextColumn::make('epic_name')->label(__('jira::jira.epic_mapping.column_name'))->searchable()->sortable(),
@@ -148,22 +151,66 @@ class EpicMappingPage extends Page implements HasTable
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('add_project')
+                ->label(__('jira::jira.epic_mapping.action_add_project'))
+                ->schema([
+                    Select::make('project_mapping_id')
+                        ->label(__('jira::jira.epic_mapping.field_project'))
+                        ->options(fn (): array => $this->projectOptions(isMappedPerEpic: false))
+                        ->searchable()
+                        ->required(),
+                ])
+                ->action(function (array $data): void {
+                    $project = ProjectMapping::active()->where('integration_id', $this->getRecord()->getKey())->whereKey($data['project_mapping_id'])->firstOrFail();
+                    $project->update(['is_mapped_per_epic' => true]);
+                    $this->syncEpicsFromJira(collect([$project->project_key]));
+                    $this->resetTable();
+                }),
+            Action::make('remove_project')
+                ->label(__('jira::jira.epic_mapping.action_remove_project'))
+                ->color('gray')
+                ->visible(fn (): bool => $this->projectsMappedPerEpic()->exists())
+                ->modalDescription(__('jira::jira.epic_mapping.remove_project_description'))
+                ->schema([
+                    Select::make('project_mapping_id')
+                        ->label(__('jira::jira.epic_mapping.field_project'))
+                        ->options(fn (): array => $this->projectOptions(isMappedPerEpic: true))
+                        ->required(),
+                ])
+                ->action(function (array $data): void {
+                    $this->projectsMappedPerEpic()->whereKey($data['project_mapping_id'])->update(['is_mapped_per_epic' => false]);
+                    $this->resetTable();
+                }),
             Action::make('refresh')
                 ->label(__('jira::jira.common.action_refresh'))
                 ->action(function (): void {
-                    $this->syncEpicsFromJira();
+                    $this->syncEpicsFromJira($this->projectsMappedPerEpic()->pluck('project_key'));
                     $this->resetTable();
                 }),
         ];
     }
 
-    private function syncEpicsFromJira(): void
+    /** @return Builder<ProjectMapping> */
+    private function projectsMappedPerEpic(): Builder
     {
-        $projectKeys = ProjectMapping::active()
-            ->where('integration_id', $this->getRecord()->getKey())
-            ->where('is_mapped_per_epic', true)
-            ->pluck('project_key');
+        return ProjectMapping::active()->where('integration_id', $this->getRecord()->getKey())->where('is_mapped_per_epic', true);
+    }
 
+    /** @return array<int, string> */
+    private function projectOptions(bool $isMappedPerEpic): array
+    {
+        return ProjectMapping::active()
+            ->where('integration_id', $this->getRecord()->getKey())
+            ->where('is_mapped_per_epic', $isMappedPerEpic)
+            ->orderBy('project_key')
+            ->get()
+            ->mapWithKeys(fn (ProjectMapping $project): array => [$project->id => "{$project->project_key} — {$project->project_name}"])
+            ->all();
+    }
+
+    /** @param SupportCollection<int, string> $projectKeys */
+    private function syncEpicsFromJira(SupportCollection $projectKeys): void
+    {
         if ($projectKeys->isEmpty()) {
             return;
         }

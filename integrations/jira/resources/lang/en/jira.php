@@ -54,8 +54,6 @@ return [
         'table_heading' => 'Jira projects',
         'column_project_key' => 'Project key',
         'column_name' => 'Name',
-        'column_mapped_per_epic' => 'Customer per epic',
-        'column_mapped_per_epic_tooltip' => 'For a project that holds the work of several customers. Its epics are listed under "Epic mapping".',
         'empty_heading' => 'No projects found',
         'empty_description' => 'Click "Refresh" to fetch projects from Jira.',
         'action_archive' => 'Archive',
@@ -71,7 +69,11 @@ return [
         'column_epic_key' => 'Epic key',
         'column_name' => 'Name',
         'empty_heading' => 'No epics found',
-        'empty_description' => 'Switch on "Customer per epic" for a project in the project mapping, then click "Refresh" to fetch its epics from Jira.',
+        'empty_description' => 'Click "Add project" to list the epics of a Jira project whose epics belong to different customers or budgets.',
+        'action_add_project' => 'Add project',
+        'action_remove_project' => 'Remove project',
+        'field_project' => 'Jira project',
+        'remove_project_description' => 'The epics of this project leave the list and its worklogs go by the project mapping again. The links of its epics are kept for when you add the project again.',
     ],
 
     'user_mapping' => [

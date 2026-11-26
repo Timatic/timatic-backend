@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * The customer and budget of one epic, for a project that holds the work of several customers.
+ * The customer and budget of one epic, for a project whose epics belong to different customers or budgets.
  *
  * @property int $integration_id
  * @property string $epic_key
