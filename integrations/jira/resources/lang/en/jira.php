@@ -54,12 +54,24 @@ return [
         'table_heading' => 'Jira projects',
         'column_project_key' => 'Project key',
         'column_name' => 'Name',
+        'column_mapped_per_epic' => 'Customer per epic',
+        'column_mapped_per_epic_tooltip' => 'For a project that holds the work of several customers. Its epics are listed under "Epic mapping".',
         'empty_heading' => 'No projects found',
         'empty_description' => 'Click "Refresh" to fetch projects from Jira.',
         'action_archive' => 'Archive',
         'action_restore' => 'Restore',
         'filter_archived' => 'Archived',
         'filter_unmapped' => 'Unmapped only',
+    ],
+
+    'epic_mapping' => [
+        'page_title' => ':title (Jira) — Epic mapping',
+        'nav_label' => 'Epic mapping',
+        'table_heading' => 'Jira epics',
+        'column_epic_key' => 'Epic key',
+        'column_name' => 'Name',
+        'empty_heading' => 'No epics found',
+        'empty_description' => 'Switch on "Customer per epic" for a project in the project mapping, then click "Refresh" to fetch its epics from Jira.',
     ],
 
     'user_mapping' => [

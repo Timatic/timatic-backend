@@ -8,6 +8,7 @@ use App\Integrations\Tickets\TicketProviderRegistry;
 use App\Models\Integration;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Timatic\Jira\Commands\SyncUsersCommand;
+use Timatic\Jira\Filament\Pages\EpicMappingPage;
 use Timatic\Jira\Filament\Pages\ProjectMappingPage;
 use Timatic\Jira\Filament\Pages\SettingsPage;
 use Timatic\Jira\Filament\Pages\UserMappingPage;
@@ -20,6 +21,7 @@ class ServiceProvider extends BaseServiceProvider
     {
         $this->callAfterResolving(IntegrationTypeRegistry::class, function (IntegrationTypeRegistry $types): void {
             $types->register('jira', [
+                'jira.epics' => EpicMappingPage::class,
                 'jira.projects' => ProjectMappingPage::class,
                 'jira.settings' => SettingsPage::class,
                 'jira.users' => UserMappingPage::class,

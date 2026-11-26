@@ -56,12 +56,24 @@ return [
         'table_heading' => 'Jira projecten',
         'column_project_key' => 'Project key',
         'column_name' => 'Naam',
+        'column_mapped_per_epic' => 'Klant per epic',
+        'column_mapped_per_epic_tooltip' => 'Voor een project met het werk van meerdere klanten. De epics ervan staan onder "Epic mapping".',
         'empty_heading' => 'Geen projecten gevonden',
         'empty_description' => 'Klik op "Vernieuwen" om projecten op te halen uit Jira.',
         'action_archive' => 'Archiveren',
         'action_restore' => 'Herstellen',
         'filter_archived' => 'Gearchiveerd',
         'filter_unmapped' => 'Alleen niet gekoppeld',
+    ],
+
+    'epic_mapping' => [
+        'page_title' => ':title (Jira) — Epic mapping',
+        'nav_label' => 'Epic mapping',
+        'table_heading' => 'Jira epics',
+        'column_epic_key' => 'Epic key',
+        'column_name' => 'Naam',
+        'empty_heading' => 'Geen epics gevonden',
+        'empty_description' => 'Zet "Klant per epic" aan bij een project in de project mapping en klik daarna op "Vernieuwen" om de epics op te halen uit Jira.',
     ],
 
     'user_mapping' => [

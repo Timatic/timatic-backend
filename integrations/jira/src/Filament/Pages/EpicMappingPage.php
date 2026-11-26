@@ -1,0 +1,210 @@
+<?php
+
+namespace Timatic\Jira\Filament\Pages;
+
+use App\Filament\Resources\Integrations\IntegrationResource;
+use App\Models\Budget;
+use App\Models\Customer;
+use App\Models\Integration;
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
+use Filament\Navigation\NavigationItem;
+use Filament\Notifications\Notification;
+use Filament\Pages\Enums\SubNavigationPosition;
+use Filament\Resources\Pages\Concerns\InteractsWithRecord;
+use Filament\Resources\Pages\Page;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Livewire\Attributes\Url;
+use Saloon\Exceptions\Request\RequestException;
+use Timatic\Jira\Connector;
+use Timatic\Jira\DataTransferObjects\JiraIssue;
+use Timatic\Jira\Models\EpicMapping;
+use Timatic\Jira\Models\ProjectMapping;
+use Timatic\Jira\OAuthService;
+use Timatic\Jira\Requests\GetIssuesRequest;
+
+/**
+ * Links the epics of the projects marked as "customer per epic" to a customer and budget,
+ * for a project such as support that holds the work of several customers.
+ */
+class EpicMappingPage extends Page implements HasTable
+{
+    use InteractsWithRecord;
+    use InteractsWithTable;
+
+    protected static string $resource = IntegrationResource::class;
+
+    protected string $view = 'jira::filament.pages.jira-project-mapping-page';
+
+    /** @var array<string, mixed> | null In the URL so another page can link to rows by id: ?filters[id][ids]=1,2,4 */
+    #[Url(as: 'filters')]
+    public ?array $tableFilters = null;
+
+    public function getTitle(): string
+    {
+        return __('jira::jira.epic_mapping.page_title', ['title' => $this->getIntegration()->display_title]);
+    }
+
+    public function mount(int|string $record): void
+    {
+        $this->record = $this->resolveRecord($record);
+
+        if (! EpicMapping::query()->where('integration_id', $this->getRecord()->getKey())->exists()) {
+            $this->syncEpicsFromJira();
+        }
+    }
+
+    public static function getSubNavigationPosition(): SubNavigationPosition
+    {
+        return SubNavigationPosition::Start;
+    }
+
+    public function getSubNavigation(): array
+    {
+        $record = $this->getRecord();
+
+        return [
+            NavigationItem::make(__('jira::jira.settings.nav_label'))
+                ->url(SettingsPage::getUrl(['record' => $record]))
+                ->isActiveWhen(fn () => request()->url() === SettingsPage::getUrl(['record' => $record])),
+            NavigationItem::make(__('jira::jira.project_mapping.nav_label'))
+                ->url(ProjectMappingPage::getUrl(['record' => $record]))
+                ->isActiveWhen(fn () => request()->url() === ProjectMappingPage::getUrl(['record' => $record])),
+            NavigationItem::make(__('jira::jira.epic_mapping.nav_label'))
+                ->url(EpicMappingPage::getUrl(['record' => $record]))
+                ->isActiveWhen(fn () => request()->url() === EpicMappingPage::getUrl(['record' => $record])),
+            NavigationItem::make(__('jira::jira.user_mapping.nav_label'))
+                ->url(UserMappingPage::getUrl(['record' => $record]))
+                ->isActiveWhen(fn () => request()->url() === UserMappingPage::getUrl(['record' => $record])),
+        ];
+    }
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->query(EpicMapping::query()->where('integration_id', $this->getRecord()->getKey()))
+            ->columns([
+                TextColumn::make('epic_key')->label(__('jira::jira.epic_mapping.column_epic_key'))->searchable()->sortable(),
+                TextColumn::make('epic_name')->label(__('jira::jira.epic_mapping.column_name'))->searchable()->sortable(),
+                TextColumn::make('customer.name')->label(__('jira::jira.common.column_customer'))->placeholder(__('jira::jira.common.not_linked'))->sortable(),
+                TextColumn::make('budget_id')
+                    ->label(__('jira::jira.common.column_budget'))
+                    ->placeholder(__('jira::jira.common.not_linked'))
+                    ->formatStateUsing(fn ($state, EpicMapping $record) => $record->budget?->getTitle()),
+            ])
+            ->filters([
+                Filter::make('unmapped')
+                    ->label(__('jira::jira.project_mapping.filter_unmapped'))
+                    ->default()
+                    ->query(fn (Builder $query) => $query->whereNull('customer_id')),
+                Filter::make('id')
+                    ->schema([Hidden::make('ids')])
+                    ->query(fn (Builder $query, array $data) => $query->when(filled($data['ids'] ?? null), fn (Builder $query) => $query->whereKey(explode(',', (string) $data['ids']))))
+                    ->indicateUsing(fn (array $data): ?string => filled($data['ids'] ?? null) ? trans_choice('jira::jira.common.filter_ids_indicator', count(explode(',', (string) $data['ids']))) : null),
+            ])
+            ->bulkActions([
+                BulkAction::make('assign')
+                    ->label(__('jira::jira.common.assign_action'))
+                    ->form([
+                        Select::make('customer_id')
+                            ->label(__('jira::jira.common.customer_label'))
+                            ->options(Customer::orderBy('name')->pluck('name', 'id'))
+                            ->searchable()
+                            ->nullable()
+                            ->placeholder(__('jira::jira.common.no_customer'))
+                            ->live(),
+                        Select::make('budget_id')
+                            ->label(__('jira::jira.common.budget_label'))
+                            ->options(fn ($get) => Budget::query()
+                                ->when($get('customer_id'), fn ($q, $id) => $q->where('customer_id', $id))
+                                ->get()
+                                ->mapWithKeys(fn (Budget $budget) => [$budget->id => $budget->getTitle()])
+                            )
+                            ->searchable()
+                            ->nullable()
+                            ->placeholder(__('jira::jira.common.no_budget')),
+                    ])
+                    ->action(function (Collection $records, array $data): void {
+                        $records->each->update([
+                            'customer_id' => $data['customer_id'] ?: null,
+                            'budget_id' => $data['budget_id'] ?: null,
+                        ]);
+                    })
+                    ->deselectRecordsAfterCompletion(),
+            ])
+            ->heading(__('jira::jira.epic_mapping.table_heading'))
+            ->emptyStateHeading(__('jira::jira.epic_mapping.empty_heading'))
+            ->emptyStateDescription(__('jira::jira.epic_mapping.empty_description'));
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('refresh')
+                ->label(__('jira::jira.common.action_refresh'))
+                ->action(function (): void {
+                    $this->syncEpicsFromJira();
+                    $this->resetTable();
+                }),
+        ];
+    }
+
+    private function syncEpicsFromJira(): void
+    {
+        $projectKeys = ProjectMapping::active()
+            ->where('integration_id', $this->getRecord()->getKey())
+            ->where('is_mapped_per_epic', true)
+            ->pluck('project_key');
+
+        if ($projectKeys->isEmpty()) {
+            return;
+        }
+
+        try {
+            $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
+
+            if (! Connector::hasCredentials($integration->config ?? [])) {
+                $this->notifyConnectionExpired();
+
+                return;
+            }
+
+            $epics = (new GetIssuesRequest('project in ("'.$projectKeys->implode('","').'") AND hierarchyLevel = 1'))
+                ->paginate(new Connector($integration->config ?? []))
+                ->items();
+
+            /** @var JiraIssue $epic */
+            foreach ($epics as $epic) {
+                EpicMapping::query()->updateOrCreate(
+                    ['integration_id' => $integration->id, 'epic_key' => $epic->key],
+                    ['epic_name' => $epic->summary !== '' ? $epic->summary : $epic->key],
+                );
+            }
+        } catch (RequestException) {
+            $this->notifyConnectionExpired();
+        }
+    }
+
+    private function notifyConnectionExpired(): void
+    {
+        Notification::make()
+            ->title(__('jira::jira.common.connection_expired_title'))
+            ->body(__('jira::jira.common.connection_expired_body'))
+            ->warning()
+            ->send();
+    }
+
+    private function getIntegration(): Integration
+    {
+        /** @var Integration */
+        return Integration::findOrFail($this->getRecord()->getKey());
+    }
+}

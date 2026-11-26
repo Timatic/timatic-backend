@@ -13,5 +13,8 @@ readonly class JiraIssue
         public CarbonImmutable $createdAt,
         public ?CarbonImmutable $resolvedAt,
         public ?string $id = null,
+        public ?string $parentKey = null,
+        // Jira's hierarchy: -1 for a sub-task, 0 for a story or task, 1 for an epic
+        public int $hierarchyLevel = 0,
     ) {}
 }

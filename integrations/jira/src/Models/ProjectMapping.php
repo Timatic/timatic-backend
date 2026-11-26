@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property ?int $customer_id
  * @property ?int $budget_id
  * @property bool $is_archived
+ * @property bool $is_mapped_per_epic
  */
 class ProjectMapping extends Model
 {
@@ -28,12 +29,13 @@ class ProjectMapping extends Model
         'customer_id',
         'budget_id',
         'is_archived',
+        'is_mapped_per_epic',
     ];
 
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['is_archived' => 'bool'];
+        return ['is_archived' => 'bool', 'is_mapped_per_epic' => 'bool'];
     }
 
     /** @param Builder<self> $query */
