@@ -99,8 +99,11 @@ class OAuthService
 
         $response = new OAuthConnector()->send(new RefreshTokenRequest($config['refresh_token'] ?? ''));
 
-        if ($response->status() === 400) {
-            $this->disconnect($integration);
+        // A 400 or 403 means the refresh token is unusable; the webhook works without tokens, so it stays
+        if (in_array($response->status(), [400, 403], true)) {
+            $integration->update([
+                'config' => Arr::except($config, ['access_token', 'refresh_token', 'expires_at']),
+            ]);
 
             return $integration->refresh();
         }

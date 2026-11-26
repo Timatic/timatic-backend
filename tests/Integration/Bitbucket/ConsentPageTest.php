@@ -87,7 +87,7 @@ it('confirms the installation once the webhook exists', function () {
 
 it('offers the connect button again when bitbucket refuses the refresh token', function () {
     MockClient::global([
-        RefreshTokenRequest::class => MockResponse::make(['error' => 'invalid_grant'], 400),
+        RefreshTokenRequest::class => MockResponse::make(['error' => 'unauthorized_client', 'error_description' => 'refresh_token is invalid'], 403),
     ]);
     $integration = Integration::factory()->create([
         'type' => 'bitbucket',

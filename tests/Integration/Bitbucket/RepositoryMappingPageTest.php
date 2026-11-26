@@ -27,12 +27,12 @@ it('reports an expired connection when bitbucket refuses the refresh token', fun
         'workspace' => 'acme',
     ]]);
     MockClient::global([
-        RefreshTokenRequest::class => MockResponse::make(['error' => 'invalid_grant'], 400),
+        RefreshTokenRequest::class => MockResponse::make(['error' => 'unauthorized_client', 'error_description' => 'refresh_token is invalid'], 403),
     ]);
 
     Livewire::test(RepositoryMappingPage::class, ['record' => $integration->id])
         ->assertSuccessful()
         ->assertNotified(__('bitbucket::bitbucket.common.connection_expired_title'));
 
-    expect($integration->refresh()->config)->toBe([]);
+    expect($integration->refresh()->config)->toBe(['workspace' => 'acme']);
 });
