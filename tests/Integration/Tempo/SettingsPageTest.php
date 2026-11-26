@@ -36,7 +36,21 @@ it('stores the token, the linked Jira instance, both sync switches and the mirro
     ]);
 });
 
-it('queues one import job per month of the chosen period and shows how many months are still queued', function () {
+it('warns when the linked Jira instance is no longer connected', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => []]);
+    $tempo = Integration::create(['title' => 'Tempo', 'type' => 'tempo', 'config' => ['api_token' => 'secret-token', 'jira_integration_id' => $jira->id]]);
+
+    // When
+    $page = Livewire::test(SettingsPage::class, ['record' => $tempo->id]);
+
+    // Then
+    $page->assertSee('Jira is niet meer verbonden');
+});
+
+it('queues one import job per week of the chosen period and shows how many weeks are still queued', function () {
     // Given
     Queue::fake();
     $this->travelTo(CarbonImmutable::parse('2026-09-20T12:00:00Z'));
@@ -47,14 +61,14 @@ it('queues one import job per month of the chosen period and shows how many mont
 
     // When
     Livewire::test(SettingsPage::class, ['record' => $tempo->id])
-        ->callAction(TestAction::make('import_worklogs')->schemaComponent('worklog_sync'), ['from' => '2026-06-15', 'until' => '2026-08-10'])
-        ->assertNotified('Import van 3 maanden ingepland.')
-        ->assertSee('Worklogs importeren: nog 3 van 3 maanden in de wachtrij.');
+        ->callAction(TestAction::make('import_worklogs')->schemaComponent('worklog_sync'), ['from' => '2026-06-15', 'until' => '2026-07-01'])
+        ->assertNotified('Import van 3 weken ingepland.')
+        ->assertSee('Worklogs importeren: nog 3 van 3 weken in de wachtrij.');
 
     // Then
     expect(Queue::pushed(BackfillWorklogsJob::class)->map(fn (BackfillWorklogsJob $job) => [$job->from->toDateString(), $job->to->toDateString()])->all())->toBe([
-        ['2026-06-15', '2026-06-30'],
-        ['2026-07-01', '2026-07-31'],
-        ['2026-08-01', '2026-08-10'],
+        ['2026-06-15', '2026-06-21'],
+        ['2026-06-22', '2026-06-28'],
+        ['2026-06-29', '2026-07-01'],
     ]);
 });

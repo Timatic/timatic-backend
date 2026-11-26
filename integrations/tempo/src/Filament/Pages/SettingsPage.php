@@ -22,6 +22,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Bus;
+use Timatic\Jira\JiraDirectory;
 use Timatic\Tempo\Jobs\BackfillWorklogsJob;
 use Timatic\Tempo\WorklogImporter;
 
@@ -64,8 +65,10 @@ class SettingsPage extends Page
     {
         $integration = $this->getIntegration();
         $config = $integration->config ?? [];
-        $jiraIntegrations = Integration::query()->where('type', 'jira')->pluck('title', 'id');
+        $jiraIntegrations = Integration::query()->where('type', 'jira')->get()->pluck('display_title', 'id');
         $timezone = config('timatic.preferred_timezone');
+        // A date string: the pickers would shift a date object to the app timezone, which is a day earlier
+        $today = CarbonImmutable::today($timezone)->toDateString();
 
         return $form->schema([
             Section::make(__('tempo::tempo.settings.section_connection'))->schema([
@@ -77,6 +80,14 @@ class SettingsPage extends Page
                     ->warning()
                     ->description(__('tempo::tempo.settings.callout_no_jira_description'))
                     ->visible($jiraIntegrations->isEmpty()),
+                Callout::make(__('tempo::tempo.settings.callout_jira_disconnected_title'))
+                    ->warning()
+                    ->description(__('tempo::tempo.settings.callout_jira_disconnected_description'))
+                    ->visible(function (): bool {
+                        $jiraId = $this->getIntegration()->config['jira_integration_id'] ?? null;
+
+                        return filled($jiraId) && ! app(JiraDirectory::class)->isConnected(Integration::find((int) $jiraId));
+                    }),
                 TextInput::make('api_token')
                     ->label(__('tempo::tempo.settings.field_api_token'))
                     ->helperText(__(filled($config['api_token'] ?? null) ? 'tempo::tempo.settings.field_api_token_helper_stored' : 'tempo::tempo.settings.field_api_token_helper'))
@@ -110,19 +121,20 @@ class SettingsPage extends Page
                 ->footerActions([
                     Action::make('import_worklogs')
                         ->label(__('tempo::tempo.settings.action_import'))
-                        ->disabled(! WorklogImporter::isReady($integration))
+                        // Evaluated while rendering, so the action enables as soon as the settings are saved
+                        ->disabled(fn (): bool => ! WorklogImporter::isReady($this->getIntegration()))
                         ->modalDescription(__('tempo::tempo.settings.action_import_description'))
                         ->modalSubmitActionLabel(__('tempo::tempo.settings.action_import_start'))
                         ->schema([
                             DatePicker::make('from')
                                 ->label(__('tempo::tempo.settings.field_import_from'))
-                                ->maxDate(today($timezone))
+                                ->maxDate($today)
                                 ->required(),
                             DatePicker::make('until')
                                 ->label(__('tempo::tempo.settings.field_import_until'))
-                                ->default(today($timezone))
+                                ->default($today)
                                 ->afterOrEqual('from')
-                                ->maxDate(today($timezone))
+                                ->maxDate($today)
                                 ->required(),
                         ])
                         ->action(function (array $data) use ($integration, $timezone): void {
@@ -130,13 +142,13 @@ class SettingsPage extends Page
                             $until = CarbonImmutable::parse($data['until'], $timezone)->startOfDay();
                             $jobs = [];
 
-                            for ($start = $from; $start->lte($until); $start = $start->addMonthNoOverflow()->startOfMonth()) {
-                                $jobs[] = new BackfillWorklogsJob($integration->id, $start, $start->endOfMonth()->startOfDay()->min($until));
+                            for ($start = $from; $start->lte($until); $start = $start->addWeek()) {
+                                $jobs[] = new BackfillWorklogsJob($integration->id, $start, $start->addDays(6)->min($until));
                             }
 
-                            // A failed month must not cancel the months after it
+                            // A failed week must not cancel the weeks after it
                             $batch = Bus::batch($jobs)->name("Tempo worklog import {$integration->id}")->allowFailures()->dispatch();
-                            // The batch id is stored to show how many months are still queued
+                            // The batch id is stored to show how many weeks are still queued
                             $integration->update(['config' => array_merge($integration->refresh()->config ?? [], ['worklog_backfill_batch_id' => $batch->id])]);
 
                             Notification::make()->title(trans_choice('tempo::tempo.settings.notification_import_queued', count($jobs)))->success()->send();
