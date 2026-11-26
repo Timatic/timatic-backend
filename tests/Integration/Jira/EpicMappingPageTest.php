@@ -3,6 +3,7 @@
 use App\Models\Budget;
 use App\Models\BudgetVersion;
 use App\Models\Integration;
+use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -24,6 +25,8 @@ afterEach(function () {
 
 it('loads the epics of an added project and lists only those', function () {
     // Given
+    $this->travelTo(CarbonImmutable::parse('2026-11-26T10:30:00Z'));
+    config()->set('timatic.preferred_timezone', 'Europe/Amsterdam');
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
     $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
@@ -41,7 +44,8 @@ it('loads the epics of an added project and lists only those', function () {
 
     // Then
     $epic = EpicMapping::query()->where('epic_key', 'SUP-3')->sole();
-    $page->assertCanSeeTableRecords([$epic])->assertCanNotSeeTableRecords([$epicOfOtherProject]);
+    $page->assertCanSeeTableRecords([$epic])->assertCanNotSeeTableRecords([$epicOfOtherProject])
+        ->assertSee(__('jira::jira.common.last_synced', ['at' => '26-11-2026 11:30']));
     expect($epic->epic_name)->toBe('Acme')
         ->and($support->refresh()->is_mapped_per_epic)->toBeTrue();
 });

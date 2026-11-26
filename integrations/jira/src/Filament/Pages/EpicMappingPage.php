@@ -6,6 +6,7 @@ use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Models\Budget;
 use App\Models\Customer;
 use App\Models\Integration;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Forms\Components\Hidden;
@@ -144,6 +145,7 @@ class EpicMappingPage extends Page implements HasTable
                     ->deselectRecordsAfterCompletion(),
             ])
             ->heading(__('jira::jira.epic_mapping.table_heading'))
+            ->description(fn (): ?string => $this->lastSyncedDescription())
             ->emptyStateHeading(__('jira::jira.epic_mapping.empty_heading'))
             ->emptyStateDescription(__('jira::jira.epic_mapping.empty_description'));
     }
@@ -235,9 +237,23 @@ class EpicMappingPage extends Page implements HasTable
                     ['epic_name' => $epic->summary !== '' ? $epic->summary : $epic->key],
                 );
             }
+
+            $integration->refresh();
+            $integration->update(['config' => [...$integration->config, 'epics_synced_at' => now()->timestamp]]);
         } catch (RequestException) {
             $this->notifyConnectionExpired();
         }
+    }
+
+    private function lastSyncedDescription(): ?string
+    {
+        $syncedAt = $this->getIntegration()->config['epics_synced_at'] ?? null;
+
+        if ($syncedAt === null) {
+            return null;
+        }
+
+        return __('jira::jira.common.last_synced', ['at' => CarbonImmutable::createFromTimestamp($syncedAt, config('timatic.preferred_timezone'))->format('d-m-Y H:i')]);
     }
 
     private function notifyConnectionExpired(): void
