@@ -18,6 +18,8 @@ return [
         'connection_expired_title' => 'Jira connection expired',
         'connection_expired_body' => 'Reconnect Jira via Settings.',
         'filter_ids_indicator' => '{1} Selection of 1 row|[2,*] Selection of :count rows',
+        'filter_without_customer' => 'No customer linked',
+        'filter_without_budget' => 'No budget linked',
     ],
 
     'settings' => [

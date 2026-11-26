@@ -111,10 +111,13 @@ class ProjectMappingPage extends Page implements HasTable
                     ->formatStateUsing(fn ($state, $record) => $record->budget?->getTitle()),
             ])
             ->filters([
-                Filter::make('unmapped')
-                    ->label(__('jira::jira.project_mapping.filter_unmapped'))
-                    ->default()
+                Filter::make('without_customer')
+                    ->label(__('jira::jira.common.filter_without_customer'))
                     ->query(fn (Builder $query) => $query->whereNull('customer_id')),
+                Filter::make('without_budget')
+                    ->label(__('jira::jira.common.filter_without_budget'))
+                    ->default()
+                    ->query(fn (Builder $query) => $query->whereNull('budget_id')),
                 Filter::make('id')
                     ->schema([Hidden::make('ids')])
                     ->query(fn (Builder $query, array $data) => $query->when(filled($data['ids'] ?? null), fn (Builder $query) => $query->whereKey(explode(',', (string) $data['ids']))))
