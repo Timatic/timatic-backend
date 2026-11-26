@@ -47,10 +47,10 @@ final class WorklogImporter
         $jira = Integration::findOrFail((int) $tempo->config['jira_integration_id']);
         $tickets = $this->ticketProviders->makeProvider($jira->type, [...$jira->config, 'integration_id' => $jira->id]);
         // Tempo only knows the numeric issue id, which Jira accepts wherever it accepts an issue key
-        $issues = $worklogs->pluck('issueId')->unique()
+        $jiraIssues = $worklogs->pluck('issueId')->unique()
             ->mapWithKeys(fn (string $issueId): array => [$issueId => $tickets->fetchTicketByKey($issueId)])
-            ->filter()
-            ->map(fn (Ticket $ticket) => $this->resolveMirroredIssue($ticket, $tempo));
+            ->filter();
+        $issues = $jiraIssues->map(fn (Ticket $ticket) => $this->resolveMirroredIssue($ticket, $tempo));
         $users = $this->jiraDirectory->timaticUsers($jira, $worklogs->pluck('authorAccountId'));
         $unmappedAccountIds = [];
         $unmappedProjectKeys = [];
@@ -117,7 +117,7 @@ final class WorklogImporter
                 $this->entryEnricher->enrich($entry, isPartialUpdate: false, hasOvertime: false, hasCustomerOvertime: false, overtimeStartedAt: null, overtimeEndedAt: null);
             }
 
-            $this->markSkipped($jira, $unmappedAccountIds, array_unique($unmappedProjectKeys));
+            $this->markSkipped($jira, $unmappedAccountIds, $unmappedProjectKeys, $jiraIssues->map($this->projectKey(...))->all());
         } finally {
             Context::forget('entry_sync_source');
         }
@@ -162,16 +162,16 @@ final class WorklogImporter
     /**
      * @param  array<int, string>  $accountIds
      * @param  array<int, string>  $projectKeys
+     * @param  array<int|string, string>  $linkedJiraProjectKeys
      */
-    private function markSkipped(Integration $jira, array $accountIds, array $projectKeys): void
+    private function markSkipped(Integration $jira, array $accountIds, array $projectKeys, array $linkedJiraProjectKeys): void
     {
         UserMapping::query()->where('integration_id', $jira->id)->whereIn('account_id', $accountIds)->update(['worklog_skipped_at' => now()]);
 
-        foreach ($projectKeys as $projectKey) {
-            // A project nobody loaded on the mapping page yet has no row to map
-            if (ProjectMapping::query()->where('project_key', $projectKey)->doesntExist()) {
-                ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => $projectKey, 'project_name' => $projectKey]);
-            }
+        // A project nobody loaded on the mapping page yet has no row to map. The project of a mirrored original
+        // does not exist in the linked Jira instance, where a row for it would break the ticket search by project.
+        foreach (array_unique(array_intersect($projectKeys, $linkedJiraProjectKeys)) as $projectKey) {
+            ProjectMapping::query()->firstOrCreate(['integration_id' => $jira->id, 'project_key' => $projectKey], ['project_name' => $projectKey]);
         }
 
         ProjectMapping::active()->whereIn('project_key', $projectKeys)->update(['worklog_skipped_at' => now()]);

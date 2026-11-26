@@ -215,3 +215,37 @@ it('marks the Jira account and project of a skipped worklog as the ones that sti
         ->and(UserMapping::query()->skippedWorklogs()->pluck('display_name')->all())->toBe(['Ann Smith'])
         ->and(ProjectMapping::query()->skippedWorklogs()->pluck('integration_id', 'project_key')->all())->toBe(['ACME' => $jira->id]);
 });
+
+it('marks the unmapped project of a mirrored issue in the Jira instance of the original, without adding it to the linked one', function () {
+    // Given
+    $pionect = Integration::factory()->create(['type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    $thesis = Integration::factory()->create(['type' => 'jira', 'config' => []]);
+    Integration::factory()->create(['type' => 'tempo', 'config' => ['api_token' => 'tempo-token', 'jira_integration_id' => $pionect->id, 'sync_to_timatic' => true, 'mirrored_issues_enabled' => true, 'mirrored_issue_prefixes' => ['ABC'], 'worklog_sync_updated_since' => 1794873600000, 'worklog_sync_deleted_since' => 1794873600000]]);
+    ProjectMapping::query()->create(['integration_id' => $thesis->id, 'project_key' => 'ABC', 'project_name' => 'Abc']);
+    User::factory()->create(['email' => 'ann@example.com']);
+    MockClient::global([
+        GetWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 1], 'results' => [[
+            'tempoWorklogId' => 70003,
+            'issue' => ['id' => 5001],
+            'timeSpentSeconds' => 3600,
+            'startDateTimeUtc' => '2026-11-18T08:00:00Z',
+            'description' => '',
+            'updatedAt' => '2026-11-18T12:00:00Z',
+            'author' => ['accountId' => 'acc-1'],
+        ]]]),
+        GetDeletedWorklogsRequest::class => MockResponse::make(['metadata' => ['count' => 0], 'results' => []]),
+        GetIssuesRequest::class => MockResponse::make(['issues' => [[
+            'id' => '5001',
+            'key' => 'PIO-7',
+            'fields' => ['summary' => 'ABC-42 Fix login', 'issuetype' => ['name' => 'Task'], 'created' => '2026-09-01T10:00:00.000+0000'],
+        ]]]),
+        GetUserByAccountIdRequest::class => MockResponse::make(['accountId' => 'acc-1', 'emailAddress' => 'ann@example.com']),
+    ]);
+
+    // When
+    $this->artisan('tempo:sync-worklogs')->assertSuccessful();
+
+    // Then
+    expect(ProjectMapping::query()->skippedWorklogs()->pluck('integration_id', 'project_key')->all())->toBe(['ABC' => $thesis->id])
+        ->and(ProjectMapping::query()->where('integration_id', $pionect->id)->count())->toBe(0);
+});
