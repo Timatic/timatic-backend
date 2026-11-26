@@ -13,6 +13,7 @@ return [
         'action_disconnect' => 'Remove connection',
         'action_save' => 'Save',
         'action_refresh' => 'Refresh',
+        'last_synced' => 'Last refreshed: :at.',
         'field_title' => 'Title',
         'connection_expired_title' => 'Jira connection expired',
         'connection_expired_body' => 'Reconnect Jira via Settings.',

@@ -13,6 +13,7 @@ return [
         'action_disconnect' => 'Remove connection',
         'action_save' => 'Save',
         'action_refresh' => 'Refresh',
+        'last_synced' => 'Last refreshed: :at.',
         'field_title' => 'Title',
         'notification_title_changed' => 'Title updated.',
         'connection_expired_title' => 'GitHub connection unavailable',

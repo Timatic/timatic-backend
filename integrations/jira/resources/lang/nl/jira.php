@@ -13,6 +13,7 @@ return [
         'action_disconnect' => 'Verbinding verwijderen',
         'action_save' => 'Opslaan',
         'action_refresh' => 'Vernieuwen',
+        'last_synced' => 'Laatst vernieuwd: :at.',
         'field_title' => 'Titel',
         'connection_expired_title' => 'Jira verbinding verlopen',
         'connection_expired_body' => 'Verbind Jira opnieuw via Instellingen.',

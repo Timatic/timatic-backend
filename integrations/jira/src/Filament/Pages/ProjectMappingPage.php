@@ -6,6 +6,7 @@ use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Models\Budget;
 use App\Models\Customer;
 use App\Models\Integration;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Forms\Components\Hidden;
@@ -53,7 +54,7 @@ class ProjectMappingPage extends Page implements HasTable
     {
         $this->record = $this->resolveRecord($record);
 
-        if ($this->hasCredentials()) {
+        if ($this->hasCredentials() && ! $this->hasMappings()) {
             $this->syncProjectsFromJira();
         }
     }
@@ -173,6 +174,7 @@ class ProjectMappingPage extends Page implements HasTable
                     ->deselectRecordsAfterCompletion(),
             ])
             ->heading(__('jira::jira.project_mapping.table_heading'))
+            ->description(fn (): ?string => $this->lastSyncedDescription())
             ->emptyStateHeading(__('jira::jira.project_mapping.empty_heading'))
             ->emptyStateDescription(__('jira::jira.project_mapping.empty_description'));
     }
@@ -187,6 +189,11 @@ class ProjectMappingPage extends Page implements HasTable
                     $this->resetTable();
                 }),
         ];
+    }
+
+    private function hasMappings(): bool
+    {
+        return ProjectMapping::query()->where('integration_id', $this->getRecord()->getKey())->exists();
     }
 
     private function hasCredentials(): bool
@@ -213,6 +220,10 @@ class ProjectMappingPage extends Page implements HasTable
                 return;
             }
 
+            if ($response->failed()) {
+                return;
+            }
+
             /** @var array<int, JiraProject> $projects */
             $projects = $response->dto() ?? [];
 
@@ -229,11 +240,25 @@ class ProjectMappingPage extends Page implements HasTable
                     ['project_name' => $project->name !== '' ? $project->name : $project->key]
                 );
             }
+
+            $integration->refresh();
+            $integration->update(['config' => [...$integration->config, 'projects_synced_at' => now()->timestamp]]);
         } catch (RequestException $e) {
             if (in_array($e->getResponse()->status(), [401, 403])) {
                 $this->notifyConnectionExpired();
             }
         }
+    }
+
+    private function lastSyncedDescription(): ?string
+    {
+        $syncedAt = $this->getIntegration()->config['projects_synced_at'] ?? null;
+
+        if ($syncedAt === null) {
+            return null;
+        }
+
+        return __('jira::jira.common.last_synced', ['at' => CarbonImmutable::createFromTimestamp($syncedAt, config('timatic.preferred_timezone'))->format('d-m-Y H:i')]);
     }
 
     private function notifyConnectionExpired(): void

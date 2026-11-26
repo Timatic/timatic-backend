@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Integration;
+use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -8,6 +9,8 @@ use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
 use Tests\Concerns\LoginUser;
 use Timatic\Bitbucket\Filament\Pages\RepositoryMappingPage;
+use Timatic\Bitbucket\Models\RepositoryMapping;
+use Timatic\Bitbucket\Requests\GetRepositoriesRequest;
 use Timatic\Bitbucket\Requests\RefreshTokenRequest;
 
 uses(LoginUser::class);
@@ -35,4 +38,36 @@ it('reports an expired connection when bitbucket refuses the refresh token', fun
         ->assertNotified(__('bitbucket::bitbucket.common.connection_expired_title'));
 
     expect($integration->refresh()->config)->toBe(['workspace' => 'acme']);
+});
+
+it('leaves bitbucket alone when opening a page that already has repositories', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $integration = Integration::create(['title' => 'Bitbucket', 'type' => 'bitbucket', 'config' => ['access_token' => 'token', 'expires_at' => now()->addHour()->timestamp, 'workspace' => 'acme']]);
+    RepositoryMapping::query()->create(['integration_id' => $integration->id, 'workspace_slug' => 'acme', 'repository_slug' => 'api', 'repository_name' => 'Api']);
+    $mockClient = MockClient::global();
+
+    // When
+    Livewire::test(RepositoryMappingPage::class, ['record' => $integration->id])->assertSuccessful();
+
+    // Then
+    $mockClient->assertNothingSent();
+});
+
+it('shows when the repositories were last refreshed', function () {
+    // Given
+    $this->travelTo(CarbonImmutable::parse('2026-11-26T10:30:00Z'));
+    config()->set('timatic.preferred_timezone', 'Europe/Amsterdam');
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $integration = Integration::create(['title' => 'Bitbucket', 'type' => 'bitbucket', 'config' => ['access_token' => 'token', 'expires_at' => now()->addHour()->timestamp, 'workspace' => 'acme']]);
+    RepositoryMapping::query()->create(['integration_id' => $integration->id, 'workspace_slug' => 'acme', 'repository_slug' => 'api', 'repository_name' => 'Api']);
+    MockClient::global([GetRepositoriesRequest::class => MockResponse::make(['values' => [['slug' => 'api', 'name' => 'Api']]])]);
+
+    // When
+    $page = Livewire::test(RepositoryMappingPage::class, ['record' => $integration->id])->callAction('refresh');
+
+    // Then
+    $page->assertSee(__('bitbucket::bitbucket.common.last_synced', ['at' => '26-11-2026 11:30']));
 });

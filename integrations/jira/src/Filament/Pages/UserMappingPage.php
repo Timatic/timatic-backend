@@ -4,6 +4,7 @@ namespace Timatic\Jira\Filament\Pages;
 
 use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -107,6 +108,7 @@ class UserMappingPage extends Page implements HasTable
                     ->action(fn (UserMapping $record, array $data) => $record->update(['user_id' => $data['user_id'] ?: null])),
             ])
             ->heading(__('jira::jira.user_mapping.table_heading'))
+            ->description(fn (): ?string => $this->lastSyncedDescription())
             ->emptyStateHeading(__('jira::jira.user_mapping.empty_heading'))
             ->emptyStateDescription(__('jira::jira.user_mapping.empty_description'));
     }
@@ -130,5 +132,16 @@ class UserMappingPage extends Page implements HasTable
                     $this->resetTable();
                 }),
         ];
+    }
+
+    private function lastSyncedDescription(): ?string
+    {
+        $syncedAt = $this->getRecord()->refresh()->getAttribute('config')['users_synced_at'] ?? null;
+
+        if ($syncedAt === null) {
+            return null;
+        }
+
+        return __('jira::jira.common.last_synced', ['at' => CarbonImmutable::createFromTimestamp($syncedAt, config('timatic.preferred_timezone'))->format('d-m-Y H:i')]);
     }
 }
