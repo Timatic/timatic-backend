@@ -140,6 +140,12 @@ class SettingsPage extends Page
                         $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
                         $config = $integration->config ?? [];
 
+                        if (! $this->hasTokens($config)) {
+                            $this->reportExpiredConnection();
+
+                            return;
+                        }
+
                         $response = new Connector($config)
                             ->send(new DeleteWorkspaceWebhookRequest(
                                 $config['workspace'],
@@ -174,6 +180,13 @@ class SettingsPage extends Page
                 ->action(function (): void {
                     $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
                     $config = $integration->config ?? [];
+
+                    if (! $this->hasTokens($config)) {
+                        $this->reportExpiredConnection();
+
+                        return;
+                    }
+
                     $webhookUrl = rtrim(config('app.admin_url'), '/').'/integrations/bitbucket/webhook/'.$integration->id;
 
                     $config['webhook_secret'] ??= Str::random(32);
@@ -218,6 +231,11 @@ class SettingsPage extends Page
                         ->label(__('bitbucket::bitbucket.settings.workspace_select_label'))
                         ->options(function () {
                             $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
+
+                            if (! $this->hasTokens($integration->config ?? [])) {
+                                return [];
+                            }
+
                             $response = new Connector($integration->config ?? [])
                                 ->send(new GetWorkspacesRequest);
 
@@ -274,6 +292,12 @@ class SettingsPage extends Page
     private function hasWebhook(array $config): bool
     {
         return $this->hasWorkspace($config) && filled($config['webhook_uuid'] ?? null);
+    }
+
+    private function reportExpiredConnection(): void
+    {
+        session()->flash('bitbucket_error', __('bitbucket::bitbucket.common.connection_expired_title'));
+        $this->redirect(static::getUrl(['record' => $this->getRecord()]));
     }
 
     private function getIntegration(): Integration
