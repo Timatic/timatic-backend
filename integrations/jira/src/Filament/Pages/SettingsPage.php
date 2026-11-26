@@ -18,7 +18,11 @@ use Filament\Resources\Pages\Page;
 use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Schema;
 use Timatic\Jira\Connector;
+use Timatic\Jira\DataTransferObjects\JiraCloudResource;
+use Timatic\Jira\OAuthConnector;
 use Timatic\Jira\OAuthService;
+use Timatic\Jira\Requests\GetMyselfRequest;
+use Timatic\Jira\Requests\GetTenantInfoRequest;
 
 /**
  * @property Schema $form
@@ -147,6 +151,53 @@ class SettingsPage extends Page
             Action::make('connect')
                 ->label(__('jira::jira.settings.action_connect'))
                 ->url(route('jira.oauth.redirect', $this->getRecord()))
+                ->visible(! Connector::hasCredentials($config) && ! $isPending),
+
+            Action::make('connectWithToken')
+                ->label(__('jira::jira.settings.action_connect_token'))
+                ->color('gray')
+                ->modalDescription(__('jira::jira.settings.connect_token_description'))
+                ->schema([
+                    TextInput::make('site_url')
+                        ->label(__('jira::jira.settings.field_site_url'))
+                        ->placeholder('https://acme.atlassian.net')
+                        ->regex('/^https:\/\/[a-z0-9-]+\.atlassian\.net\/?$/i')
+                        ->required(),
+                    TextInput::make('email')
+                        ->label(__('jira::jira.settings.field_email'))
+                        ->helperText(__('jira::jira.settings.field_email_helper'))
+                        ->email()
+                        ->required(),
+                    TextInput::make('api_token')
+                        ->label(__('jira::jira.settings.field_api_token'))
+                        ->helperText(__('jira::jira.settings.field_api_token_helper'))
+                        ->password()
+                        ->revealable()
+                        ->autocomplete('off')
+                        ->required(),
+                ])
+                ->action(function (array $data, Action $action): void {
+                    $tenantInfo = new OAuthConnector()->send(new GetTenantInfoRequest(rtrim($data['site_url'], '/')));
+
+                    if ($tenantInfo->failed()) {
+                        Notification::make()->title(__('jira::jira.settings.notification_site_not_found'))->danger()->send();
+                        $action->halt();
+                    }
+
+                    /** @var JiraCloudResource $site */
+                    $site = $tenantInfo->dto();
+                    $credentials = ['email' => $data['email'], 'api_token' => $data['api_token'], 'cloud_id' => $site->id, 'cloud_url' => $site->url];
+
+                    if (new Connector($credentials)->send(new GetMyselfRequest)->failed()) {
+                        Notification::make()->title(__('jira::jira.settings.notification_token_rejected'))->danger()->send();
+                        $action->halt();
+                    }
+
+                    $integration = $this->getIntegration();
+                    $integration->update(['config' => array_merge($integration->config ?? [], $credentials)]);
+                    session()->flash('jira_success', __('jira::jira.settings.notification_connected'));
+                    $this->redirect(static::getUrl(['record' => $this->getRecord()]));
+                })
                 ->visible(! Connector::hasCredentials($config) && ! $isPending),
 
             Action::make('confirmSite')
