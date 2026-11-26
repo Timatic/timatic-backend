@@ -15,7 +15,7 @@ The command only queues the sync; a queue worker runs it. The settings of the Te
 show when the last sync ran.
 
 Worklogs from before the first sync are imported with "Import worklogs" in the Tempo integration
-settings: pick a period and every worklog in it is copied to entries, one queued job per month.
+settings: pick a period and every worklog in it is copied to entries, one queued job per week.
 The import is independent of the sync: it does not move the sync position and does not see
 worklogs deleted in Tempo.
 

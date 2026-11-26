@@ -140,13 +140,13 @@ class SettingsPage extends Page
                             $until = CarbonImmutable::parse($data['until'], $timezone)->startOfDay();
                             $jobs = [];
 
-                            for ($start = $from; $start->lte($until); $start = $start->addMonthNoOverflow()->startOfMonth()) {
-                                $jobs[] = new BackfillWorklogsJob($integration->id, $start, $start->endOfMonth()->startOfDay()->min($until));
+                            for ($start = $from; $start->lte($until); $start = $start->addWeek()) {
+                                $jobs[] = new BackfillWorklogsJob($integration->id, $start, $start->addDays(6)->min($until));
                             }
 
-                            // A failed month must not cancel the months after it
+                            // A failed week must not cancel the weeks after it
                             $batch = Bus::batch($jobs)->name("Tempo worklog import {$integration->id}")->allowFailures()->dispatch();
-                            // The batch id is stored to show how many months are still queued
+                            // The batch id is stored to show how many weeks are still queued
                             $integration->update(['config' => array_merge($integration->refresh()->config ?? [], ['worklog_backfill_batch_id' => $batch->id])]);
 
                             Notification::make()->title(trans_choice('tempo::tempo.settings.notification_import_queued', count($jobs)))->success()->send();
