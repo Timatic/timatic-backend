@@ -128,6 +128,7 @@ class SettingsPage extends Page
     {
         $config = $this->getRecord()->config ?? [];
 
+        $isConnected = Connector::hasCredentials($config);
         $isPending = $this->isPendingSiteSelection($config);
 
         return [
@@ -142,7 +143,7 @@ class SettingsPage extends Page
                         app(OAuthService::class)->disconnect($this->getIntegration());
                         $this->redirect(static::getUrl(['record' => $this->getRecord()]));
                     })
-                    ->visible(Connector::hasCredentials($config) || $isPending),
+                    ->visible($isConnected || $isPending),
 
                 DeleteAction::make()
                     ->successRedirectUrl(IntegrationResource::getUrl('index')),
@@ -151,7 +152,7 @@ class SettingsPage extends Page
             Action::make('connect')
                 ->label(__('jira::jira.settings.action_connect'))
                 ->url(route('jira.oauth.redirect', $this->getRecord()))
-                ->visible(! Connector::hasCredentials($config) && ! $isPending),
+                ->visible(! $isConnected && ! $isPending),
 
             Action::make('connectWithToken')
                 ->label(__('jira::jira.settings.action_connect_token'))
@@ -186,7 +187,12 @@ class SettingsPage extends Page
 
                     /** @var JiraCloudResource $site */
                     $site = $tenantInfo->dto();
-                    $credentials = ['email' => $data['email'], 'api_token' => $data['api_token'], 'cloud_id' => $site->id, 'cloud_url' => $site->url];
+                    $credentials = [
+                        'email' => $data['email'],
+                        'api_token' => $data['api_token'],
+                        'cloud_id' => $site->id,
+                        'cloud_url' => $site->url,
+                    ];
 
                     if (new Connector($credentials)->send(new GetMyselfRequest)->failed()) {
                         Notification::make()->title(__('jira::jira.settings.notification_token_rejected'))->danger()->send();
@@ -198,7 +204,7 @@ class SettingsPage extends Page
                     session()->flash('jira_success', __('jira::jira.settings.notification_connected'));
                     $this->redirect(static::getUrl(['record' => $this->getRecord()]));
                 })
-                ->visible(! Connector::hasCredentials($config) && ! $isPending),
+                ->visible(! $isConnected && ! $isPending),
 
             Action::make('confirmSite')
                 ->label(__('jira::jira.settings.action_confirm_site'))
@@ -228,7 +234,7 @@ class SettingsPage extends Page
 
                     Notification::make()->title(__('jira::jira.settings.notification_saved'))->success()->send();
                 })
-                ->visible(Connector::hasCredentials($config)),
+                ->visible($isConnected),
         ];
     }
 
