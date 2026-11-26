@@ -38,8 +38,7 @@ class SuggestionProvider implements SuggestionProviderInterface
     public function isActiveFor(User $user): bool
     {
         return Integration::query()->where('type', 'bitbucket')->get()->contains(
-            fn (Integration $integration): bool => filled($integration->config['access_token'] ?? null)
-                && filled($integration->config['workspace'] ?? null)
+            fn (Integration $integration): bool => filled($integration->config['workspace'] ?? null)
                 && filled($integration->config['webhook_uuid'] ?? null),
         );
     }

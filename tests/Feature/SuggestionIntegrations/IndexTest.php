@@ -39,6 +39,19 @@ it('lists a company managed integration as inactive until an admin finished its 
     expect(collect($response->json('data'))->firstWhere('id', 'bitbucket')['attributes']['isActive'])->toBeFalse();
 });
 
+it('keeps bitbucket active while its webhook is installed and the tokens are gone', function () {
+    $this->loginUser();
+
+    Integration::factory()->create([
+        'type' => 'bitbucket',
+        'config' => ['workspace' => 'a-workspace', 'webhook_uuid' => '{uuid}', 'webhook_secret' => 'a-webhook-secret'],
+    ]);
+
+    $response = $this->getJson(route('suggestion-integrations.index'))->assertOk();
+
+    expect(collect($response->json('data'))->firstWhere('id', 'bitbucket')['attributes']['isActive'])->toBeTrue();
+});
+
 it('hides a company managed integration that is not enabled', function () {
     $this->loginUser();
 
