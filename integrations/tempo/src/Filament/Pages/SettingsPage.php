@@ -67,6 +67,8 @@ class SettingsPage extends Page
         $config = $integration->config ?? [];
         $jiraIntegrations = Integration::query()->where('type', 'jira')->get()->pluck('display_title', 'id');
         $timezone = config('timatic.preferred_timezone');
+        // A date string: the pickers would shift a date object to the app timezone, which is a day earlier
+        $today = CarbonImmutable::today($timezone)->toDateString();
 
         return $form->schema([
             Section::make(__('tempo::tempo.settings.section_connection'))->schema([
@@ -126,13 +128,13 @@ class SettingsPage extends Page
                         ->schema([
                             DatePicker::make('from')
                                 ->label(__('tempo::tempo.settings.field_import_from'))
-                                ->maxDate(today($timezone))
+                                ->maxDate($today)
                                 ->required(),
                             DatePicker::make('until')
                                 ->label(__('tempo::tempo.settings.field_import_until'))
-                                ->default(today($timezone))
+                                ->default($today)
                                 ->afterOrEqual('from')
-                                ->maxDate(today($timezone))
+                                ->maxDate($today)
                                 ->required(),
                         ])
                         ->action(function (array $data) use ($integration, $timezone): void {
