@@ -4,6 +4,7 @@ use App\Models\Budget;
 use App\Models\BudgetVersion;
 use App\Models\Integration;
 use Carbon\CarbonImmutable;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -88,4 +89,21 @@ it('lists the epics without a budget by default and narrows them to the ones wit
     $page->assertCanSeeTableRecords([$withoutBudget, $withoutCustomer])->assertCanNotSeeTableRecords([$mapped])
         ->filterTable('without_customer')
         ->assertCanSeeTableRecords([$withoutCustomer])->assertCanNotSeeTableRecords([$withoutBudget, $mapped]);
+});
+
+it('links one epic to a customer and budget from its row', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'SUP', 'project_name' => 'Support', 'is_mapped_per_epic' => true]);
+    $budget = Budget::factory()->has(BudgetVersion::factory()->state(['effective_from' => now()->subYear(), 'effective_to' => null]))->create();
+    $epic = EpicMapping::query()->create(['integration_id' => $jira->id, 'epic_key' => 'SUP-3', 'epic_name' => 'Acme']);
+
+    // When
+    Livewire::test(EpicMappingPage::class, ['record' => $jira->id])
+        ->callAction(TestAction::make('assign')->table($epic), ['customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
+
+    // Then
+    expect($epic->refresh()->only(['customer_id', 'budget_id']))->toBe(['customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
 });

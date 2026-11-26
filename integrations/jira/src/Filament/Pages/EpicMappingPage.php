@@ -121,28 +121,22 @@ class EpicMappingPage extends Page implements HasTable
                     ->query(fn (Builder $query, array $data) => $query->when(filled($data['ids'] ?? null), fn (Builder $query) => $query->whereKey(explode(',', (string) $data['ids']))))
                     ->indicateUsing(fn (array $data): ?string => filled($data['ids'] ?? null) ? trans_choice('jira::jira.common.filter_ids_indicator', count(explode(',', (string) $data['ids']))) : null),
             ])
+            ->actions([
+                Action::make('assign')
+                    ->label(__('jira::jira.common.assign_action'))
+                    ->icon('heroicon-o-link')
+                    ->iconButton()
+                    ->fillForm(fn (EpicMapping $record): array => $record->only(['customer_id', 'budget_id']))
+                    ->schema($this->assignSchema())
+                    ->action(fn (EpicMapping $record, array $data) => $record->update([
+                        'customer_id' => $data['customer_id'] ?: null,
+                        'budget_id' => $data['budget_id'] ?: null,
+                    ])),
+            ])
             ->bulkActions([
                 BulkAction::make('assign')
                     ->label(__('jira::jira.common.assign_action'))
-                    ->form([
-                        Select::make('customer_id')
-                            ->label(__('jira::jira.common.customer_label'))
-                            ->options(Customer::orderBy('name')->pluck('name', 'id'))
-                            ->searchable()
-                            ->nullable()
-                            ->placeholder(__('jira::jira.common.no_customer'))
-                            ->live(),
-                        Select::make('budget_id')
-                            ->label(__('jira::jira.common.budget_label'))
-                            ->options(fn ($get) => Budget::query()
-                                ->when($get('customer_id'), fn ($q, $id) => $q->where('customer_id', $id))
-                                ->get()
-                                ->mapWithKeys(fn (Budget $budget) => [$budget->id => $budget->getTitle()])
-                            )
-                            ->searchable()
-                            ->nullable()
-                            ->placeholder(__('jira::jira.common.no_budget')),
-                    ])
+                    ->form($this->assignSchema())
                     ->action(function (Collection $records, array $data): void {
                         $records->each->update([
                             'customer_id' => $data['customer_id'] ?: null,
@@ -196,6 +190,30 @@ class EpicMappingPage extends Page implements HasTable
                     $this->syncEpicsFromJira($this->projectsMappedPerEpic()->pluck('project_key'));
                     $this->resetTable();
                 }),
+        ];
+    }
+
+    /** @return array<int, Select> */
+    private function assignSchema(): array
+    {
+        return [
+            Select::make('customer_id')
+                ->label(__('jira::jira.common.customer_label'))
+                ->options(fn () => Customer::orderBy('name')->pluck('name', 'id'))
+                ->searchable()
+                ->nullable()
+                ->placeholder(__('jira::jira.common.no_customer'))
+                ->live(),
+            Select::make('budget_id')
+                ->label(__('jira::jira.common.budget_label'))
+                ->options(fn ($get) => Budget::query()
+                    ->when($get('customer_id'), fn ($q, $id) => $q->where('customer_id', $id))
+                    ->get()
+                    ->mapWithKeys(fn (Budget $budget) => [$budget->id => $budget->getTitle()])
+                )
+                ->searchable()
+                ->nullable()
+                ->placeholder(__('jira::jira.common.no_budget')),
         ];
     }
 
