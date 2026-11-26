@@ -49,3 +49,33 @@ it('disconnects when bitbucket refuses the refresh token', function () {
 
     expect($integration->config)->toBe([]);
 });
+
+it('does not ask bitbucket for new tokens without a refresh token', function () {
+    $integration = Integration::create(['title' => 'Bitbucket', 'type' => 'bitbucket', 'config' => [
+        'access_token' => 'an-access-token',
+        'expires_at' => now()->subMinute()->timestamp,
+        'workspace' => 'acme',
+    ]]);
+    $mockClient = MockClient::global();
+
+    $integration = app(OAuthService::class)->refreshIfExpired($integration);
+
+    $mockClient->assertNothingSent();
+    expect($integration->config['workspace'])->toBe('acme');
+});
+
+it('reports the status and body when bitbucket fails the refresh for another reason', function () {
+    $integration = Integration::create(['title' => 'Bitbucket', 'type' => 'bitbucket', 'config' => [
+        'access_token' => 'an-access-token',
+        'refresh_token' => 'a-refresh-token',
+        'expires_at' => now()->subMinute()->timestamp,
+        'workspace' => 'acme',
+    ]]);
+    MockClient::global([
+        RefreshTokenRequest::class => MockResponse::make(['error' => 'unauthorized_client'], 401),
+    ]);
+
+    expect(fn () => app(OAuthService::class)->refreshIfExpired($integration))
+        ->toThrow(RuntimeException::class, 'Token refresh failed with status 401: {"error":"unauthorized_client"}');
+    expect($integration->refresh()->config['workspace'])->toBe('acme');
+});
