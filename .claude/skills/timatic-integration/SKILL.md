@@ -116,7 +116,7 @@ For OAuth 2.0 implementation details (OAuthService pattern, controllers, routes)
 -- For actions, use `$this->redirect(request()->url());` in callback to refresh page.
 
 **MappingPage:**
-- `mount()`: sync resources from provider API if connected
+- `mount()`: sync resources from provider API only when connected and the integration has no mappings yet; after that only the "Refresh" action syncs
 - Table columns: identifier, name, customer.name, (budget.title if applicable)
 - Bulk action "Assign customer" — always
 - Bulk action "Assign budget" — only if budget mapping enabled (budget select filter by selected customer via reactive)

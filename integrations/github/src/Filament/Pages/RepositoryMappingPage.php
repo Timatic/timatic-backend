@@ -50,7 +50,7 @@ class RepositoryMappingPage extends Page implements HasTable
     {
         $this->record = $this->resolveRecord($record);
 
-        if ($this->hasInstallations()) {
+        if ($this->hasInstallations() && ! $this->hasMappings()) {
             $this->syncRepositoriesFromGitHub();
         }
     }
@@ -204,6 +204,11 @@ class RepositoryMappingPage extends Page implements HasTable
                 ->persistent()
                 ->send();
         }
+    }
+
+    private function hasMappings(): bool
+    {
+        return RepositoryMapping::query()->where('integration_id', $this->getRecord()->getKey())->exists();
     }
 
     private function hasInstallations(): bool

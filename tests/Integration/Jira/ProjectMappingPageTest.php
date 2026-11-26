@@ -10,7 +10,6 @@ use Saloon\Http\Faking\MockResponse;
 use Tests\Concerns\LoginUser;
 use Timatic\Jira\Filament\Pages\ProjectMappingPage;
 use Timatic\Jira\Models\ProjectMapping;
-use Timatic\Jira\Requests\GetProjectsRequest;
 use Timatic\Jira\Requests\RefreshTokenRequest;
 
 uses(LoginUser::class);
@@ -46,7 +45,6 @@ it('lists only the projects another page links to by id, also the ones with a cu
     $this->loginUser(permissions: ['integrations.read']);
     Filament::setCurrentPanel('admin');
     $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
-    MockClient::global([GetProjectsRequest::class => MockResponse::make(['values' => []])]);
     $withoutBudget = ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'ACME', 'project_name' => 'Acme', 'customer_id' => Customer::factory()->create()->id]);
     $unmapped = ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'BETA', 'project_name' => 'Beta']);
     $notLinked = ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'GAMMA', 'project_name' => 'Gamma']);
@@ -56,4 +54,19 @@ it('lists only the projects another page links to by id, also the ones with a cu
 
     // Then
     $page->assertCanSeeTableRecords([$withoutBudget, $unmapped])->assertCanNotSeeTableRecords([$notLinked]);
+});
+
+it('leaves jira alone when opening a page that already has projects', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'ACME', 'project_name' => 'Acme']);
+    $mockClient = MockClient::global();
+
+    // When
+    Livewire::test(ProjectMappingPage::class, ['record' => $jira->id])->assertSuccessful();
+
+    // Then
+    $mockClient->assertNothingSent();
 });

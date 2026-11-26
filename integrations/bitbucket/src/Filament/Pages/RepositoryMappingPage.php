@@ -47,7 +47,7 @@ class RepositoryMappingPage extends Page implements HasTable
     {
         $this->record = $this->resolveRecord($record);
 
-        if ($this->hasCredentials()) {
+        if ($this->hasCredentials() && ! $this->hasMappings()) {
             $this->syncRepositoriesFromBitbucket();
         }
     }
@@ -174,6 +174,11 @@ class RepositoryMappingPage extends Page implements HasTable
                     $this->resetTable();
                 }),
         ];
+    }
+
+    private function hasMappings(): bool
+    {
+        return RepositoryMapping::query()->where('integration_id', $this->getRecord()->getKey())->exists();
     }
 
     private function hasCredentials(): bool

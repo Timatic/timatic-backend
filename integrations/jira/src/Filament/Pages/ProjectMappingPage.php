@@ -53,7 +53,7 @@ class ProjectMappingPage extends Page implements HasTable
     {
         $this->record = $this->resolveRecord($record);
 
-        if ($this->hasCredentials()) {
+        if ($this->hasCredentials() && ! $this->hasMappings()) {
             $this->syncProjectsFromJira();
         }
     }
@@ -187,6 +187,11 @@ class ProjectMappingPage extends Page implements HasTable
                     $this->resetTable();
                 }),
         ];
+    }
+
+    private function hasMappings(): bool
+    {
+        return ProjectMapping::query()->where('integration_id', $this->getRecord()->getKey())->exists();
     }
 
     private function hasCredentials(): bool
