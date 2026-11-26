@@ -91,10 +91,14 @@ class EpicMappingPage extends Page implements HasTable
             // A closure, so adding or removing a project shows in the same request
             ->query(fn (): Builder => EpicMapping::query()
                 ->where('integration_id', $this->getRecord()->getKey())
-                ->where(fn (Builder $query) => $this->projectsMappedPerEpic()->pluck('project_key')->reduce(
-                    fn (Builder $query, string $projectKey) => $query->orWhere('epic_key', 'like', addcslashes($projectKey, '_%').'-%'),
-                    $query->whereRaw('1 = 0'),
-                )))
+                ->where(function (Builder $query): void {
+                    // Matches nothing until a project is added
+                    $query->whereRaw('1 = 0');
+
+                    foreach ($this->projectsMappedPerEpic()->pluck('project_key') as $projectKey) {
+                        $query->orWhere('epic_key', 'like', addcslashes($projectKey, '_%').'-%');
+                    }
+                }))
             ->columns([
                 TextColumn::make('epic_key')->label(__('jira::jira.epic_mapping.column_epic_key'))->searchable()->sortable(),
                 TextColumn::make('epic_name')->label(__('jira::jira.epic_mapping.column_name'))->searchable()->sortable(),
