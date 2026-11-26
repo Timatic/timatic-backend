@@ -128,7 +128,7 @@ final class TicketProvider implements TicketProviderInterface
     {
         $response = $this->connector()?->send(new GetIssueRequest(strtoupper($key)));
 
-        if ($response === null || $response->status() === 404) {
+        if ($response === null || $response->failed()) {
             return null;
         }
 
