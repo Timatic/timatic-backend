@@ -24,11 +24,7 @@ class ServiceProvider extends BaseServiceProvider
                 'jira.settings' => SettingsPage::class,
                 'jira.users' => UserMappingPage::class,
             ])->requiresConfig(['jira.client_id', 'jira.client_secret'])->landingPage(function (Integration $integration): string {
-                $config = $integration->config ?? [];
-
-                $isConnected = filled($config['access_token'] ?? null) && filled($config['cloud_id'] ?? null);
-
-                return $isConnected ? ProjectMappingPage::class : SettingsPage::class;
+                return Connector::hasCredentials($integration->config ?? []) ? ProjectMappingPage::class : SettingsPage::class;
             });
         });
     }

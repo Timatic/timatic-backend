@@ -128,7 +128,7 @@ final class TicketProvider implements TicketProviderInterface
     {
         $response = $this->connector()?->send(new GetIssueRequest(strtoupper($key)));
 
-        if ($response === null || $response->status() === 404) {
+        if ($response === null || $response->failed()) {
             return null;
         }
 
@@ -204,7 +204,7 @@ final class TicketProvider implements TicketProviderInterface
             }
         }
 
-        if (! isset($this->config['access_token'], $this->config['cloud_id'])) {
+        if (! Connector::hasCredentials($this->config)) {
             return null;
         }
 

@@ -181,10 +181,7 @@ class ProjectMappingPage extends Page implements HasTable
 
     private function hasCredentials(): bool
     {
-        $config = $this->getIntegration()->config ?? [];
-
-        return filled($config['access_token'] ?? null)
-            && filled($config['cloud_id'] ?? null);
+        return Connector::hasCredentials($this->getIntegration()->config ?? []);
     }
 
     private function syncProjectsFromJira(): void

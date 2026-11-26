@@ -147,7 +147,7 @@ class OAuthService
     {
         $integration->update([
             'config' => Arr::except($integration->config ?? [], [
-                'access_token', 'refresh_token', 'expires_at', 'cloud_id', 'cloud_url', 'oauth_nonce', 'pending_resources',
+                'access_token', 'refresh_token', 'expires_at', 'email', 'api_token', 'cloud_id', 'cloud_url', 'oauth_nonce', 'pending_resources',
             ]),
         ]);
     }
