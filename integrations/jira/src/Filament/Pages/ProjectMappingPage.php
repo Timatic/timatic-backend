@@ -22,6 +22,7 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Livewire\Attributes\Url;
 use Saloon\Exceptions\Request\RequestException;
 use Timatic\Jira\Connector;
 use Timatic\Jira\DataTransferObjects\JiraProject;
@@ -37,6 +38,10 @@ class ProjectMappingPage extends Page implements HasTable
     protected static string $resource = IntegrationResource::class;
 
     protected string $view = 'jira::filament.pages.jira-project-mapping-page';
+
+    /** @var array<string, mixed> | null */
+    #[Url(as: 'filters')]
+    public ?array $tableFilters = null;
 
     public function getTitle(): string
     {
@@ -105,6 +110,9 @@ class ProjectMappingPage extends Page implements HasTable
                     ->label(__('jira::jira.project_mapping.filter_unmapped'))
                     ->default()
                     ->query(fn (Builder $query) => $query->whereNull('customer_id')),
+                Filter::make('skipped_worklogs')
+                    ->label(__('jira::jira.common.filter_skipped_worklogs'))
+                    ->query(fn (Builder $query) => $query->scopes('skippedWorklogs')),
                 TernaryFilter::make('is_archived')
                     ->label(__('jira::jira.project_mapping.filter_archived'))
                     ->default(false),

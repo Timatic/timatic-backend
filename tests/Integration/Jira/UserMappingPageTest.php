@@ -40,3 +40,19 @@ it('loads every person of the Jira instance and links them to the Timatic user w
         ['account_id' => 'acc-2', 'display_name' => 'Bob Jones', 'email' => null, 'user_id' => null],
     ]);
 });
+
+it('lists only the unlinked accounts with a skipped worklog when opened with that filter', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => []]);
+    $skipped = UserMapping::query()->create(['integration_id' => $jira->id, 'account_id' => 'acc-1', 'display_name' => 'Ann Smith']);
+    $skipped->forceFill(['worklog_skipped_at' => now()])->save();
+    $neverLoggedTime = UserMapping::query()->create(['integration_id' => $jira->id, 'account_id' => 'acc-2', 'display_name' => 'Bob Jones']);
+
+    // When
+    $page = Livewire::withQueryParams(['filters' => ['skipped_worklogs' => ['isActive' => '1']]])->test(UserMappingPage::class, ['record' => $jira->id]);
+
+    // Then
+    $page->assertCanSeeTableRecords([$skipped])->assertCanNotSeeTableRecords([$neverLoggedTime]);
+});

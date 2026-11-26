@@ -18,6 +18,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Artisan;
+use Livewire\Attributes\Url;
 use Saloon\Exceptions\Request\RequestException;
 use Timatic\Jira\Commands\SyncUsersCommand;
 use Timatic\Jira\Models\UserMapping;
@@ -33,6 +34,10 @@ class UserMappingPage extends Page implements HasTable
     protected static string $resource = IntegrationResource::class;
 
     protected string $view = 'jira::filament.pages.jira-project-mapping-page';
+
+    /** @var array<string, mixed> | null */
+    #[Url(as: 'filters')]
+    public ?array $tableFilters = null;
 
     public function getTitle(): string
     {
@@ -80,6 +85,9 @@ class UserMappingPage extends Page implements HasTable
                     ->label(__('jira::jira.project_mapping.filter_unmapped'))
                     ->default()
                     ->query(fn (Builder $query) => $query->whereNull('user_id')),
+                Filter::make('skipped_worklogs')
+                    ->label(__('jira::jira.common.filter_skipped_worklogs'))
+                    ->query(fn (Builder $query) => $query->scopes('skippedWorklogs')),
             ])
             ->actions([
                 Action::make('link')

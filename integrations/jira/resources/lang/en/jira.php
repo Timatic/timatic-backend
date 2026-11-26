@@ -16,6 +16,7 @@ return [
         'field_title' => 'Title',
         'connection_expired_title' => 'Jira connection expired',
         'connection_expired_body' => 'Reconnect Jira via Settings.',
+        'filter_skipped_worklogs' => 'Skipped worklogs',
     ],
 
     'settings' => [
