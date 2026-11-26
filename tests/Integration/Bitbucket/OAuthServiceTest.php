@@ -34,21 +34,30 @@ it('stores the tokens bitbucket hands out for the code', function () {
     $mockClient->assertSent(fn (ExchangeCodeRequest $request, $response): bool => $response->getPendingRequest()->headers()->get('Authorization') === 'Basic '.base64_encode('a-client-id:a-client-secret'));
 });
 
-it('disconnects when bitbucket refuses the refresh token', function () {
+it('drops only the tokens when bitbucket refuses the refresh token', function (int $status, array $body) {
     $integration = Integration::create(['title' => 'Bitbucket', 'type' => 'bitbucket', 'config' => [
         'access_token' => 'an-access-token',
         'refresh_token' => 'a-revoked-refresh-token',
         'expires_at' => now()->subMinute()->timestamp,
         'workspace' => 'acme',
+        'webhook_uuid' => '{uuid}',
+        'webhook_secret' => 'a-webhook-secret',
     ]]);
     MockClient::global([
-        RefreshTokenRequest::class => MockResponse::make(['error' => 'invalid_grant'], 400),
+        RefreshTokenRequest::class => MockResponse::make($body, $status),
     ]);
 
     $integration = app(OAuthService::class)->refreshIfExpired($integration);
 
-    expect($integration->config)->toBe([]);
-});
+    expect($integration->config)->toBe([
+        'workspace' => 'acme',
+        'webhook_uuid' => '{uuid}',
+        'webhook_secret' => 'a-webhook-secret',
+    ]);
+})->with([
+    'unauthorized client' => [403, ['error' => 'unauthorized_client', 'error_description' => 'refresh_token is invalid']],
+    'invalid grant' => [400, ['error' => 'invalid_grant']],
+]);
 
 it('does not ask bitbucket for new tokens without a refresh token', function () {
     $integration = Integration::create(['title' => 'Bitbucket', 'type' => 'bitbucket', 'config' => [
