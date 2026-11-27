@@ -6681,6 +6681,12 @@
                                     "null"
                                 ]
                             },
+                            "externalId": {
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
+                            },
                             "ticketNumber": {
                                 "type": [
                                     "string",
@@ -6833,6 +6839,10 @@
                                     },
                                     "userExternalId": {
                                         "type": "string"
+                                    },
+                                    "externalId": {
+                                        "type": "string",
+                                        "maxLength": 255
                                     },
                                     "budgetId": {
                                         "type": "integer"
