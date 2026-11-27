@@ -11,7 +11,7 @@ enum HoursExportDimension: string
     case User = 'user';
     case Budget = 'budget';
     case Customer = 'customer';
-    case TicketType = 'ticketType';
+    case Ticket = 'ticket';
 
     public function label(): string
     {
@@ -24,7 +24,7 @@ enum HoursExportDimension: string
             self::User => $entry->user_id,
             self::Budget => $entry->budget_id ?? ($entry->is_internal ? 'internal' : 'per-hour'),
             self::Customer => $entry->customer_id,
-            self::TicketType => $entry->ticket_type,
+            self::Ticket => $entry->ticket_number,
         };
     }
 
@@ -38,7 +38,7 @@ enum HoursExportDimension: string
                 default => __('exports.hours.per_hour'),
             },
             self::Customer => (string) $entry->customer_name,
-            self::TicketType => $entry->ticket_type ?: __('exports.hours.without_ticket_type'),
+            self::Ticket => $entry->ticket_number ? trim("{$entry->ticket_number} {$entry->ticket_title}") : __('exports.hours.without_ticket'),
         };
     }
 }

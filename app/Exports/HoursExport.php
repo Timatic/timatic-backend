@@ -67,7 +67,7 @@ class HoursExport implements ExportInterface
         $budgetIsDimension = in_array(HoursExportDimension::Budget, [$groupBy, $splitBy], true);
 
         return Entry::query()
-            ->select(['user_id', 'user_full_name', 'budget_id', 'is_internal', 'customer_id', 'customer_name', 'ticket_type', 'started_at', 'minutes_spent'])
+            ->select(['user_id', 'user_full_name', 'budget_id', 'is_internal', 'customer_id', 'customer_name', 'ticket_number', 'ticket_title', 'started_at', 'minutes_spent'])
             ->when($budgetIsDimension, fn (Builder $query) => $query->with('budget.budgetVersions'))
             ->whereBetween('started_at', [
                 $this->period->rangeStart()->setTimezone(config('app.timezone')),

@@ -7,11 +7,11 @@ return [
             'user' => 'Gebruiker',
             'budget' => 'Budget',
             'customer' => 'Klant',
-            'ticketType' => 'Tickettype',
+            'ticket' => 'Ticket',
         ],
         'internal' => 'Intern',
         'max_months' => 'De periode mag maximaal :months maanden beslaan.',
         'per_hour' => 'Per uur',
-        'without_ticket_type' => 'Geen tickettype',
+        'without_ticket' => 'Geen ticket',
     ],
 ];

@@ -7,11 +7,11 @@ return [
             'user' => 'User',
             'budget' => 'Budget',
             'customer' => 'Customer',
-            'ticketType' => 'Ticket type',
+            'ticket' => 'Ticket',
         ],
         'internal' => 'Internal',
         'max_months' => 'The month range can span at most :months months.',
         'per_hour' => 'Paid per hour',
-        'without_ticket_type' => 'No ticket type',
+        'without_ticket' => 'No ticket',
     ],
 ];

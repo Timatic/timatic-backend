@@ -151,15 +151,15 @@ it('exports the hours per user per budget per month', function () {
     ]);
 });
 
-it('exports the hours per ticket type without a split, filtered on a budget', function () {
+it('exports the hours per ticket without a split, filtered on a budget', function () {
     // Given
     app()->setLocale('nl');
     $support = Budget::factory()->has(BudgetVersion::factory()->state(['title' => 'Support']))->create();
     $development = Budget::factory()->has(BudgetVersion::factory()->state(['title' => 'Development']))->create();
-    Entry::factory()->create(['ticket_type' => 'Bug', 'budget_id' => $support->id, 'started_at' => '2026-01-15 10:00:00', 'ended_at' => '2026-01-15 10:00:00', 'minutes_spent' => 60]);
-    Entry::factory()->create(['ticket_type' => 'Bug', 'budget_id' => $support->id, 'started_at' => '2026-03-02 10:00:00', 'ended_at' => '2026-03-02 10:00:00', 'minutes_spent' => 90]);
-    Entry::factory()->create(['ticket_type' => null, 'budget_id' => $support->id, 'started_at' => '2026-01-20 10:00:00', 'ended_at' => '2026-01-20 10:00:00', 'minutes_spent' => 120]);
-    Entry::factory()->create(['ticket_type' => 'Bug', 'budget_id' => $development->id, 'started_at' => '2026-02-10 10:00:00', 'ended_at' => '2026-02-10 10:00:00', 'minutes_spent' => 30]);
+    Entry::factory()->create(['ticket_number' => 'PIO-12', 'ticket_title' => 'Fix login', 'budget_id' => $support->id, 'started_at' => '2026-01-15 10:00:00', 'ended_at' => '2026-01-15 10:00:00', 'minutes_spent' => 60]);
+    Entry::factory()->create(['ticket_number' => 'PIO-12', 'ticket_title' => 'Fix login', 'budget_id' => $support->id, 'started_at' => '2026-03-02 10:00:00', 'ended_at' => '2026-03-02 10:00:00', 'minutes_spent' => 90]);
+    Entry::factory()->create(['ticket_number' => null, 'ticket_title' => null, 'budget_id' => $support->id, 'started_at' => '2026-01-20 10:00:00', 'ended_at' => '2026-01-20 10:00:00', 'minutes_spent' => 120]);
+    Entry::factory()->create(['ticket_number' => 'PIO-12', 'ticket_title' => 'Fix login', 'budget_id' => $development->id, 'started_at' => '2026-02-10 10:00:00', 'ended_at' => '2026-02-10 10:00:00', 'minutes_spent' => 30]);
     Storage::fake('temp');
     $path = Storage::disk('temp')->path('hours.xlsx');
 
@@ -169,7 +169,7 @@ it('exports the hours per ticket type without a split, filtered on a budget', fu
         month: null,
         fromMonth: '2026-01',
         toMonth: '2026-03',
-        groupBy: HoursExportDimension::TicketType,
+        groupBy: HoursExportDimension::Ticket,
         budgetId: $support->id,
     )))->export($path);
 
@@ -184,8 +184,8 @@ it('exports the hours per ticket type without a split, filtered on a budget', fu
     }
 
     expect($rows)->toBe([
-        ['Tickettype', '2026-01', '2026-02', '2026-03'],
-        ['Bug', 1, 0, 1.5],
-        ['Geen tickettype', 2, 0, 0],
+        ['Ticket', '2026-01', '2026-02', '2026-03'],
+        ['Geen ticket', 2, 0, 0],
+        ['PIO-12 Fix login', 1, 0, 1.5],
     ]);
 });
