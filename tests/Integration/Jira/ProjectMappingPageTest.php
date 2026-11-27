@@ -127,3 +127,19 @@ it('links one project to a customer and budget from its row', function () {
     // Then
     expect($project->refresh()->only(['customer_id', 'budget_id']))->toBe(['customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
 });
+
+it('links no budget to a project while no customer is chosen', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    $budget = Budget::factory()->has(BudgetVersion::factory()->state(['effective_from' => now()->subYear(), 'effective_to' => null]))->create();
+    $project = ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'ACME', 'project_name' => 'Acme']);
+
+    // When
+    Livewire::test(ProjectMappingPage::class, ['record' => $jira->id])
+        ->callAction(TestAction::make('assign')->table($project), ['budget_id' => $budget->id]);
+
+    // Then
+    expect($project->refresh()->only(['customer_id', 'budget_id']))->toBe(['customer_id' => null, 'budget_id' => null]);
+});

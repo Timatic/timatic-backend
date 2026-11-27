@@ -119,7 +119,7 @@ For OAuth 2.0 implementation details (OAuthService pattern, controllers, routes)
 - `mount()`: sync resources from provider API only when connected and the integration has no mappings yet; after that only the "Refresh" action syncs
 - Table columns: identifier, name, customer.name, (budget.title if applicable)
 - Bulk action "Assign customer" — always
-- Bulk action "Assign budget" — only if budget mapping enabled (budget select filter by selected customer via reactive)
+- Bulk action "Assign budget" — only if budget mapping enabled (budget select lists the budgets of the selected customer via reactive, is `->disabled()` until a customer is chosen, and is cleared when the customer changes; a disabled field is left out of the form data, so read it with `?? null`)
 - Row action `assign` on every row — icon button (`heroicon-o-link`) that opens the form of the bulk action, filled with the values of that row (`->fillForm()`), so one row is linked without selecting it. A click on the row opens it too (`->recordAction('assign')`). Bulk and row action share one private `assignmentSchema()`.
 - Filters: one per linked field, never a single "unmapped" filter — `without_customer` (`common.filter_without_customer`, `No customer linked`) and, if budget mapping enabled, `without_budget` (`common.filter_without_budget`, `No budget linked`). Only the filter of the last field a mapping needs is `->default()`: budget when enabled, otherwise customer.
 - Header action "Refresh"

@@ -135,7 +135,7 @@ class ProjectMappingPage extends Page implements HasTable
                     ->schema($this->assignmentSchema())
                     ->action(fn (ProjectMapping $record, array $data) => $record->update([
                         'customer_id' => $data['customer_id'] ?: null,
-                        'budget_id' => $data['budget_id'] ?: null,
+                        'budget_id' => $data['budget_id'] ?? null,
                     ])),
                 Action::make('archive')
                     ->label(__('jira::jira.project_mapping.action_archive'))
@@ -160,7 +160,7 @@ class ProjectMappingPage extends Page implements HasTable
                     ->action(function (Collection $records, array $data): void {
                         $records->each->update([
                             'customer_id' => $data['customer_id'] ?: null,
-                            'budget_id' => $data['budget_id'] ?: null,
+                            'budget_id' => $data['budget_id'] ?? null,
                         ]);
                     })
                     ->deselectRecordsAfterCompletion(),
@@ -200,14 +200,17 @@ class ProjectMappingPage extends Page implements HasTable
                 ->searchable()
                 ->nullable()
                 ->placeholder(__('jira::jira.common.no_customer'))
-                ->live(),
+                ->live()
+                // The budget of the previous customer would otherwise stay selected
+                ->afterStateUpdated(fn ($set) => $set('budget_id', null)),
             Select::make('budget_id')
                 ->label(__('jira::jira.common.budget_label'))
                 ->options(fn ($get) => Budget::query()
-                    ->when($get('customer_id'), fn ($q, $id) => $q->where('customer_id', $id))
+                    ->where('customer_id', $get('customer_id'))
                     ->get()
                     ->mapWithKeys(fn (Budget $budget) => [$budget->id => $budget->getTitle()])
                 )
+                ->disabled(fn ($get): bool => blank($get('customer_id')))
                 ->searchable()
                 ->nullable()
                 ->placeholder(__('jira::jira.common.no_budget')),
