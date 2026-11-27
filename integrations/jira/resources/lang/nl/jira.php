@@ -18,6 +18,8 @@ return [
         'connection_expired_title' => 'Jira verbinding verlopen',
         'connection_expired_body' => 'Verbind Jira opnieuw via Instellingen.',
         'filter_ids_indicator' => '{1} Selectie van 1 rij|[2,*] Selectie van :count rijen',
+        'filter_without_customer' => 'Geen klant gekoppeld',
+        'filter_without_budget' => 'Geen budget gekoppeld',
     ],
 
     'settings' => [
@@ -62,6 +64,21 @@ return [
         'action_restore' => 'Herstellen',
         'filter_archived' => 'Gearchiveerd',
         'filter_unmapped' => 'Alleen niet gekoppeld',
+    ],
+
+    'epic_mapping' => [
+        'page_title' => ':title (Jira) — Epic mapping',
+        'nav_label' => 'Epic mapping',
+        'table_heading' => 'Jira epics',
+        'column_epic_key' => 'Epic key',
+        'column_name' => 'Naam',
+        'empty_heading' => 'Geen epics gevonden',
+        'empty_description' => 'Klik op "Voeg project toe" om de epics te tonen van een Jira-project waarvan de epics bij verschillende klanten of budgetten horen.',
+        'action_add_project' => 'Voeg project toe',
+        'action_remove_project' => 'Verwijder project',
+        'field_project' => 'Jira-project',
+        'remove_project_description' => 'De epics van dit project verdwijnen uit de lijst en de worklogs ervan volgen weer de project mapping. De koppelingen van de epics blijven bewaard voor als je het project opnieuw toevoegt.',
+        'sync_failed_title' => 'Epics konden niet worden opgehaald',
     ],
 
     'user_mapping' => [

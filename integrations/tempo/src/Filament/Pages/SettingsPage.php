@@ -24,9 +24,12 @@ use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Str;
+use Timatic\Jira\Filament\Pages\EpicMappingPage;
 use Timatic\Jira\Filament\Pages\ProjectMappingPage;
 use Timatic\Jira\Filament\Pages\UserMappingPage;
 use Timatic\Jira\JiraDirectory;
+use Timatic\Jira\Models\EpicMapping;
 use Timatic\Jira\Models\ProjectMapping;
 use Timatic\Jira\Models\UserMapping;
 use Timatic\Tempo\Jobs\BackfillWorklogsJob;
@@ -82,6 +85,19 @@ class SettingsPage extends Page
             ->where('integration_id', $jiraId)
             ->whereNull('user_id')
             ->pluck('id');
+        // An epic only needs a mapping while its project is mapped per epic and has no mapping of its own to fall back on
+        $projectKeysWithoutFallback = ProjectMapping::active()
+            ->where('integration_id', $jiraId)
+            ->where('is_mapped_per_epic', true)
+            ->where(fn (Builder $query) => $query->whereNull('customer_id')->orWhereNull('budget_id'))
+            ->pluck('project_key');
+        $unmappedEpicIds = EpicMapping::query()
+            ->whereKey($config['worklog_skipped_epic_mapping_ids'] ?? [])
+            ->where('integration_id', $jiraId)
+            ->where(fn (Builder $query) => $query->whereNull('customer_id')->orWhereNull('budget_id'))
+            ->get(['id', 'epic_key'])
+            ->filter(fn (EpicMapping $epic): bool => $projectKeysWithoutFallback->contains(Str::before($epic->epic_key, '-')))
+            ->pluck('id');
         // A mirrored issue is booked on the project of another Jira instance, so the projects are listed per instance
         $unmappedProjectIds = ProjectMapping::active()
             ->whereKey($config['worklog_skipped_project_mapping_ids'] ?? [])
@@ -135,13 +151,18 @@ class SettingsPage extends Page
                     Callout::make(__('tempo::tempo.settings.callout_skipped_title'))
                         ->warning()
                         ->description(__('tempo::tempo.settings.callout_skipped_description'))
-                        ->visible($unmappedUserIds->isNotEmpty() || $unmappedProjectIds->isNotEmpty())
+                        ->visible($unmappedUserIds->isNotEmpty() || $unmappedEpicIds->isNotEmpty() || $unmappedProjectIds->isNotEmpty())
                         ->footer([
                             Action::make('map_users')
                                 ->label(trans_choice('tempo::tempo.settings.action_map_users', $unmappedUserIds->count()))
                                 ->link()
                                 ->url(UserMappingPage::getUrl(['record' => $jiraId, 'filters' => ['id' => ['ids' => $unmappedUserIds->implode(',')]]]))
                                 ->visible($unmappedUserIds->isNotEmpty()),
+                            Action::make('map_epics')
+                                ->label(trans_choice('tempo::tempo.settings.action_map_epics', $unmappedEpicIds->count()))
+                                ->link()
+                                ->url(EpicMappingPage::getUrl(['record' => $jiraId, 'filters' => ['id' => ['ids' => $unmappedEpicIds->implode(',')]]]))
+                                ->visible($unmappedEpicIds->isNotEmpty()),
                             ...$unmappedProjectIds->map(fn (Collection $projects, int $projectJiraId): Action => Action::make("map_projects_{$projectJiraId}")
                                 ->label(trans_choice('tempo::tempo.settings.action_map_projects', $projects->count(), ['jira' => $jiraIntegrations[$projectJiraId]]))
                                 ->link()

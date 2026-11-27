@@ -75,6 +75,9 @@ class ProjectMappingPage extends Page implements HasTable
             NavigationItem::make(__('jira::jira.project_mapping.nav_label'))
                 ->url(ProjectMappingPage::getUrl(['record' => $record]))
                 ->isActiveWhen(fn () => request()->url() === ProjectMappingPage::getUrl(['record' => $record])),
+            NavigationItem::make(__('jira::jira.epic_mapping.nav_label'))
+                ->url(EpicMappingPage::getUrl(['record' => $record]))
+                ->isActiveWhen(fn () => request()->url() === EpicMappingPage::getUrl(['record' => $record])),
             NavigationItem::make(__('jira::jira.user_mapping.nav_label'))
                 ->url(UserMappingPage::getUrl(['record' => $record]))
                 ->isActiveWhen(fn () => request()->url() === UserMappingPage::getUrl(['record' => $record])),
@@ -108,10 +111,13 @@ class ProjectMappingPage extends Page implements HasTable
                     ->formatStateUsing(fn ($state, $record) => $record->budget?->getTitle()),
             ])
             ->filters([
-                Filter::make('unmapped')
-                    ->label(__('jira::jira.project_mapping.filter_unmapped'))
-                    ->default()
+                Filter::make('without_customer')
+                    ->label(__('jira::jira.common.filter_without_customer'))
                     ->query(fn (Builder $query) => $query->whereNull('customer_id')),
+                Filter::make('without_budget')
+                    ->label(__('jira::jira.common.filter_without_budget'))
+                    ->default()
+                    ->query(fn (Builder $query) => $query->whereNull('budget_id')),
                 Filter::make('id')
                     ->schema([Hidden::make('ids')])
                     ->query(fn (Builder $query, array $data) => $query->when(filled($data['ids'] ?? null), fn (Builder $query) => $query->whereKey(explode(',', (string) $data['ids']))))
@@ -121,6 +127,16 @@ class ProjectMappingPage extends Page implements HasTable
                     ->default(false),
             ])
             ->actions([
+                Action::make('assign')
+                    ->label(__('jira::jira.common.assign_action'))
+                    ->icon('heroicon-o-link')
+                    ->iconButton()
+                    ->fillForm(fn (ProjectMapping $record): array => $record->only(['customer_id', 'budget_id']))
+                    ->schema($this->assignmentSchema())
+                    ->action(fn (ProjectMapping $record, array $data) => $record->update([
+                        'customer_id' => $data['customer_id'] ?: null,
+                        'budget_id' => $data['budget_id'] ?? null,
+                    ])),
                 Action::make('archive')
                     ->label(__('jira::jira.project_mapping.action_archive'))
                     ->icon('heroicon-o-archive-box')
@@ -136,32 +152,15 @@ class ProjectMappingPage extends Page implements HasTable
                     ->visible(fn (ProjectMapping $record) => $record->is_archived)
                     ->action(fn (ProjectMapping $record) => $record->update(['is_archived' => false])),
             ])
+            ->recordAction('assign')
             ->bulkActions([
                 BulkAction::make('assign')
                     ->label(__('jira::jira.common.assign_action'))
-                    ->form([
-                        Select::make('customer_id')
-                            ->label(__('jira::jira.common.customer_label'))
-                            ->options(Customer::orderBy('name')->pluck('name', 'id'))
-                            ->searchable()
-                            ->nullable()
-                            ->placeholder(__('jira::jira.common.no_customer'))
-                            ->live(),
-                        Select::make('budget_id')
-                            ->label(__('jira::jira.common.budget_label'))
-                            ->options(fn ($get) => Budget::query()
-                                ->when($get('customer_id'), fn ($q, $id) => $q->where('customer_id', $id))
-                                ->get()
-                                ->mapWithKeys(fn (Budget $budget) => [$budget->id => $budget->getTitle()])
-                            )
-                            ->searchable()
-                            ->nullable()
-                            ->placeholder(__('jira::jira.common.no_budget')),
-                    ])
+                    ->schema($this->assignmentSchema())
                     ->action(function (Collection $records, array $data): void {
                         $records->each->update([
                             'customer_id' => $data['customer_id'] ?: null,
-                            'budget_id' => $data['budget_id'] ?: null,
+                            'budget_id' => $data['budget_id'] ?? null,
                         ]);
                     })
                     ->deselectRecordsAfterCompletion(),
@@ -188,6 +187,33 @@ class ProjectMappingPage extends Page implements HasTable
                     $this->syncProjectsFromJira();
                     $this->resetTable();
                 }),
+        ];
+    }
+
+    /** @return array<int, Select> */
+    private function assignmentSchema(): array
+    {
+        return [
+            Select::make('customer_id')
+                ->label(__('jira::jira.common.customer_label'))
+                ->options(fn () => Customer::orderBy('name')->pluck('name', 'id'))
+                ->searchable()
+                ->nullable()
+                ->placeholder(__('jira::jira.common.no_customer'))
+                ->live()
+                // The budget of the previous customer would otherwise stay selected
+                ->afterStateUpdated(fn ($set) => $set('budget_id', null)),
+            Select::make('budget_id')
+                ->label(__('jira::jira.common.budget_label'))
+                ->options(fn ($get) => Budget::query()
+                    ->where('customer_id', $get('customer_id'))
+                    ->get()
+                    ->mapWithKeys(fn (Budget $budget) => [$budget->id => $budget->getTitle()])
+                )
+                ->disabled(fn ($get): bool => blank($get('customer_id')))
+                ->searchable()
+                ->nullable()
+                ->placeholder(__('jira::jira.common.no_budget')),
         ];
     }
 

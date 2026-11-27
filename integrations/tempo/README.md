@@ -24,10 +24,19 @@ Jira integration. "Refresh" there loads every person of the Jira instance and li
 the same e-mail address; link the others by hand. `php artisan jira:sync-users {integration id}`
 does the same from the command line.
 
-A worklog is skipped when its author has no Timatic user or its Jira project has no customer and
-budget. The Tempo integration settings then show how many Jira users and projects that concerns,
-with links to the user mapping and project mapping that list exactly those; remove the filter
-chip there to see every row again.
+A Jira project whose epics belong to different customers or budgets, such as a support project
+with an epic per customer or a customer project with a budget per epic, is mapped per epic: click
+"Add project" under "Epic mapping" of the Jira integration and pick the project, then give each
+of its epics a customer and budget. "Refresh" there loads the epics created since; "Remove
+project" returns the project to its project mapping. A worklog is booked on the mapping of the
+epic of its issue; a sub-task takes the epic of its parent, and time logged on the epic itself
+counts for that epic. An issue without an epic, or with an epic that has no customer and budget,
+falls back to the mapping of its project.
+
+A worklog is skipped when its author has no Timatic user or neither its epic nor its Jira project
+has a customer and budget. The Tempo integration settings then show how many Jira users, epics
+and projects that concerns, with links to the user mapping, epic mapping and project mapping that
+list exactly those; remove the filter chip there to see every row again.
 
 Issues mirrored from another Jira instance usually start with the original issue key in their
 title, e.g. "ABC-12 Fix login". Switch on "Record mirrored issues on the original issue" in the

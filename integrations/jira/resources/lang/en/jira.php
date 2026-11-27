@@ -18,6 +18,8 @@ return [
         'connection_expired_title' => 'Jira connection expired',
         'connection_expired_body' => 'Reconnect Jira via Settings.',
         'filter_ids_indicator' => '{1} Selection of 1 row|[2,*] Selection of :count rows',
+        'filter_without_customer' => 'No customer linked',
+        'filter_without_budget' => 'No budget linked',
     ],
 
     'settings' => [
@@ -60,6 +62,21 @@ return [
         'action_restore' => 'Restore',
         'filter_archived' => 'Archived',
         'filter_unmapped' => 'Unmapped only',
+    ],
+
+    'epic_mapping' => [
+        'page_title' => ':title (Jira) — Epic mapping',
+        'nav_label' => 'Epic mapping',
+        'table_heading' => 'Jira epics',
+        'column_epic_key' => 'Epic key',
+        'column_name' => 'Name',
+        'empty_heading' => 'No epics found',
+        'empty_description' => 'Click "Add project" to list the epics of a Jira project whose epics belong to different customers or budgets.',
+        'action_add_project' => 'Add project',
+        'action_remove_project' => 'Remove project',
+        'field_project' => 'Jira project',
+        'remove_project_description' => 'The epics of this project leave the list and its worklogs go by the project mapping again. The links of its epics are kept for when you add the project again.',
+        'sync_failed_title' => 'Epics could not be loaded',
     ],
 
     'user_mapping' => [

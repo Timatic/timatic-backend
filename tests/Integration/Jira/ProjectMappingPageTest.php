@@ -1,8 +1,11 @@
 <?php
 
+use App\Models\Budget;
+use App\Models\BudgetVersion;
 use App\Models\Customer;
 use App\Models\Integration;
 use Carbon\CarbonImmutable;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -88,4 +91,55 @@ it('shows when the projects were last refreshed', function () {
 
     // Then
     $page->assertSee(__('jira::jira.common.last_synced', ['at' => '26-11-2026 11:30']));
+});
+
+it('lists the projects without a budget by default and narrows them to the ones without a customer', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    $budget = Budget::factory()->has(BudgetVersion::factory()->state(['effective_from' => now()->subYear(), 'effective_to' => null]))->create();
+    $mapped = ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'ACME', 'project_name' => 'Acme', 'customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
+    $withoutBudget = ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'BETA', 'project_name' => 'Beta', 'customer_id' => $budget->customer_id]);
+    $withoutCustomer = ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'GAMMA', 'project_name' => 'Gamma']);
+
+    // When
+    $page = Livewire::test(ProjectMappingPage::class, ['record' => $jira->id]);
+
+    // Then
+    $page->assertCanSeeTableRecords([$withoutBudget, $withoutCustomer])->assertCanNotSeeTableRecords([$mapped])
+        ->filterTable('without_customer')
+        ->assertCanSeeTableRecords([$withoutCustomer])->assertCanNotSeeTableRecords([$withoutBudget, $mapped]);
+});
+
+it('links one project to a customer and budget from its row', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    $budget = Budget::factory()->has(BudgetVersion::factory()->state(['effective_from' => now()->subYear(), 'effective_to' => null]))->create();
+    $project = ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'ACME', 'project_name' => 'Acme']);
+
+    // When
+    Livewire::test(ProjectMappingPage::class, ['record' => $jira->id])
+        ->callAction(TestAction::make('assign')->table($project), ['customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
+
+    // Then
+    expect($project->refresh()->only(['customer_id', 'budget_id']))->toBe(['customer_id' => $budget->customer_id, 'budget_id' => $budget->id]);
+});
+
+it('links no budget to a project while no customer is chosen', function () {
+    // Given
+    $this->loginUser(permissions: ['integrations.read']);
+    Filament::setCurrentPanel('admin');
+    $jira = Integration::create(['title' => 'Jira', 'type' => 'jira', 'config' => ['access_token' => 'token', 'cloud_id' => 'cloud-1', 'expires_at' => now()->addHour()->timestamp]]);
+    $budget = Budget::factory()->has(BudgetVersion::factory()->state(['effective_from' => now()->subYear(), 'effective_to' => null]))->create();
+    $project = ProjectMapping::query()->create(['integration_id' => $jira->id, 'project_key' => 'ACME', 'project_name' => 'Acme']);
+
+    // When
+    Livewire::test(ProjectMappingPage::class, ['record' => $jira->id])
+        ->callAction(TestAction::make('assign')->table($project), ['budget_id' => $budget->id]);
+
+    // Then
+    expect($project->refresh()->only(['customer_id', 'budget_id']))->toBe(['customer_id' => null, 'budget_id' => null]);
 });

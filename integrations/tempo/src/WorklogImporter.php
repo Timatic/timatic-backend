@@ -16,15 +16,17 @@ use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Timatic\Jira\JiraDirectory;
+use Timatic\Jira\Models\EpicMapping;
 use Timatic\Jira\Models\ProjectMapping;
 use Timatic\Jira\Models\UserMapping;
 use Timatic\Tempo\DataTransferObjects\TempoWorklog;
 
 /**
  * Copies Tempo worklogs to entries, with the issue, author and project mapping of the Jira instance Tempo runs on.
- * Entries are matched on the worklog id, so importing the same worklog twice is harmless. Entries that are invoiced
- * or in a locked period are left untouched and logged. A worklog without a mapped author or project is skipped, and
- * the Tempo integration remembers that Jira account or project so its settings can link to exactly those.
+ * In a project mapped per epic the mapping of the issue's epic comes first. Entries are matched on the worklog id,
+ * so importing the same worklog twice is harmless. Entries that are invoiced or in a locked period are left
+ * untouched and logged. A worklog without a mapped author, epic or project is skipped, and the Tempo integration
+ * remembers that Jira account, epic or project so its settings can link to exactly those.
  *
  * @arch-ignore app-boundary: turns worklogs into entries with the enricher and lock rules of the core
  */
@@ -52,8 +54,10 @@ final class WorklogImporter
             ->mapWithKeys(fn (string $issueId): array => [$issueId => $tickets->fetchTicketByKey($issueId)])
             ->filter();
         $issues = $jiraIssues->map(fn (Ticket $ticket) => $this->resolveMirroredIssue($ticket, $tempo));
+        $epicKeys = $this->findEpicKeys($jira, $jiraIssues, $issues);
         $users = $this->jiraDirectory->timaticUsers($jira, $worklogs->pluck('authorAccountId'));
         $unmappedAccountIds = [];
+        $unmappedEpicKeys = [];
         $unmappedProjectKeys = [];
 
         // Lets the outbound subscriber tell an imported change from one made in Timatic
@@ -62,7 +66,9 @@ final class WorklogImporter
         try {
             foreach ($worklogs as $worklog) {
                 $issue = $issues->get($worklog->issueId);
-                $mapping = $issue === null ? null : $this->findBudgetMapping($issue, $jira);
+                // A mirrored issue carries the key of its original, which the linked Jira may have as well
+                $epicKey = $issue === null || $issue !== $jiraIssues->get($worklog->issueId) ? null : $epicKeys->get($issue->number);
+                $mapping = $issue === null ? null : $this->findBudgetMapping($issue, $epicKey, $jira);
                 $user = $users->get($worklog->authorAccountId);
 
                 if ($issue === null || $mapping === null || $user === null) {
@@ -72,7 +78,9 @@ final class WorklogImporter
                         $unmappedAccountIds[] = $worklog->authorAccountId;
                     }
 
-                    if ($issue !== null && $mapping === null) {
+                    if ($epicKey !== null && $mapping === null) {
+                        $unmappedEpicKeys[] = $epicKey;
+                    } elseif ($issue !== null && $mapping === null) {
                         $unmappedProjectKeys[] = $this->projectKey($issue);
                     }
 
@@ -118,7 +126,7 @@ final class WorklogImporter
                 $this->entryEnricher->enrich($entry, isPartialUpdate: false, hasOvertime: false, hasCustomerOvertime: false, overtimeStartedAt: null, overtimeEndedAt: null);
             }
 
-            $this->rememberSkipped($tempo, $jira, $unmappedAccountIds, $unmappedProjectKeys, $jiraIssues->map($this->projectKey(...))->all());
+            $this->rememberSkipped($tempo, $jira, $unmappedAccountIds, $unmappedEpicKeys, $unmappedProjectKeys, $jiraIssues->map($this->projectKey(...))->all());
         } finally {
             Context::forget('entry_sync_source');
         }
@@ -144,10 +152,37 @@ final class WorklogImporter
         }
     }
 
-    /** The mapping of the issue's project, preferring the linked Jira instance when the key exists in several instances */
-    private function findBudgetMapping(Ticket $issue, Integration $jira): ?ProjectMapping
+    /**
+     * The epic of every issue in a project that is mapped per epic. A mirrored issue is left out:
+     * its time counts for the original issue, which the linked Jira instance does not have.
+     *
+     * @param  Collection<array-key, Ticket>  $jiraIssues
+     * @param  Collection<array-key, Ticket>  $issues
+     * @return Collection<string, non-falsy-string> keyed by issue key
+     */
+    private function findEpicKeys(Integration $jira, Collection $jiraIssues, Collection $issues): Collection
     {
-        return ProjectMapping::active()
+        $projectKeys = ProjectMapping::active()->where('integration_id', $jira->id)->where('is_mapped_per_epic', true)->pluck('project_key');
+
+        return $this->jiraDirectory->epicKeys($jira, $jiraIssues
+            ->filter(fn (Ticket $jiraIssue, int|string $issueId): bool => $issues->get($issueId) === $jiraIssue && $projectKeys->contains($this->projectKey($jiraIssue)))
+            ->pluck('number'));
+    }
+
+    /**
+     * The mapping of the issue's epic, otherwise the mapping of its project,
+     * preferring the linked Jira instance when the project key exists in several instances.
+     */
+    private function findBudgetMapping(Ticket $issue, ?string $epicKey, Integration $jira): EpicMapping|ProjectMapping|null
+    {
+        $epicMapping = $epicKey === null ? null : EpicMapping::query()
+            ->where('integration_id', $jira->id)
+            ->where('epic_key', $epicKey)
+            ->whereNotNull('customer_id')
+            ->whereNotNull('budget_id')
+            ->first();
+
+        return $epicMapping ?? ProjectMapping::active()
             ->where('project_key', $this->projectKey($issue))
             ->whereNotNull('customer_id')
             ->whereNotNull('budget_id')
@@ -162,11 +197,17 @@ final class WorklogImporter
 
     /**
      * @param  array<int, string>  $accountIds
+     * @param  array<int, string>  $epicKeys
      * @param  array<int, string>  $projectKeys
      * @param  array<int|string, string>  $linkedJiraProjectKeys
      */
-    private function rememberSkipped(Integration $tempo, Integration $jira, array $accountIds, array $projectKeys, array $linkedJiraProjectKeys): void
+    private function rememberSkipped(Integration $tempo, Integration $jira, array $accountIds, array $epicKeys, array $projectKeys, array $linkedJiraProjectKeys): void
     {
+        // An epic nobody loaded on the mapping page yet has no row to map
+        foreach (array_unique($epicKeys) as $epicKey) {
+            EpicMapping::query()->firstOrCreate(['integration_id' => $jira->id, 'epic_key' => $epicKey], ['epic_name' => $epicKey]);
+        }
+
         // A project nobody loaded on the mapping page yet has no row to map. The project of a mirrored original
         // does not exist in the linked Jira instance, where a row for it would break the ticket search by project.
         foreach (array_unique(array_intersect($projectKeys, $linkedJiraProjectKeys)) as $projectKey) {
@@ -174,19 +215,21 @@ final class WorklogImporter
         }
 
         $userMappingIds = UserMapping::query()->where('integration_id', $jira->id)->whereIn('account_id', $accountIds)->pluck('id')->all();
+        $epicMappingIds = EpicMapping::query()->where('integration_id', $jira->id)->whereIn('epic_key', $epicKeys)->pluck('id')->all();
         $projectMappingIds = ProjectMapping::active()->whereIn('project_key', $projectKeys)->pluck('id')->all();
 
-        if ($userMappingIds === [] && $projectMappingIds === []) {
+        if ($userMappingIds === [] && $epicMappingIds === [] && $projectMappingIds === []) {
             return;
         }
 
         // ponytail: the lock only keeps concurrent imports apart; a sync or settings save writing at the same moment
         // can still drop these ids, which return with the next skipped worklog. Own table if that ever hurts.
-        DB::transaction(function () use ($tempo, $userMappingIds, $projectMappingIds): void {
+        DB::transaction(function () use ($tempo, $userMappingIds, $epicMappingIds, $projectMappingIds): void {
             $config = Integration::query()->lockForUpdate()->findOrFail($tempo->id)->config ?? [];
 
             $tempo->update(['config' => array_merge($config, [
                 'worklog_skipped_user_mapping_ids' => array_values(array_unique([...$config['worklog_skipped_user_mapping_ids'] ?? [], ...$userMappingIds])),
+                'worklog_skipped_epic_mapping_ids' => array_values(array_unique([...$config['worklog_skipped_epic_mapping_ids'] ?? [], ...$epicMappingIds])),
                 'worklog_skipped_project_mapping_ids' => array_values(array_unique([...$config['worklog_skipped_project_mapping_ids'] ?? [], ...$projectMappingIds])),
             ])]);
         });
