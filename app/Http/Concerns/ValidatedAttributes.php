@@ -16,7 +16,7 @@ trait ValidatedAttributes
      */
     public function validatedAttributes(bool $convertToSnakeCase = true): array
     {
-        $attributes = $this->validated()['data']['attributes'];
+        $attributes = $this->validated('data.attributes') ?? [];
 
         if (! $convertToSnakeCase) {
             return $attributes;

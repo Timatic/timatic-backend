@@ -13,10 +13,11 @@ return [
         'action_disconnect' => 'Remove connection',
         'action_save' => 'Save',
         'action_refresh' => 'Refresh',
+        'last_synced' => 'Last refreshed: :at.',
         'field_title' => 'Title',
-        'notification_title_changed' => 'Title updated.',
         'connection_expired_title' => 'Jira connection expired',
         'connection_expired_body' => 'Reconnect Jira via Settings.',
+        'filter_ids_indicator' => '{1} Selection of 1 row|[2,*] Selection of :count rows',
     ],
 
     'settings' => [
@@ -25,14 +26,24 @@ return [
         'callout_connected_title' => 'Connected',
         'callout_connected_description' => 'Connected to :cloud_url',
         'callout_disconnected_title' => 'Not connected',
-        'callout_disconnected_description' => 'Click "Connect to Jira" to establish a connection.',
+        'callout_disconnected_description' => 'Click "Connect to Jira" to establish a connection. If the Timatic app cannot be installed on this Jira site, use "Connect with API token".',
         'action_connect' => 'Connect to Jira',
+        'action_connect_token' => 'Connect with API token',
+        'connect_token_description' => 'For a Jira site the Timatic app cannot be installed on. Timatic then reads Jira with the permissions of the account that owns this token.',
+        'field_site_url' => 'Site URL',
+        'field_email' => 'Email address',
+        'field_email_helper' => 'The email address of the Atlassian account the token was created with.',
+        'field_api_token' => 'API token',
+        'field_api_token_helper' => 'Create an API token with scopes for Jira, with the scopes read:jira-work and read:jira-user. The token expires on the date you pick when creating it; reconnect after that.',
+        'notification_site_not_found' => 'No Jira site was found at this URL.',
+        'notification_token_rejected' => 'Jira rejects this email address and token. Check that it is a token with scopes, with read:jira-work and read:jira-user.',
         'action_confirm_site' => 'Confirm',
         'callout_select_site_title' => 'Select Jira environment',
         'callout_select_site_description' => 'Multiple Jira environments found. Select the correct one below.',
         'field_select_site' => 'Jira environment',
         'notification_connected' => 'Connected to Jira.',
         'notification_select_site_required' => 'Please select a Jira environment.',
+        'notification_saved' => 'Settings saved.',
     ],
 
     'project_mapping' => [
@@ -49,6 +60,19 @@ return [
         'action_restore' => 'Restore',
         'filter_archived' => 'Archived',
         'filter_unmapped' => 'Unmapped only',
+    ],
+
+    'user_mapping' => [
+        'page_title' => ':title (Jira) — User mapping',
+        'nav_label' => 'User mapping',
+        'table_heading' => 'Jira users',
+        'column_name' => 'Name',
+        'column_email' => 'E-mail',
+        'column_user' => 'Timatic user',
+        'email_hidden' => 'Hidden in Jira',
+        'action_link' => 'Link to Timatic user',
+        'empty_heading' => 'No users found',
+        'empty_description' => 'Click "Refresh" to load the users from Jira. Users with the same e-mail address are linked automatically.',
     ],
 
     'consent' => [

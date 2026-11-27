@@ -34,7 +34,7 @@ class RolePolicy
 
     public function delete(Authorizable $authUser, Role $role): bool
     {
-        return $authUser->can('roles.delete');
+        return $authUser->can('roles.delete') && ! in_array($role->name, ['admin', 'super_admin']);
     }
 
     public function deleteAny(Authorizable $authUser): bool

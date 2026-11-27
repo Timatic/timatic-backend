@@ -6,8 +6,10 @@ use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Models\Budget;
 use App\Models\Customer;
 use App\Models\Integration;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Navigation\NavigationItem;
 use Filament\Notifications\Notification;
@@ -22,6 +24,7 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Livewire\Attributes\Url;
 use Saloon\Exceptions\Request\RequestException;
 use Timatic\Jira\Connector;
 use Timatic\Jira\DataTransferObjects\JiraProject;
@@ -38,6 +41,10 @@ class ProjectMappingPage extends Page implements HasTable
 
     protected string $view = 'jira::filament.pages.jira-project-mapping-page';
 
+    /** @var array<string, mixed> | null In the URL so another page can link to rows by id: ?filters[id][ids]=1,2,4 */
+    #[Url(as: 'filters')]
+    public ?array $tableFilters = null;
+
     public function getTitle(): string
     {
         return __('jira::jira.project_mapping.page_title', ['title' => $this->getIntegration()->display_title]);
@@ -47,7 +54,7 @@ class ProjectMappingPage extends Page implements HasTable
     {
         $this->record = $this->resolveRecord($record);
 
-        if ($this->hasCredentials()) {
+        if ($this->hasCredentials() && ! $this->hasMappings()) {
             $this->syncProjectsFromJira();
         }
     }
@@ -68,6 +75,9 @@ class ProjectMappingPage extends Page implements HasTable
             NavigationItem::make(__('jira::jira.project_mapping.nav_label'))
                 ->url(ProjectMappingPage::getUrl(['record' => $record]))
                 ->isActiveWhen(fn () => request()->url() === ProjectMappingPage::getUrl(['record' => $record])),
+            NavigationItem::make(__('jira::jira.user_mapping.nav_label'))
+                ->url(UserMappingPage::getUrl(['record' => $record]))
+                ->isActiveWhen(fn () => request()->url() === UserMappingPage::getUrl(['record' => $record])),
         ];
     }
 
@@ -102,6 +112,10 @@ class ProjectMappingPage extends Page implements HasTable
                     ->label(__('jira::jira.project_mapping.filter_unmapped'))
                     ->default()
                     ->query(fn (Builder $query) => $query->whereNull('customer_id')),
+                Filter::make('id')
+                    ->schema([Hidden::make('ids')])
+                    ->query(fn (Builder $query, array $data) => $query->when(filled($data['ids'] ?? null), fn (Builder $query) => $query->whereKey(explode(',', (string) $data['ids']))))
+                    ->indicateUsing(fn (array $data): ?string => filled($data['ids'] ?? null) ? trans_choice('jira::jira.common.filter_ids_indicator', count(explode(',', (string) $data['ids']))) : null),
                 TernaryFilter::make('is_archived')
                     ->label(__('jira::jira.project_mapping.filter_archived'))
                     ->default(false),
@@ -160,6 +174,7 @@ class ProjectMappingPage extends Page implements HasTable
                     ->deselectRecordsAfterCompletion(),
             ])
             ->heading(__('jira::jira.project_mapping.table_heading'))
+            ->description(fn (): ?string => $this->lastSyncedDescription())
             ->emptyStateHeading(__('jira::jira.project_mapping.empty_heading'))
             ->emptyStateDescription(__('jira::jira.project_mapping.empty_description'));
     }
@@ -176,23 +191,36 @@ class ProjectMappingPage extends Page implements HasTable
         ];
     }
 
+    private function hasMappings(): bool
+    {
+        return ProjectMapping::query()->where('integration_id', $this->getRecord()->getKey())->exists();
+    }
+
     private function hasCredentials(): bool
     {
-        $config = $this->getIntegration()->config ?? [];
-
-        return filled($config['access_token'] ?? null)
-            && filled($config['cloud_id'] ?? null);
+        return Connector::hasCredentials($this->getIntegration()->config ?? []);
     }
 
     private function syncProjectsFromJira(): void
     {
         try {
             $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
+
+            if (! $this->hasCredentials()) {
+                $this->notifyConnectionExpired();
+
+                return;
+            }
+
             $response = (new Connector($integration->config ?? []))->send(new GetProjectsRequest);
 
             if (in_array($response->status(), [401, 403])) {
                 $this->notifyConnectionExpired();
 
+                return;
+            }
+
+            if ($response->failed()) {
                 return;
             }
 
@@ -212,11 +240,25 @@ class ProjectMappingPage extends Page implements HasTable
                     ['project_name' => $project->name !== '' ? $project->name : $project->key]
                 );
             }
+
+            $integration->refresh();
+            $integration->update(['config' => [...$integration->config, 'projects_synced_at' => now()->timestamp]]);
         } catch (RequestException $e) {
             if (in_array($e->getResponse()->status(), [401, 403])) {
                 $this->notifyConnectionExpired();
             }
         }
+    }
+
+    private function lastSyncedDescription(): ?string
+    {
+        $syncedAt = $this->getIntegration()->config['projects_synced_at'] ?? null;
+
+        if ($syncedAt === null) {
+            return null;
+        }
+
+        return __('jira::jira.common.last_synced', ['at' => CarbonImmutable::createFromTimestamp($syncedAt, config('timatic.preferred_timezone'))->format('d-m-Y H:i')]);
     }
 
     private function notifyConnectionExpired(): void

@@ -6,6 +6,7 @@ use App\Filament\Resources\Integrations\IntegrationResource;
 use App\Models\Budget;
 use App\Models\Customer;
 use App\Models\Integration;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Forms\Components\Select;
@@ -47,7 +48,7 @@ class RepositoryMappingPage extends Page implements HasTable
     {
         $this->record = $this->resolveRecord($record);
 
-        if ($this->hasCredentials()) {
+        if ($this->hasCredentials() && ! $this->hasMappings()) {
             $this->syncRepositoriesFromBitbucket();
         }
     }
@@ -160,6 +161,7 @@ class RepositoryMappingPage extends Page implements HasTable
                     ->deselectRecordsAfterCompletion(),
             ])
             ->heading(__('bitbucket::bitbucket.repository_mapping.table_heading'))
+            ->description(fn (): ?string => $this->lastSyncedDescription())
             ->emptyStateHeading(__('bitbucket::bitbucket.repository_mapping.empty_heading'))
             ->emptyStateDescription(__('bitbucket::bitbucket.repository_mapping.empty_description'));
     }
@@ -176,11 +178,16 @@ class RepositoryMappingPage extends Page implements HasTable
         ];
     }
 
+    private function hasMappings(): bool
+    {
+        return RepositoryMapping::query()->where('integration_id', $this->getRecord()->getKey())->exists();
+    }
+
     private function hasCredentials(): bool
     {
         $config = $this->getIntegration()->config ?? [];
 
-        return filled($config['access_token'] ?? null)
+        return Connector::hasCredentials($config)
             && filled($config['workspace'] ?? null);
     }
 
@@ -188,12 +195,23 @@ class RepositoryMappingPage extends Page implements HasTable
     {
         try {
             $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
+
+            if (! $this->hasCredentials()) {
+                $this->notifyConnectionExpired();
+
+                return;
+            }
+
             $config = $integration->config ?? [];
             $response = (new Connector($config))->send(new GetRepositoriesRequest($config['workspace']));
 
             if (in_array($response->status(), [401, 403])) {
                 $this->notifyConnectionExpired();
 
+                return;
+            }
+
+            if ($response->failed()) {
                 return;
             }
 
@@ -214,11 +232,25 @@ class RepositoryMappingPage extends Page implements HasTable
                     ['repository_name' => $repo->name !== '' ? $repo->name : $repo->slug]
                 );
             }
+
+            $integration->refresh();
+            $integration->update(['config' => [...$integration->config, 'repositories_synced_at' => now()->timestamp]]);
         } catch (RequestException $e) {
             if (in_array($e->getResponse()->status(), [401, 403])) {
                 $this->notifyConnectionExpired();
             }
         }
+    }
+
+    private function lastSyncedDescription(): ?string
+    {
+        $syncedAt = $this->getIntegration()->config['repositories_synced_at'] ?? null;
+
+        if ($syncedAt === null) {
+            return null;
+        }
+
+        return __('bitbucket::bitbucket.common.last_synced', ['at' => CarbonImmutable::createFromTimestamp($syncedAt, config('timatic.preferred_timezone'))->format('d-m-Y H:i')]);
     }
 
     private function notifyConnectionExpired(): void

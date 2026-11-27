@@ -66,7 +66,7 @@ class OAuthService
 
     public function refreshIfExpired(Integration $integration): Integration
     {
-        if (now()->timestamp < ($integration->config['expires_at'] ?? 0)) {
+        if (! isset($integration->config['refresh_token']) || now()->timestamp < ($integration->config['expires_at'] ?? 0)) {
             return $integration;
         }
 
@@ -87,7 +87,7 @@ class OAuthService
     {
         $integration->update([
             'config' => Arr::except($integration->config ?? [], [
-                'access_token', 'refresh_token', 'expires_at', 'workspace', 'oauth_nonce',
+                'access_token', 'refresh_token', 'expires_at', 'email', 'api_token', 'workspace', 'workspace_admin', 'oauth_nonce',
                 'webhook_uuid', 'webhook_uuids', 'webhook_secret',
             ]),
         ]);
@@ -99,14 +99,17 @@ class OAuthService
 
         $response = new OAuthConnector()->send(new RefreshTokenRequest($config['refresh_token'] ?? ''));
 
-        if ($response->status() === 400) {
-            $this->disconnect($integration);
+        // A 400 or 403 means the refresh token is unusable; the webhook works without tokens, so it stays
+        if (in_array($response->status(), [400, 403], true)) {
+            $integration->update([
+                'config' => Arr::except($config, ['access_token', 'refresh_token', 'expires_at']),
+            ]);
 
             return $integration->refresh();
         }
 
         if ($response->failed()) {
-            throw new RuntimeException('Token refresh failed.');
+            throw new RuntimeException("Token refresh failed with status {$response->status()}: {$response->body()}");
         }
 
         /** @var BitbucketTokens $tokens */

@@ -101,7 +101,7 @@ class OAuthService
 
     public function refreshIfExpired(Integration $integration): Integration
     {
-        if (now()->timestamp < ($integration->config['expires_at'] ?? 0)) {
+        if (! isset($integration->config['refresh_token']) || now()->timestamp < ($integration->config['expires_at'] ?? 0)) {
             return $integration;
         }
 
@@ -147,7 +147,7 @@ class OAuthService
     {
         $integration->update([
             'config' => Arr::except($integration->config ?? [], [
-                'access_token', 'refresh_token', 'expires_at', 'cloud_id', 'cloud_url', 'oauth_nonce', 'pending_resources',
+                'access_token', 'refresh_token', 'expires_at', 'email', 'api_token', 'cloud_id', 'cloud_url', 'oauth_nonce', 'pending_resources',
             ]),
         ]);
     }
@@ -158,14 +158,15 @@ class OAuthService
 
         $response = new OAuthConnector()->send(new RefreshTokenRequest($config['refresh_token'] ?? ''));
 
-        if ($response->status() === 400) {
+        // Atlassian answers an unusable refresh token with 403, as invalid_grant or unauthorized_client
+        if ($response->status() === 403) {
             $this->disconnect($integration);
 
             return $integration->refresh();
         }
 
         if ($response->failed()) {
-            throw new RuntimeException('Token refresh failed.');
+            throw new RuntimeException("Token refresh failed with status {$response->status()}: {$response->body()}");
         }
 
         /** @var JiraTokens $tokens */

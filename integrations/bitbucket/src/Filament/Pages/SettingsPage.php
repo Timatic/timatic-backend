@@ -17,6 +17,7 @@ use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Timatic\Bitbucket\Connector;
 use Timatic\Bitbucket\DataTransferObjects\BitbucketWebhook;
@@ -98,6 +99,18 @@ class SettingsPage extends Page
             ])->statePath('data');
         }
 
+        if (! $this->hasWebhook($config) && ! $this->canInstallWebhook($config)) {
+            return $form->schema([
+                TextInput::make('title')
+                    ->label(__('bitbucket::bitbucket.common.field_title'))
+                    ->autocomplete(false)
+                    ->helperText(__('integrations.title_helper')),
+                Callout::make(__('bitbucket::bitbucket.settings.callout_without_webhook_title'))
+                    ->info()
+                    ->description(__('bitbucket::bitbucket.settings.callout_without_webhook_description', ['workspace' => $config['workspace'] ?? ''])),
+            ])->statePath('data');
+        }
+
         if (! $this->hasWebhook($config)) {
             return $form->schema([
                 Callout::make(__('bitbucket::bitbucket.settings.callout_webhook_missing_title'))
@@ -140,6 +153,12 @@ class SettingsPage extends Page
                         $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
                         $config = $integration->config ?? [];
 
+                        if (! $this->hasTokens($config)) {
+                            $this->reportExpiredConnection();
+
+                            return;
+                        }
+
                         $response = new Connector($config)
                             ->send(new DeleteWorkspaceWebhookRequest(
                                 $config['workspace'],
@@ -174,6 +193,13 @@ class SettingsPage extends Page
                 ->action(function (): void {
                     $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
                     $config = $integration->config ?? [];
+
+                    if (! $this->hasTokens($config)) {
+                        $this->reportExpiredConnection();
+
+                        return;
+                    }
+
                     $webhookUrl = rtrim(config('app.admin_url'), '/').'/integrations/bitbucket/webhook/'.$integration->id;
 
                     $config['webhook_secret'] ??= Str::random(32);
@@ -209,32 +235,26 @@ class SettingsPage extends Page
                             ->send();
                     }
                 })
-                ->visible($this->hasWorkspace($config) && ! $this->hasWebhook($config)),
+                ->visible($this->canInstallWebhook($config) && ! $this->hasWebhook($config)),
 
             Action::make('choose_workspace')
                 ->label(__('bitbucket::bitbucket.settings.action_choose_workspace'))
                 ->form([
                     Select::make('workspace')
                         ->label(__('bitbucket::bitbucket.settings.workspace_select_label'))
-                        ->options(function () {
-                            $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
-                            $response = new Connector($integration->config ?? [])
-                                ->send(new GetWorkspacesRequest);
-
-                            /** @var array<int, BitbucketWorkspace> $workspaces */
-                            $workspaces = $response->dto() ?? [];
-
-                            return collect($workspaces)
-                                ->mapWithKeys(fn (BitbucketWorkspace $w) => [$w->slug => $w->slug]);
-                        })
+                        ->options(fn () => $this->workspaces()->mapWithKeys(fn (BitbucketWorkspace $w) => [
+                            $w->slug => $w->isAdministrator ? $w->slug : $w->slug.' ('.__('bitbucket::bitbucket.consent.not_administrator').')',
+                        ]))
                         ->searchable()
                         ->required(),
                 ])
                 ->action(function (array $data): void {
+                    $workspace = $this->workspaces()->firstWhere('slug', $data['workspace']);
                     $integration = $this->getIntegration();
                     $integration->update([
                         'config' => array_merge($integration->config ?? [], [
                             'workspace' => $data['workspace'],
+                            'workspace_admin' => $workspace->isAdministrator ?? false,
                             'webhook_secret' => $integration->config['webhook_secret'] ?? Str::random(32),
                         ]),
                     ]);
@@ -246,6 +266,39 @@ class SettingsPage extends Page
             Action::make('connect')
                 ->label(__('bitbucket::bitbucket.settings.action_connect'))
                 ->url(route('bitbucket.oauth.redirect', $this->getRecord()))
+                ->visible(! $this->hasTokens($config)),
+
+            Action::make('connectWithToken')
+                ->label(__('bitbucket::bitbucket.settings.action_connect_token'))
+                ->color('gray')
+                ->modalDescription(__('bitbucket::bitbucket.settings.connect_token_description'))
+                ->schema([
+                    TextInput::make('email')
+                        ->label(__('bitbucket::bitbucket.settings.field_email'))
+                        ->helperText(__('bitbucket::bitbucket.settings.field_email_helper'))
+                        ->email()
+                        ->required(),
+                    TextInput::make('api_token')
+                        ->label(__('bitbucket::bitbucket.settings.field_api_token'))
+                        ->helperText(__('bitbucket::bitbucket.settings.field_api_token_helper'))
+                        ->password()
+                        ->revealable()
+                        ->autocomplete('off')
+                        ->required(),
+                ])
+                ->action(function (array $data, Action $action): void {
+                    $credentials = ['email' => $data['email'], 'api_token' => $data['api_token']];
+
+                    if (new Connector($credentials)->send(new GetWorkspacesRequest)->failed()) {
+                        Notification::make()->title(__('bitbucket::bitbucket.settings.notification_token_rejected'))->danger()->send();
+                        $action->halt();
+                    }
+
+                    $integration = $this->getIntegration();
+                    $integration->update(['config' => array_merge($integration->config ?? [], $credentials)]);
+                    session()->flash('bitbucket_success', __('bitbucket::bitbucket.settings.notification_connected'));
+                    $this->redirect(static::getUrl(['record' => $this->getRecord()]));
+                })
                 ->visible(! $this->hasTokens($config)),
 
             Action::make('save')
@@ -261,7 +314,7 @@ class SettingsPage extends Page
     /** @param array<string, mixed> $config */
     private function hasTokens(array $config): bool
     {
-        return filled($config['access_token'] ?? null);
+        return Connector::hasCredentials($config);
     }
 
     /** @param array<string, mixed> $config */
@@ -274,6 +327,33 @@ class SettingsPage extends Page
     private function hasWebhook(array $config): bool
     {
         return $this->hasWorkspace($config) && filled($config['webhook_uuid'] ?? null);
+    }
+
+    /** @param array<string, mixed> $config */
+    private function canInstallWebhook(array $config): bool
+    {
+        return $this->hasWorkspace($config) && ! empty($config['workspace_admin']);
+    }
+
+    /** @return Collection<int, BitbucketWorkspace> */
+    private function workspaces(): Collection
+    {
+        $integration = app(OAuthService::class)->refreshIfExpired($this->getIntegration());
+
+        if (! $this->hasTokens($integration->config ?? [])) {
+            return collect();
+        }
+
+        /** @var array<int, BitbucketWorkspace> $workspaces */
+        $workspaces = new Connector($integration->config ?? [])->send(new GetWorkspacesRequest)->dto() ?? [];
+
+        return collect($workspaces);
+    }
+
+    private function reportExpiredConnection(): void
+    {
+        session()->flash('bitbucket_error', __('bitbucket::bitbucket.common.connection_expired_title'));
+        $this->redirect(static::getUrl(['record' => $this->getRecord()]));
     }
 
     private function getIntegration(): Integration

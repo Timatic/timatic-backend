@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\Concerns\LoginUser;
@@ -18,4 +19,16 @@ it('includes a permission shared by several roles once', function () {
     $response = $this->getJson('roles?include=permissions')->assertSuccessful();
 
     expect(collect($response->json('included'))->pluck('id')->all())->toBe(['budgets.read']);
+});
+
+it('counts the users of a role', function () {
+    $this->loginUser(permissions: ['roles.read']);
+
+    Role::query()->delete();
+    $role = Role::create(['name' => 'auditor', 'guard_name' => 'web']);
+    User::factory()->count(2)->create()->each->assignRole($role);
+
+    $this->getJson('roles')
+        ->assertSuccessful()
+        ->assertJsonPath('data.0.attributes.usersCount', 2);
 });

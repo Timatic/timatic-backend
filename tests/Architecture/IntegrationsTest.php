@@ -58,8 +58,19 @@ arch('integrations only use the app models, contracts and data', function (strin
         ->ignoring(archIgnored('app-boundary')->all());
 })->with($namespaces);
 
-arch('integrations do not use each other', function (string $namespace) use ($namespaces): void {
-    expect($namespace)->not->toUse(array_values(array_diff($namespaces, [$namespace])));
+// An integration may only use another one it requires in its composer.json, e.g. Tempo runs on a Jira instance
+$requiredIntegrations = $packages->mapWithKeys(fn (string $namespace, string $path): array => [
+    $namespace => collect(array_keys(json_decode((string) file_get_contents("{$path}/composer.json"), true)['require']))
+        ->map(fn (string $package): ?string => preg_match('/^timatic\/(.+)-integration$/', $package, $matches) === 1
+            ? $packages->get((string) realpath(__DIR__.'/../../integrations/'.$matches[1]))
+            : null)
+        ->filter()
+        ->values()
+        ->all(),
+])->all();
+
+arch('integrations do not use each other', function (string $namespace) use ($namespaces, $requiredIntegrations): void {
+    expect($namespace)->not->toUse(array_values(array_diff($namespaces, [$namespace], $requiredIntegrations[$namespace])));
 })->with($namespaces);
 
 /*
@@ -79,11 +90,13 @@ test('an integration package is wired into composer', function (string $path, st
         ->and($root['require'])->toHaveKey($name);
 })->with($packagesByName);
 
-test('an integration declares the composer packages it uses', function (string $path): void {
+test('an integration declares the composer packages it uses', function (string $path) use ($packages): void {
     $required = array_keys(json_decode((string) file_get_contents("{$path}/composer.json"), true)['require']);
     $source = collect(File::allFiles("{$path}/src"))->map(fn (SplFileInfo $file): string => (string) file_get_contents($file->getPathname()))->implode("\n");
 
     $missing = collect(['Saloon\\' => 'saloonphp/saloon', 'Firebase\\JWT\\' => 'firebase/php-jwt', 'OpenSpout\\' => 'openspout/openspout'])
+        ->merge($packages->reject(fn (string $namespace, string $packagePath): bool => $packagePath === $path)
+            ->mapWithKeys(fn (string $namespace, string $packagePath): array => ["{$namespace}\\" => 'timatic/'.basename($packagePath).'-integration']))
         ->filter(fn (string $package, string $namespace): bool => str_contains($source, "use {$namespace}") && ! in_array($package, $required));
 
     expect($missing->values()->all())->toBe([]);

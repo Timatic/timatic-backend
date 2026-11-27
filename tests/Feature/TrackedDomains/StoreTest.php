@@ -342,3 +342,39 @@ it('refuses to remove a private mapping of somebody else', function () {
 
     $this->deleteJson(route('tracked-domains.destroy', $trackedDomain))->assertForbidden();
 });
+
+it('stores a shared mapping for somebody who manages customers', function () {
+    $this->loginUser(permissions: ['tracked-domains.create', 'customers.update']);
+
+    $customer = Customer::factory()->create();
+
+    $this->postJson(route('tracked-domains.store'), [
+        'data' => [
+            'type' => 'trackedDomains',
+            'attributes' => [
+                'userId' => null,
+                'domain' => 'jira.acme.com',
+                'customerId' => (string) $customer->id,
+            ],
+        ],
+    ])->assertCreated();
+
+    expect(TrackedDomain::query()->sole()->user_id)->toBeNull();
+});
+
+it('refuses a shared mapping from somebody who does not manage customers', function () {
+    $this->loginUser(permissions: ['tracked-domains.create']);
+
+    $customer = Customer::factory()->create();
+
+    $this->postJson(route('tracked-domains.store'), [
+        'data' => [
+            'type' => 'trackedDomains',
+            'attributes' => [
+                'userId' => null,
+                'domain' => 'jira.acme.com',
+                'customerId' => (string) $customer->id,
+            ],
+        ],
+    ])->assertForbidden();
+});

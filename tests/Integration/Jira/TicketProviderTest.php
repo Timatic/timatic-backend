@@ -6,6 +6,7 @@ use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
 use Timatic\Jira\Models\ProjectMapping;
 use Timatic\Jira\Requests\GetIssueRequest;
+use Timatic\Jira\Requests\GetIssuesRequest;
 use Timatic\Jira\TicketProvider;
 
 afterEach(function () {
@@ -66,4 +67,21 @@ it('returns no ticket details when the issue does not exist', function () {
         ->fetchTicketDetails('ACME-404');
 
     expect($ticket)->toBeNull();
+});
+
+it('finds no tickets when jira no longer accepts the api token', function () {
+    // Given
+    MockClient::global([
+        GetIssuesRequest::class => MockResponse::make(['code' => 401, 'message' => 'Unauthorized'], 401),
+        GetIssueRequest::class => MockResponse::make(['code' => 401, 'message' => 'Unauthorized'], 401),
+    ]);
+    $provider = TicketProvider::fromConfig(['cloud_id' => 'cloud-1', 'email' => 'jane@acme.test', 'api_token' => 'expired-token']);
+
+    // When
+    $tickets = $provider->searchTickets(null, 'login');
+    $ticket = $provider->fetchTicketDetails('ACME-12');
+
+    // Then
+    expect($tickets)->toBeEmpty()
+        ->and($ticket)->toBeNull();
 });

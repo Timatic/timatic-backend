@@ -34,6 +34,7 @@ it('builds an authorization url without scopes', function () {
 });
 
 it('stores the tokens and the connecting github login', function () {
+    $this->freezeTime();
     config()->set('github.client_id', 'Iv1.client');
     config()->set('github.client_secret', 'client-secret');
     $integration = Integration::create(['title' => 'GitHub', 'type' => 'github', 'config' => []]);

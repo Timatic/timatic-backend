@@ -18,7 +18,10 @@ class TrackedDomainCreateRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return true;
+        // A shared mapping is part of the customer's setup, not somebody's own
+        $isShared = $this->has('data.attributes.userId') && $this->input('data.attributes.userId') === null;
+
+        return ! $isShared || $this->user()?->can('customers.update') === true;
     }
 
     /**
@@ -39,7 +42,7 @@ class TrackedDomainCreateRequest extends FormRequest
                 'not_regex:/^www\./',
                 Rule::unique(TrackedDomain::class, 'domain')
                     ->where('path', $this->input('data.attributes.path'))
-                    ->where('user_id', $ownUserId),
+                    ->where('user_id', $this->input('data.attributes.userId')),
             ],
             'data.attributes.path' => ['nullable', 'string', 'max:255', 'regex:#^(/[^?\#\s]*[^/?\#\s])?$#'],
             'data.attributes.customerId' => ['required', 'string', 'exists:customers,id'],
@@ -67,7 +70,8 @@ class TrackedDomainCreateRequest extends FormRequest
             ],
             'data.attributes.isInternal' => ['boolean'],
             'data.attributes.userId' => [
-                'required',
+                'present',
+                'nullable',
                 'string',
                 function (string $attribute, mixed $value, Closure $fail) use ($ownUserId): void {
                     if ($value !== (string) $ownUserId) {

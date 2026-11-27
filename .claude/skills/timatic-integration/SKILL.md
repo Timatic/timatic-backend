@@ -94,13 +94,14 @@ Schema::create('{name}_{resource}_mappings', function (Blueprint $table) {
 - SettingsPage stores credentials in `Integration.config` (encrypted). No redirect/callback flow.
 - See TOPdesk integration (`integrations/topdesk/`) as reference implementation.
 
-For OAuth 2.0 implementation details (OAuthService pattern, controllers, routes), see `.claude/docs/integration-oauth.md`.
+For OAuth 2.0 implementation details (OAuthService pattern, controllers, routes), see `docs/integration-oauth.md`.
 
 ### 6. Saloon Connector
 - Extend `Saloon\Http\Connector`
 - **OAuth 2.0**: add `Saloon\Traits\OAuth2\AuthorizationCodeGrant` trait + implement `defaultOauthConfig()`; auth applied via `$connector->authenticate($authenticator)` before sending requests
 - **Simple auth**: implement `defaultAuth()` returning the appropriate Saloon authenticator (`TokenAuthenticator` for Bearer, `HeaderAuthenticator` for custom schemes like `Token`, `BasicAuthenticator` for basic auth)
 - Base URL: provider API root (use provider-specific identifier, e.g. `cloud_id`, from `integration.config`)
+- Paginated endpoints: use a paginator from `saloonphp/pagination-plugin`, never a hand-written loop or page DTO. Put it on the connector (`HasPagination`, see `integrations/rework/`) when the whole API paginates one way, on the request (`HasRequestPagination` + `Paginatable`, see `integrations/tempo/`) when endpoints paginate differently
 
 ### 7. Filament pages
 
@@ -115,11 +116,12 @@ For OAuth 2.0 implementation details (OAuthService pattern, controllers, routes)
 -- For actions, use `$this->redirect(request()->url());` in callback to refresh page.
 
 **MappingPage:**
-- `mount()`: sync resources from provider API if connected
+- `mount()`: sync resources from provider API only when connected and the integration has no mappings yet; after that only the "Refresh" action syncs
 - Table columns: identifier, name, customer.name, (budget.title if applicable)
 - Bulk action "Assign customer" — always
 - Bulk action "Assign budget" — only if budget mapping enabled (budget select filter by selected customer via reactive)
 - Header action "Refresh"
+- Last sync time: after a successful sync, re-read the integration and merge `{resources}_synced_at` (unix timestamp) into `Integration.config`. Show it under the table heading with `->description(fn () => ...)` as a closure, so the time is current in the response of the "Refresh" action itself: lang key `common.last_synced` (`Last refreshed: :at.`), formatted `d-m-Y H:i` in `config('timatic.preferred_timezone')`. Return `null` while no time is stored. See `integrations/jira/src/Filament/Pages/ProjectMappingPage.php`.
 
 ### 8. ServiceProvider
 ```php

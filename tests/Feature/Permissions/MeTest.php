@@ -4,6 +4,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
+use Spatie\Permission\Models\Role;
 use Tests\Concerns\LoginUser;
 
 uses(LoginUser::class);
@@ -109,4 +110,14 @@ it('includes the permissions next to the team', function () {
 
     expect((new Collection($response->json('included')))->where('type', 'permissions')->pluck('id')->all())
         ->toBe(['user', 'entries.update_in_past_until']);
+});
+
+it('includes the own roles without permission to read roles', function () {
+    /** @var User $user */
+    $user = $this->loginUser();
+    $user->assignRole(Role::create(['name' => 'auditor', 'guard_name' => 'web']));
+
+    $response = $this->getJson('/me?include=roles')->assertSuccessful();
+
+    expect(collect($response->json('included'))->where('type', 'roles')->pluck('attributes.name')->all())->toBe(['auditor']);
 });
