@@ -2481,6 +2481,170 @@
                 }
             }
         },
+        "/budgets/export-mail": {
+            "get": {
+                "operationId": "budgets.export-mail",
+                "description": "The export is built in the background and mailed to the current user as a download link.\n`GET /export-formats` lists the export types and which period parameters each one needs.",
+                "summary": "Queue an export",
+                "tags": [
+                    "ExportEmail"
+                ],
+                "parameters": [
+                    {
+                        "name": "exportType",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "budgets-monthly-excel",
+                                "budgets-excel",
+                                "entries-excel",
+                                "users-monthly-summary-excel",
+                                "hours-excel"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "year",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 2000,
+                            "maximum": 2026
+                        }
+                    },
+                    {
+                        "name": "month",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 12
+                        }
+                    },
+                    {
+                        "name": "fromMonth",
+                        "in": "query",
+                        "description": "First month (`Y-m`) of an export with period option `month-range`.",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "toMonth",
+                        "in": "query",
+                        "description": "Last month (`Y-m`) of an export with period option `month-range`.",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "groupBy",
+                        "in": "query",
+                        "description": "Rows of the `hours-excel` export, one per value of this dimension.",
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/HoursExportDimension"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "splitBy",
+                        "in": "query",
+                        "description": "Optional second row level of the `hours-excel` export, inside each group.",
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/HoursExportDimension"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "customerId",
+                        "in": "query",
+                        "description": "Filters of the `hours-excel` export.",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "budgetId",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "userId",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Export gestart. Je ontvangt een e-mail zodra het bestand klaar is."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            }
+        },
         "/export-formats": {
             "get": {
                 "operationId": "export-formats.index",
@@ -6948,7 +7112,8 @@
                                 "enum": [
                                     "none",
                                     "monthly",
-                                    "monthly-and-yearly"
+                                    "monthly-and-yearly",
+                                    "month-range"
                                 ]
                             },
                             "extension": {
@@ -6993,6 +7158,16 @@
                     "type"
                 ],
                 "title": "GitRepositoryMapping"
+            },
+            "HoursExportDimension": {
+                "type": "string",
+                "enum": [
+                    "user",
+                    "budget",
+                    "customer",
+                    "ticket"
+                ],
+                "title": "HoursExportDimension"
             },
             "Overtime": {
                 "type": "object",
@@ -8309,25 +8484,6 @@
                     }
                 }
             },
-            "AuthorizationException": {
-                "description": "Authorization error",
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "message": {
-                                    "type": "string",
-                                    "description": "Error overview."
-                                }
-                            },
-                            "required": [
-                                "message"
-                            ]
-                        }
-                    }
-                }
-            },
             "ValidationException": {
                 "description": "Validation error",
                 "content": {
@@ -8353,6 +8509,25 @@
                             "required": [
                                 "message",
                                 "errors"
+                            ]
+                        }
+                    }
+                }
+            },
+            "AuthorizationException": {
+                "description": "Authorization error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
                             ]
                         }
                     }
