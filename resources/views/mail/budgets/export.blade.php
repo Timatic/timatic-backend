@@ -9,7 +9,6 @@
 @if($formattedDate !== '')
 - {{__('Period:')}} {{ $formattedDate }}
 @endif
-- {{__('File Name:')}} {{$fileName}}
 
 {{__('You can download your file by clicking the button below:')}}
 
